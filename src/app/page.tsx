@@ -3,10 +3,10 @@
 import { useState } from "react";
 import {
   Activity, BookOpen, Bot, Boxes, BrainCircuit, CheckCheck, ChevronRight,
-  CircleHelp, Clock3, FileText, FlaskConical, FolderOpen, GraduationCap,
-  Image, LayoutTemplate, Library, Lightbulb, Menu, MoreHorizontal,
+  CircleHelp, Clock3, FlaskConical, FolderOpen, GraduationCap,
+  Image, LayoutTemplate, Library, Lightbulb, Menu,
   PenLine, Search, Settings2, ShieldCheck, Sparkles, SpellCheck,
-  Users, WandSparkles, Bell
+  WandSparkles, Bell
 } from "lucide-react";
 
 const navigation = [
