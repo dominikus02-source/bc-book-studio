@@ -1,0 +1,28 @@
+name: Pemeriksaan Frontend
+
+on:
+  push:
+    branches:
+      - main
+      - feat/frontend-agent-foundation
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Pasang dependensi
+        run: npm install
+      - name: Periksa gaya kode
+        run: npm run lint
+      - name: Bangun aplikasi
+        run: npm run build
