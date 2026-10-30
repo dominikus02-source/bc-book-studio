@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import StudioWorkspace from "@/components/studio-workspace";
+import BookCommandForm from "@/components/book-command-form";
 import {
   Activity, BookOpen, Bot, Boxes, BrainCircuit, ChevronRight, Clock3,
   FlaskConical, FolderOpen, GraduationCap, Image, LayoutTemplate, Library,
@@ -11,6 +12,7 @@ import {
 const navigation = [
   { label: "Dasbor", icon: Boxes, group: "UTAMA" },
   { label: "Proyek Buku", icon: FolderOpen, group: "UTAMA" },
+  { label: "Buat Buku", icon: BookOpen, group: "UTAMA" },
   { label: "Idea Lab", icon: Lightbulb, group: "PRODUKSI" },
   { label: "Kurikulum", icon: GraduationCap, group: "PRODUKSI" },
   { label: "Studio Penulisan", icon: PenLine, group: "PRODUKSI" },
@@ -53,7 +55,7 @@ export default function Home() {
     </aside>
     <main className="main">
       <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button className="icon-button mobile-menu" aria-label="Buka menu" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><button className="icon-button" aria-label="Pemberitahuan"><Bell size={16}/></button><div className="avatar">DW</div></div></header>
-      {active==="Dasbor"?<>
+      {active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Satu formulir perintah untuk seluruh proses produksi.</p></div><BookCommandForm/></>:active==="Dasbor"?<>
         <div style={{marginBottom:21}}><h1 className="page-title">Selamat datang di ruang penerbitan</h1><p className="page-sub">Rancang, tulis, periksa, dan terbitkan buku dalam satu alur kerja.</p></div>
         <section className="welcome"><div><div className="eyebrow">PUSAT KENDALI PENERBITAN</div><h2>Dari gagasan menjadi karya bermutu.</h2><p>Kelola proses penerbitan buku pendidikan, literasi, sastra, dan referensi dengan bantuan agen AI serta kendali editor manusia.</p></div><div className="welcome-mark">BC</div></section>
         <div className="stats">{[["Proyek buku","0","Belum ada proyek",FolderOpen],["Agen terdefinisi","11","Peran inti siap dikonfigurasi",BrainCircuit],["Naskah diterbitkan","0","Menunggu alur produksi",BookOpen],["Layanan AI","Belum aktif","Menunggu konfigurasi backend",Activity]].map(([label,value,note,Icon])=>{const I=Icon as typeof Activity;return <div className="stat" key={label as string}><div className="stat-top"><span>{label as string}</span><span className="stat-icon"><I size={15}/></span></div><div className="stat-value" style={{fontSize:(value as string).length>5?17:24}}>{value as string}</div><div className="stat-note">{note as string}</div></div>;})}</div>
