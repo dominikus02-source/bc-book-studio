@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowRight, BookOpen, Check, ChevronDown, CircleDashed, FilePlus2,
+  ArrowRight, BookOpen, ChevronDown, CircleDashed, FilePlus2,
   FileText, GraduationCap, Image as ImageIcon, Layers3, Plus, Save,
-  Search, ShieldCheck, Sparkles, WandSparkles
+  Search, ShieldCheck, Sparkles
 } from "lucide-react";
 
 type Props = { active: string };
@@ -63,7 +63,6 @@ export default function StudioWorkspace({ active }: Props) {
   const [questionType, setQuestionType] = useState("Pilihan ganda");
   const [agentQuery, setAgentQuery] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("Pemimpin Redaksi");
-  const [specialization, setSpecialization] = useState("Linguistik");
   const [visualPurpose, setVisualPurpose] = useState("Menjelaskan konsep");
   const [editorText, setEditorText] = useState("");
 
