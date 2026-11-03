@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Handoff opsional Quarto
+
+Agen Layout boleh meminta `qmd-book-agent` untuk proyek `.qmd`, tema, tipografi, dan preview berwatermark DRAFT. Kontrak: [spesialis QMD](../specialists/qmd-book-agent.md). Layout tetap pemilik keputusan; subagen tidak boleh mengedit isi atau menerbitkan.
