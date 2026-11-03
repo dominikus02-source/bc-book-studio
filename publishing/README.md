@@ -8,7 +8,7 @@
 
 ## Input contract
 
-Required: `bookId`, `snapshotHash`, `approvalStatus=approved`, `approvalId`, `orderedChapters:[{title,slug,content}]`, `metadata:{title,author,lang,bookType,discipline?}`, `targetFormats`, `assets:[{path,altText,license}]`. Snapshot hash is `sha256` of UTF-8 `json.dumps(payload,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False)`, excluding top-level `snapshotHash`, `approvalId`, `approvalStatus`. This is a **v1 explicit convention** for interoperability; canonicalization must match upstream and be revised with an explicit schema version.
+Required: `bookId`, `snapshotHash`, `approvalStatus=approved`, `approvalId`, `orderedChapters:[{title,slug,content}]`, `metadata:{title,author,lang,bookType,discipline?}`, `targetFormats`, `assets:[{path,altText,license,sha256}]`. Snapshot hash is `sha256` of UTF-8 `json.dumps(payload,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False)`, excluding top-level `snapshotHash`, `approvalId`, `approvalStatus`. This is a **v1 explicit convention** for interoperability; canonicalization must match upstream and be revised with an explicit schema version.
 
 ## Run local tests
 
@@ -21,10 +21,10 @@ To generate from a validated JSON object:
 ```python
 from pathlib import Path
 from publishing.qmd_pipeline import generate
-generate(snapshot, Path("/sandbox/new-empty-job-directory"), release=True)
+generate(snapshot, Path("/sandbox/new-empty-job-directory"), release=True, asset_root=Path("/trusted/assets-root"))
 ```
 
-Never render untrusted user-supplied source on a privileged machine. Offline containers, CPU/memory/time/disk limits, file path restrictions, a durable queue, SHA checks of asset bytes, bibliography validation, full citation/reference analysis, and actual PDF/EPUB/DOCX checks remain prerequisites to enabling production.
+Never render untrusted user-supplied source on a privileged machine. Offline containers, CPU/memory/time/disk limits, a durable queue, independent bibliography validation, full citation/reference analysis, and actual PDF/EPUB/DOCX checks remain prerequisites to enabling production.
 
 ## Dependencies and plugins
 
@@ -34,3 +34,5 @@ Never render untrusted user-supplied source on a privileged machine. Offline con
 - Scientific writing: Quarto/Pandoc math and cross-references; BibTeX/CSL and `refs.bib` from a reviewed source. Chemistry notation, units, diagrams, and domain-specific typesetting require selected, audited project-owned extensions and tested fixtures; do not install arbitrary packages or enable script execution.
 
 A CI smoke test may test Quarto in a trusted ephemeral runner with **synthetic** fixture only. It does not replace a production sandbox security review.
+
+For images: provide SHA-256 in the snapshot asset manifest and a separate read-only trusted `asset_root` with relative `assets/...` files; the generator verifies size and SHA-256 before copying. This establishes byte integrity, **not** license or image-content safety; those approvals must come from Visual and QA. CI output files are short-lived synthetic fixtures, not publication files.
