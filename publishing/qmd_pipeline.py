@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -107,8 +108,10 @@ def validate(snapshot: dict[str, Any], *, release: bool = True) -> None:
     for asset in assets:
         if not isinstance(asset, dict):
             raise PipelineError("invalid asset")
-        for field in ("path", "altText", "license"):
+        for field in ("path", "altText", "license", "sha256"):
             require_text(asset, field)
+        if not re.fullmatch(r"[a-f0-9]{64}", asset["sha256"]):
+            raise PipelineError("invalid asset SHA256")
         path = asset["path"]
         if not re.fullmatch(r"assets/[a-zA-Z0-9._/-]+", path) or ".." in Path(path).parts:
             raise PipelineError("unsafe asset path")
@@ -159,7 +162,8 @@ def _q(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def generate(snapshot: dict[str, Any], root: Path, *, release: bool = True) -> dict:
+def generate(snapshot: dict[str, Any], root: Path, *, release: bool = True,
+             asset_root: Path | None = None) -> dict:
     """Generate sources; returns structured reproducibility metadata.
 
     Caller must create a fresh sandboxed directory; never pass a shared output root.
@@ -169,6 +173,23 @@ def generate(snapshot: dict[str, Any], root: Path, *, release: bool = True) -> d
     if root.exists() and any(root.iterdir()):
         raise PipelineError("output directory must be empty")
     root.mkdir(parents=True, exist_ok=True)
+    if snapshot["assets"]:
+        if asset_root is None:
+            raise PipelineError("reviewed asset store is required for books with images")
+        trusted = Path(asset_root).resolve(strict=True)
+        for asset in snapshot["assets"]:
+            relative = Path(asset["path"])
+            source = (trusted / relative).resolve(strict=True)
+            if not source.is_relative_to(trusted) or not source.is_file() or source.is_symlink():
+                raise PipelineError("asset escapes approved store")
+            if source.stat().st_size > 25 * 1024 * 1024:
+                raise PipelineError("asset exceeds 25 MiB limit")
+            data = source.read_bytes()
+            if digest(data) != asset["sha256"]:
+                raise PipelineError("asset hash mismatch")
+            destination = root / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
     metadata = snapshot["metadata"]
     chapters = snapshot["orderedChapters"]
     chapter_files = []
@@ -196,7 +217,8 @@ def generate(snapshot: dict[str, Any], root: Path, *, release: bool = True) -> d
     for fmt in dict.fromkeys(snapshot["targetFormats"]):
         config.append(f"  {fmt}: default")
     (root / "_quarto.yml").write_text("\n".join(config) + "\n", encoding="utf-8")
-    source_hashes = {p.name: digest(p.read_bytes()) for p in sorted(root.glob("*")) if p.is_file()}
+    source_hashes = {p.relative_to(root).as_posix(): digest(p.read_bytes())
+                     for p in sorted(root.rglob("*")) if p.is_file()}
     manifest = {
         "schemaVersion": SCHEMA_VERSION,
         "bookId": snapshot["bookId"],
