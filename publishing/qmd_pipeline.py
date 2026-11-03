@@ -59,6 +59,15 @@ def require_text(obj: dict, key: str) -> str:
     return value.strip()
 
 
+def safe_heading(obj: dict, key: str) -> str:
+    value = require_text(obj, key)
+    if ("\\n" in value or "\\r" in value or
+            re.search(r"[<>`{}]", value) or
+            value.startswith(("#", "!", "%", "@", "\\", "- ", "> "))):
+        raise PipelineError(f"unsafe heading field: {key}")
+    return value
+
+
 def validate(snapshot: dict[str, Any], *, release: bool = True) -> None:
     if not isinstance(snapshot, dict):
         raise PipelineError("snapshot must be object")
@@ -75,7 +84,9 @@ def validate(snapshot: dict[str, Any], *, release: bool = True) -> None:
     metadata = snapshot.get("metadata")
     if not isinstance(metadata, dict):
         raise PipelineError("metadata required")
-    for key in ("title", "author", "lang", "bookType"):
+    for key in ("title", "author"):
+        safe_heading(metadata, key)
+    for key in ("lang", "bookType"):
         require_text(metadata, key)
     if metadata["bookType"] not in ("fiction", "nonfiction"):
         raise PipelineError("bookType must be fiction or nonfiction")
@@ -107,7 +118,7 @@ def validate(snapshot: dict[str, Any], *, release: bool = True) -> None:
     for chapter in chapters:
         if not isinstance(chapter, dict):
             raise PipelineError("invalid chapter")
-        require_text(chapter, "title")
+        safe_heading(chapter, "title")
         slug = require_text(chapter, "slug")
         if not SLUG.fullmatch(slug) or slug in names:
             raise PipelineError("duplicate or invalid chapter slug")
