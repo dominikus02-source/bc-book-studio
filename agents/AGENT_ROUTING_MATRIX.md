@@ -26,3 +26,10 @@ Status: rancangan untuk backend. Matriks ini menjadi aturan awal, bukan eksekusi
 
 ## Batas concurrency awal
 Pada VPS 4 vCPU / 8 GB RAM, mulai dengan 1 pekerjaan produksi aktif, maksimum 2 setelah uji beban dan pemantauan memori. Agen adalah peran logis, bukan 11 proses permanen.
+
+## Routing spesialis QMD (rencana, bukan agen inti ke-12)
+
+- Pada tahap **Tata letak**, `layout` dapat meminta spesialis `qmd-book-agent` untuk proyek Quarto, templat, render pratinjau DRAFT; hasil masuk `qa`.
+- Pada tahap **QA**, `qa` memanggil spesialis yang sama untuk pemeriksaan silang referensi, aksesibilitas, validator format dan manifest; QA tetap memutuskan kualitas.
+- Pada tahap **Penerbitan**, `publisher` memakai spesialis QMD **setelah gerbang approval manusia G9** untuk paket final terverifikasi. Tidak ada hak approval, publish mandiri, atau akses database produksi.
+- Tidak menambah nilai `logicalAgentCount`, proses permanen, atau scope agen lain. Seluruh detail handoff di [QMD agent integration](../docs/QMD_AGENT_INTEGRATION.md).

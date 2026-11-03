@@ -64,3 +64,7 @@ Nilai batas dan rubrik setiap kelas wajib ditelaah ahli pendidikan sebelum dipak
 Riset → Kurikulum → Rencana Buku → Penulisan → Latihan → Visual → Penyuntingan → Telaah Pedagogis → Penjaminan Mutu → Tata Letak → Persetujuan Manusia → Penerbitan.
 
 Tahap dapat bercabang atau berulang jika ditemukan temuan, tetapi setiap perpindahan harus tercatat dan dapat diaudit.
+
+## Spesialis format Quarto/QMD
+
+Katalog 11 agen inti tetap berlaku. `qmd-book-agent` adalah playbook spesialis lintas `layout`, `qa`, dan `publisher`, **bukan agen permanen tambahan**. Semua hasil mengikuti kontrak agen inti, batas biaya, dan approval manusia. Baca [playbook QMD](skills/qmd-book-agent.md) dan [integrasi QMD](../docs/QMD_AGENT_INTEGRATION.md). Fitur worker/rendering masih target implementasi, bukan kapabilitas yang telah teruji.
