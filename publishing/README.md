@@ -30,7 +30,7 @@ Never render untrusted user-supplied source on a privileged machine. Offline con
 
 - Python generator: **stdlib only**, no new runtime pip dependency.
 - Renderer: **Quarto CLI** with bundled Pandoc/Typst; do **not** install user-controlled extensions or execute embedded notebooks.
-- Optional external validators: **epubcheck**, **veraPDF** (Java runtime), font inspection tools, PDF inspection (e.g., poppler). Install only in dedicated sandboxed CI/render image after version and license review.
+- Optional external validators: **epubcheck** (automatically installed and run in CI), **veraPDF** (not yet installed/verified; needs stable Java runtime), font inspection tools, PDF inspection (e.g., poppler). Install only in dedicated sandboxed CI/render image after version and license review.
 - Scientific writing: Quarto/Pandoc math and cross-references; BibTeX/CSL and `refs.bib` from a reviewed source. Chemistry notation, units, diagrams, and domain-specific typesetting require selected, audited project-owned extensions and tested fixtures; do not install arbitrary packages or enable script execution.
 
 A CI smoke test may test Quarto in a trusted ephemeral runner with **synthetic** fixture only. It does not replace a production sandbox security review.
