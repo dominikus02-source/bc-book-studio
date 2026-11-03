@@ -1,0 +1,34 @@
+CREATE TYPE "BookStatus" AS ENUM ('DRAFT','REVIEW','APPROVED');
+CREATE TABLE "Book" (
+ "id" TEXT NOT NULL,
+ "title" TEXT NOT NULL,
+ "grade" TEXT NOT NULL,
+ "subject" TEXT NOT NULL,
+ "description" TEXT NOT NULL DEFAULT '',
+ "status" "BookStatus" NOT NULL DEFAULT 'DRAFT',
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL,
+ "approvedAt" TIMESTAMP(3),
+ CONSTRAINT "Book_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE "Chapter" (
+ "id" TEXT NOT NULL,
+ "bookId" TEXT NOT NULL,
+ "position" INTEGER NOT NULL,
+ "title" TEXT NOT NULL,
+ "content" TEXT NOT NULL,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL,
+ CONSTRAINT "Chapter_pkey" PRIMARY KEY ("id")
+);
+CREATE TABLE "Review" (
+ "id" TEXT NOT NULL,
+ "bookId" TEXT NOT NULL,
+ "decision" TEXT NOT NULL,
+ "note" TEXT NOT NULL DEFAULT '',
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT "Review_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX "Chapter_bookId_position_key" ON "Chapter"("bookId","position");
+ALTER TABLE "Chapter" ADD CONSTRAINT "Chapter_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Review" ADD CONSTRAINT "Review_bookId_fkey" FOREIGN KEY ("bookId") REFERENCES "Book"("id") ON DELETE CASCADE ON UPDATE CASCADE;
