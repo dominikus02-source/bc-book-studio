@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "1.0",
+  "status": "editorial_rules_not_automatic_fact_validation",
+  "common": {
+    "mustReview": [
+      "source_provenance",
+      "licensed_visual_assets",
+      "equation_and_table_numbering",
+      "accessibility",
+      "terminology",
+      "units",
+      "bibliography",
+      "expert_signoff_when_high_risk"
+    ]
+  },
+  "profiles": {
+    "mathematics": {
+      "checks": [
+        "proof_validity",
+        "symbol_definition",
+        "theorem_reference",
+        "equation_numbering"
+      ]
+    },
+    "physics": {
+      "checks": [
+        "dimensional_analysis",
+        "SI_units",
+        "uncertainty",
+        "equation_validity"
+      ]
+    },
+    "biology": {
+      "checks": [
+        "taxonomic_names",
+        "figure_scale",
+        "study_methods",
+        "biosafety"
+      ]
+    },
+    "chemistry": {
+      "checks": [
+        "chemical_formulae",
+        "reaction_balance",
+        "hazard_classification",
+        "SI_units"
+      ]
+    },
+    "pharmacy": {
+      "checks": [
+        "drug_nomenclature",
+        "dose_and_units",
+        "contraindications",
+        "clinical_evidence"
+      ],
+      "expertReviewRequired": true
+    },
+    "engineering": {
+      "checks": [
+        "standards_and_edition",
+        "dimensional_analysis",
+        "tolerances",
+        "safety_factors"
+      ]
+    },
+    "astronomy": {
+      "checks": [
+        "coordinate_system",
+        "time_scale",
+        "unit_conversions",
+        "epoch"
+      ]
+    },
+    "geology": {
+      "checks": [
+        "stratigraphy",
+        "geological_timescale",
+        "map_scale",
+        "sample_provenance"
+      ]
+    },
+    "health": {
+      "checks": [
+        "clinical_guidelines",
+        "research_strength",
+        "medical_claims",
+        "safety"
+      ],
+      "expertReviewRequired": true
+    },
+    "economics": {
+      "checks": [
+        "data_vintage",
+        "inflation_adjustment",
+        "model_assumptions",
+        "statistical_significance"
+      ]
+    },
+    "geography": {
+      "checks": [
+        "CRS",
+        "map_projection",
+        "map_scale",
+        "spatial_data_license"
+      ]
+    },
+    "sociology": {
+      "checks": [
+        "research_ethics",
+        "sample_bias",
+        "consent",
+        "statistical_inference"
+      ]
+    },
+    "social_sciences": {
+      "checks": [
+        "research_ethics",
+        "citation_context",
+        "methodology",
+        "cultural_sensitivity"
+      ]
+    },
+    "natural_sciences": {
+      "checks": [
+        "reproducibility",
+        "units",
+        "methodology",
+        "data_provenance"
+      ]
+    },
+    "computer_science": {
+      "checks": [
+        "pseudocode_correctness",
+        "security",
+        "versioned_references",
+        "algorithm_complexity"
+      ]
+    },
+    "statistics": {
+      "checks": [
+        "sample_design",
+        "confidence_intervals",
+        "model_assumptions",
+        "statistical_uncertainty"
+      ]
+    },
+    "environmental_science": {
+      "checks": [
+        "measurement_units",
+        "sampling",
+        "geospatial_provenance",
+        "impact_assessment"
+      ]
+    },
+    "general": {
+      "checks": [
+        "source_provenance",
+        "terminology",
+        "methods"
+      ]
+    }
+  }
+}

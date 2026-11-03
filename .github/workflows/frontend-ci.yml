@@ -70,3 +70,29 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
+
+  container-smoke:
+    name: Docker staging image and health smoke
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check staging Compose syntax without live credentials
+        run: |
+          cp .env.staging.example .env.staging
+          STUDIO_DB_PASSWORD=ci-placeholder docker compose -f compose.staging.yml config --quiet
+          rm .env.staging
+      - name: Build immutable frontend image
+        run: docker build --pull -t bc-studio-ci:${{ github.sha }} .
+      - name: Serve health endpoint with limited resources
+        run: |
+          docker run --detach --name bc-studio-smoke --cpus=1 --memory=768m -p 127.0.0.1:3186:3000 bc-studio-ci:${{ github.sha }}
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:3186/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs bc-studio-smoke
+          exit 1
+      - name: Clean ephemeral container
+        if: always()
+        run: docker rm --force bc-studio-smoke || true

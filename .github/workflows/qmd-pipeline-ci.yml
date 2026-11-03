@@ -1,0 +1,49 @@
+name: Quarto publishing foundation
+on:
+  pull_request:
+    paths:
+      - 'publishing/**'
+      - '.github/workflows/qmd-pipeline-ci.yml'
+      - 'agents/specialists/qmd-book-agent.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Python syntax and agent contracts
+        run: |
+          python -m compileall -q publishing
+          python -m unittest discover -s publishing/tests -v
+      - name: Check registry keeps eleven core agents
+        run: |
+          python -c "import json; r=json.load(open('agents/agent-registry.json')); assert len(r['agents']) == r['orchestration']['logicalAgentCount'] == 11; assert r['technicalSpecialists'][0]['allowedCallers'] == ['layout','qa','publisher']; assert not r['technicalSpecialists'][0]['productionEnabled']"
+
+  render-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Quarto CLI (CI environment only)
+        uses: quarto-dev/quarto-actions/setup@v2
+      - name: Install EPUBCheck and PDF inspection utilities (CI only)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y epubcheck poppler-utils
+          dpkg-query -W -f='${Version}\n' epubcheck
+          command -v pdfinfo
+      - name: Check Quarto installation
+        run: |
+          quarto --version
+          quarto check
+      - name: Render synthetic scientific book (HTML, Typst PDF, EPUB, DOCX)
+        run: python -m publishing.tests.render_smoke
