@@ -132,7 +132,10 @@ def render_job(source_dir: Path, output_dir: Path) -> dict:
             if fmt == "epub":
                 epubs = [p for p in produced if p.suffix == ".epub"]
                 for file in epubs:
-                    run_command(["epubcheck", str(file)], timeout=120)
+                    epubcheck_jar = Path("/usr/share/java/epubcheck.jar")
+                    check_command = (["java", "-jar", str(epubcheck_jar), str(file)]
+                                     if epubcheck_jar.is_file() else ["epubcheck", str(file)])
+                    run_command(check_command, timeout=120)
             if fmt == "typst" or fmt == "pdf":
                 for file in produced:
                     if file.suffix == ".pdf":
