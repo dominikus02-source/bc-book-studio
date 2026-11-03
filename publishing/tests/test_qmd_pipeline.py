@@ -91,5 +91,21 @@ class TestQmdPipeline(unittest.TestCase):
                 validate(data)
 
 
+    def test_heading_injection_blocked(self):
+        for heading in ("Judul\\n{{< include secret >}}", "# raw", "Naskah <script>"):
+            data = fixture()
+            data["metadata"]["title"] = heading
+            data["snapshotHash"] = digest(canonical_bytes(data))
+            with self.subTest(heading=heading), self.assertRaises(PipelineError):
+                validate(data)
+
+    def test_discipline_registry_matches_code(self):
+        from publishing.qmd_pipeline import DISCIPLINES
+        registry = json.loads((Path(__file__).resolve().parents[1] / "discipline-profiles.json").read_text())
+        self.assertEqual(set(registry["profiles"]), DISCIPLINES)
+        self.assertTrue(registry["profiles"]["health"]["expertReviewRequired"])
+        self.assertTrue(registry["profiles"]["pharmacy"]["expertReviewRequired"])
+
+
 if __name__ == "__main__":
     unittest.main()
