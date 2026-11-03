@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!authorized(req)) return deny();
   try {
     const input = createBook.parse(await req.json());
-    const book = await db.book.create({ data: input, include: { chapters: [], reviews: [] } });
+    const book = await db.book.create({ data: input, include: { chapters: true, reviews: true } });
     return NextResponse.json({ book }, { status: 201 });
   } catch (error) { return NextResponse.json(badInput(error), { status: 400 }); }
 }
