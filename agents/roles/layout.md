@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Integrasi spesialis Quarto/QMD (rencana)
+
+Untuk desain proyek buku `.qmd`, `_quarto.yml`, tipografi Typst, EPUB/HTML/DOCX, dan preview berlabel `DRAFT`, gunakan playbook [QMD Book Agent](../skills/qmd-book-agent.md) dan [kontrak integrasi](../../docs/QMD_AGENT_INTEGRATION.md). **Layout tetap pemilik keputusan layout.** Naskah dan data sumber tidak boleh disunting pada berkas QMD turunan. Teruskan ke `qa` untuk gerbang G8; jangan menganggap render preview sebagai approval final atau publikasi.
