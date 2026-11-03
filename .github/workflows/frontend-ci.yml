@@ -1,27 +1,98 @@
-name: Pemeriksaan Frontend
+name: Frontend Quality Gates
 
 on:
   push:
     branches:
       - main
       - feat/frontend-agent-foundation
+      - feat/production-foundation-20261104
+      - feat/frontend-tooling-tailwind-staging
   pull_request:
     branches:
       - main
+      - feat/frontend-agent-foundation
+      - feat/production-foundation-20261104
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate:
+  quality:
+    name: Lint, typecheck, unit and build
     runs-on: ubuntu-latest
     steps:
-      - name: Ambil kode
-        uses: actions/checkout@v4
-      - name: Siapkan Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - name: Pasang dependensi
-        run: npm install
-      - name: Periksa gaya kode
-        run: npm run lint
-      - name: Bangun aplikasi
-        run: npm run build
+          node-version: "22"
+          cache: npm
+      - name: Deterministic dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Security audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Ban remote runtime styles/scripts
+        run: |
+          if grep -R -n -E 'cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|<script[^>]+https?://' src; then
+            echo 'Remote CDN dependency detected in frontend source' >&2
+            exit 1
+          fi
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npm run build
+      - run: npm run typecheck
+
+  responsive:
+    name: Chromium viewport, keyboard, CDN and a11y
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  container-smoke:
+    name: Docker staging image and health smoke
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check staging Compose syntax without live credentials
+        run: |
+          cp .env.staging.example .env.staging
+          STUDIO_DB_PASSWORD=ci-placeholder docker compose -f compose.staging.yml config --quiet
+          rm .env.staging
+      - name: Build immutable frontend image
+        run: docker build --pull -t bc-studio-ci:${{ github.sha }} .
+      - name: Serve health endpoint with limited resources
+        run: |
+          docker run --detach --name bc-studio-smoke --cpus=1 --memory=768m -p 127.0.0.1:3186:3000 bc-studio-ci:${{ github.sha }}
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error http://127.0.0.1:3186/health; then exit 0; fi
+            sleep 2
+          done
+          docker logs bc-studio-smoke
+          exit 1
+      - name: Clean ephemeral container
+        if: always()
+        run: docker rm --force bc-studio-smoke || true

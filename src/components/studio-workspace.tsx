@@ -9,20 +9,6 @@ import {
 
 type Props = { active: string };
 
-const descriptions: Record<string, string> = {
-  "Proyek Buku": "Kelola identitas, sasaran pembaca, ruang lingkup, dan perjalanan setiap naskah.",
-  "Idea Lab": "Ubah kebutuhan pembaca menjadi gagasan buku yang memiliki arah dan nilai pembelajaran.",
-  "Kurikulum": "Petakan kerangka kurikulum, capaian, tujuan, materi, dan kesinambungan pembelajaran.",
-  "Studio Penulisan": "Susun naskah secara bertahap dengan struktur bab dan kendali editorial.",
-  "Studio Latihan": "Rancang soal, aktivitas, kunci jawaban, pembahasan, dan rubrik penilaian.",
-  "Studio Visual": "Rencanakan ilustrasi dan media visual yang memiliki tujuan pedagogis.",
-  "Penyuntingan": "Tinjau ejaan, tata bahasa, konsistensi istilah, dan keterbacaan naskah.",
-  "Tinjauan Pedagogis": "Periksa kesesuaian isi, aktivitas, dan asesmen dengan kebutuhan pembaca.",
-  "Tata Letak": "Rancang sistem halaman dan siapkan keluaran digital maupun cetak.",
-  "Penerbitan": "Periksa kelengkapan, metadata, hak penggunaan, dan persetujuan sebelum terbit.",
-  "Pengaturan": "Kelola rancangan konfigurasi ruang kerja, profil jenjang, dan kebijakan penerbitan."
-};
-
 const agentList = [
   ["Pemimpin Redaksi", "Perencanaan, pengarah alur, risiko, dan gerbang persetujuan."],
   ["Riset dan Referensi", "Riset kebutuhan, verifikasi fakta, dan penelusuran sumber."],
@@ -79,7 +65,7 @@ export default function StudioWorkspace({ active }: Props) {
       <div className="workspace-heading"><div><div className="eyebrow-dark">PUSAT KENDALI AGEN</div><h2>Arsitektur multi-agen hibrida</h2><p>11 peran inti, 8 spesialisasi, 12 profil jenjang, dan tiga lingkup memori.</p></div><span className="status">Rancangan awal</span></div>
       <div className="workspace-stats"><div><strong>11</strong><span>Agen inti</span></div><div><strong>8</strong><span>Spesialisasi</span></div><div><strong>12</strong><span>Profil kelas</span></div><div><strong>3</strong><span>Lingkup memori</span></div></div>
       <section className="panel"><div className="panel-toolbar"><div><h3 className="panel-title">Daftar agen</h3><p className="panel-desc">Peran logis yang kelak dipanggil orkestrator sesuai tahap produksi.</p></div><div className="search-box"><Search size={15}/><input value={agentQuery} onChange={e=>setAgentQuery(e.target.value)} placeholder="Cari peran agen"/></div></div>
-        <div className="agent-directory">{filteredAgents.map(([name,desc],i)=><button className={selectedAgent===name?"agent-card selected":"agent-card"} key={name} onClick={()=>setSelectedAgent(name)}><span className="agent-number">{String(agentList.findIndex(a=>a[0]===name)+1).padStart(2,"0")}</span><span className="agent-card-copy"><strong>{name}</strong><small>{desc}</small></span><ChevronDown size={15}/></button>)}</div>
+        <div className="agent-directory">{filteredAgents.map(([name,desc])=><button className={selectedAgent===name?"agent-card selected":"agent-card"} key={name} onClick={()=>setSelectedAgent(name)}><span className="agent-number">{String(agentList.findIndex(a=>a[0]===name)+1).padStart(2,"0")}</span><span className="agent-card-copy"><strong>{name}</strong><small>{desc}</small></span><ChevronDown size={15}/></button>)}</div>
         <div className="agent-detail"><span className="status">Belum diaktifkan</span><h3>{selectedAgent}</h3><p>Instruksi, kemampuan, batas kewenangan, dan format keluaran agen tersedia dalam dokumen spesifikasi. Eksekusi menunggu orkestrator backend.</p><a href="https://github.com/dominikus02-source/bc-book-studio/tree/feat/frontend-agent-foundation/agents/roles" target="_blank" rel="noreferrer">Buka spesifikasi agen <ArrowRight size={14}/></a></div>
       </section>
       <div className="workspace-two"><section className="panel"><h3 className="panel-title">Spesialisasi keilmuan</h3><div className="tag-cloud">{["Linguistik","Tata bahasa dan ortografi","Sastra","Literasi","Retorika dan komunikasi","Genre dan keterampilan menulis","Asesmen","Literasi digital"].map(x=><span key={x}>{x}</span>)}</div></section><section className="panel"><h3 className="panel-title">Lingkup memori</h3><div className="memory-item"><strong>Pengetahuan global</strong><small>Sumber terverifikasi dan pedoman umum.</small></div><div className="memory-item"><strong>Memori proyek</strong><small>Keputusan, sumber, dan konteks setiap buku.</small></div><div className="memory-item"><strong>Memori kerja</strong><small>Konteks sementara untuk tugas aktif.</small></div></section></div>
