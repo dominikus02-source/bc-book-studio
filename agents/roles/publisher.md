@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Handoff opsional Quarto
+
+Agen Publisher boleh meminta `qmd-book-agent` membangun artefak dan manifest **hanya dari snapshot immutable approved yang hash/approval ID-nya valid**. Penerbitan tetap menunggu G9/persetujuan manusia. Kontrak: [spesialis QMD](../specialists/qmd-book-agent.md).
