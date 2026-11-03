@@ -55,3 +55,8 @@ Keep Node 22 consistent with GitHub CI and Docker. Never load Tailwind from `cdn
 - Docker should install deterministically with `npm ci`. No startup `npm install`, no runtime build/compilation, no unreviewed Quarto binary installation.
 - Baseline frontend remains a prototype: most modules currently store state in memory only, and data/AI/backend integrations are not activated.
 - Read `docs/ARCHITECTURE_DECISIONS.md` and `docs/QMD_AGENT_INTEGRATION.md` (from QMD PR #2) before implementing shared contracts.
+
+
+## Dependency security resolution (2026-11-04)
+
+Next.js 15.5.x retains its own pinned transitive PostCSS. Use the root npm override `"overrides": {"postcss": "$postcss"}` and the committed lockfile so Next.js and Tailwind resolve a single patched PostCSS version. This is an explicit audited compatibility mitigation, **not** a claim that upgrading Next.js is unnecessary forever. Revalidate on every Next.js/React upgrade. `npm ci` and `npm audit --omit=dev --audit-level=high` are CI gates. Do not bypass a future advisory by disabling security checks. At initial clean staging install: PostCSS 8.5.32 and zero production dependency advisories.

@@ -33,6 +33,8 @@ jobs:
           cache: npm
       - name: Deterministic dependencies
         run: npm ci --no-audit --no-fund
+      - name: Security audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=high
       - name: Ban remote runtime styles/scripts
         run: |
           if grep -R -n -E 'cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|<script[^>]+https?://' src; then

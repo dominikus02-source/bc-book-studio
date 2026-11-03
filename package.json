@@ -53,5 +53,8 @@
   },
   "engines": {
     "node": ">=22 <27"
+  },
+  "overrides": {
+    "postcss": "$postcss"
   }
 }

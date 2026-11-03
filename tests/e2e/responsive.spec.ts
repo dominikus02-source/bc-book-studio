@@ -21,7 +21,7 @@ for (const width of [320, 375, 390, 768, 1024, 1440]) {
       await expect(menu).toBeVisible();
       await menu.click();
       await expect(page.getByRole("navigation", { name: "Menu studio" })).toBeVisible();
-      await page.getByRole("button", { name: "Tutup menu" }).click();
+      await page.getByRole("button", { name: "Tutup menu", exact: true }).click();
       await expect(page.getByRole("navigation", { name: "Menu studio" })).toBeHidden();
     }
   });
