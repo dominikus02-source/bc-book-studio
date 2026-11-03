@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Penerbitan melalui Quarto/QMD (rencana)
+
+[QMD Book Agent](../skills/qmd-book-agent.md) hanya membantu menghasilkan paket PDF/EPUB/DOCX/HTML, manifest dan bukti uji dari **snapshot versi yang telah disetujui manusia**. Agen Penerbit tetap pemilik metadata, arsip dan gerbang rilis; tanpa G9 yang terverifikasi tidak boleh menerbitkan/menyediakan artefak final. Jalur `pdf-lib`/`jszip` yang ada tetap dipertahankan sampai renderer baru lulus regresi. Lihat [kontrak integrasi](../../docs/QMD_AGENT_INTEGRATION.md).
