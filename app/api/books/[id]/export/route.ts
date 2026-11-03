@@ -57,5 +57,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const spine = items.map(i => '<itemref idref="' + i.id + '"/>').join("");
   zip.file("OEBPS/content.opf", '<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:' + xml(book.id) + '</dc:identifier><dc:title>' + xml(book.title) + '</dc:title><dc:language>id</dc:language><dc:creator>BC Book Studio</dc:creator><meta property="dcterms:modified">' + new Date().toISOString().replace(/\.\d{3}Z$/, "Z") + '</meta></metadata><manifest>' + manifest + '</manifest><spine>' + spine + '</spine></package>');
   const bytes = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
-  return new NextResponse(bytes, { headers: { "Content-Type": "application/epub+zip", "Content-Disposition": 'attachment; filename="' + filename + '"', "Cache-Control": "no-store" } });
+  return new NextResponse(new Uint8Array(bytes), { headers: { "Content-Type": "application/epub+zip", "Content-Disposition": 'attachment; filename="' + filename + '"', "Cache-Control": "no-store" } });
 }
