@@ -17,7 +17,7 @@ RUN curl -fsSL --retry 3 \
     && rm -f /tmp/quarto.deb \
     && rm -rf /var/lib/apt/lists/*
 COPY publishing /opt/bc/publishing
-ENV PYTHONPATH=/opt/bc
+ENV PYTHONPATH=/opt/bc\nENV HOME=/tmp XDG_CACHE_HOME=/tmp/.cache QUARTO_DENO_DIR=/tmp/deno
 WORKDIR /work
 USER 65532:65532
 ENTRYPOINT ["python3", "-m", "publishing.render_job"]
