@@ -107,5 +107,28 @@ class TestQmdPipeline(unittest.TestCase):
         self.assertTrue(registry["profiles"]["pharmacy"]["expertReviewRequired"])
 
 
+    def test_hashed_asset_staging(self):
+        data = fixture()
+        with tempfile.TemporaryDirectory() as tmp:
+            trusted = Path(tmp) / "trusted"
+            asset_file = trusted / "assets" / "diagram.png"
+            asset_file.parent.mkdir(parents=True)
+            asset_file.write_bytes(b"example-approved-image-bytes")
+            data["assets"] = [{
+                "path": "assets/diagram.png",
+                "altText": "Diagram contoh",
+                "license": "synthetic-fixture",
+                "sha256": digest(asset_file.read_bytes()),
+            }]
+            data["orderedChapters"][0]["content"] = "![Diagram contoh](assets/diagram.png)"
+            data["snapshotHash"] = digest(canonical_bytes(data))
+            with self.assertRaises(PipelineError):
+                generate(data, Path(tmp) / "missing", asset_root=None)
+            m = generate(data, Path(tmp) / "book", asset_root=trusted)
+            self.assertEqual(m["generatedSourceHashes"]["assets/diagram.png"], data["assets"][0]["sha256"])
+            asset_file.write_bytes(b"tampered")
+            with self.assertRaises(PipelineError):
+                generate(data, Path(tmp) / "tampered", asset_root=trusted)
+
 if __name__ == "__main__":
     unittest.main()
