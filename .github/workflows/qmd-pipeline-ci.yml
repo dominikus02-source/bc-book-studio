@@ -47,3 +47,41 @@ jobs:
           quarto check
       - name: Render synthetic scientific book (HTML, Typst PDF, EPUB, DOCX)
         run: python -m publishing.tests.render_smoke
+
+  sandbox-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build Quarto runtime image with PDF and EPUB validators
+        run: docker build -f publishing/Dockerfile -t bc-book-studio-qmd:1.11.9 .
+      - name: Prepare synthetic approved fixture (NOT real human approval)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from publishing.tests.test_qmd_pipeline import fixture
+          from publishing.qmd_pipeline import generate
+          generate(fixture(), Path("/tmp/qmd-fixture-input"))
+          Path("/tmp/qmd-fixture-output").mkdir()
+          PY
+          chmod -R a+rX /tmp/qmd-fixture-input
+          chmod a+rwx /tmp/qmd-fixture-output
+      - name: Run hardened container without network or host secrets
+        run: bash publishing/run-sandbox.sh /tmp/qmd-fixture-input /tmp/qmd-fixture-output
+      - name: Verify rendered artifacts and audit manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/qmd-fixture-output")
+          manifest=json.loads((root/"manifest.json").read_text())
+          assert manifest["renderStatus"] == "rendered_not_approved_for_publication"
+          assert manifest["qaStatus"] == "technical_checks_only"
+          for fmt in ("html","typst","epub","docx"):
+              assert (root/fmt).is_dir(), fmt
+          assert manifest["artifacts"]
+          print("Sandbox validation successful:",len(manifest["artifacts"]),"artifacts")
+          PY
