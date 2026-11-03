@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  grade       String
+  subject     String
+  description String    @default("")
+  status      BookStatus @default(DRAFT)
+  chapters    Chapter[]
+  reviews     Review[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  approvedAt  DateTime?
+}
+model Chapter {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  position  Int
+  title     String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([bookId, position])
+}
+model Review {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  decision  String
+  note      String   @default("") @db.Text
+  createdAt DateTime @default(now())
+}
+enum BookStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+}
