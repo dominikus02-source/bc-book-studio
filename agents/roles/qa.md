@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Handoff opsional Quarto
+
+Agen QA boleh meminta `qmd-book-agent` melakukan lint/render uji dan menghasilkan bukti G7/G8 termasuk aksesibilitas. QA sendiri yang menetapkan pass/fail sesuai gerbang resmi; renderer tidak memberi approval. Kontrak: [spesialis QMD](../specialists/qmd-book-agent.md).
