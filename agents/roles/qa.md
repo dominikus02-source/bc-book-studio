@@ -36,3 +36,7 @@ Kembalikan objek terstruktur dengan:
 5. Jangan menjalankan tindakan eksternal atau menerbitkan konten.
 6. Patuhi profil jenjang, spesialisasi, dan batas biaya proyek.
 7. Laporkan kegagalan agar orkestrator dapat mengulang hanya tahap terkait.
+
+## Pemeriksaan Quarto/QMD (rencana)
+
+Untuk artefak Quarto, gunakan [QMD Book Agent](../skills/qmd-book-agent.md) sebagai spesialis uji semantik, unresolved references, bibliografi, alt text, font/glyph, validasi EPUB/PDF, aksesibilitas dan reproducibility. QA tetap menjadi pemilik keputusan mutu; `completed` hanya bila bukti validator nyata tersedia. Jika hasil render belum tersedia, status `blocked` atau `needs_review`, tidak boleh menyatakan lulus. Lihat [kontrak integrasi](../../docs/QMD_AGENT_INTEGRATION.md).
