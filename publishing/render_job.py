@@ -122,7 +122,10 @@ def render_job(source_dir: Path, output_dir: Path) -> dict:
             bookdir = project / "_book"
             if not bookdir.is_dir():
                 raise RenderJobError("missing Quarto output")
-            produced = [p for p in bookdir.rglob("*") if p.is_file()]
+            entries = list(bookdir.rglob("*"))
+            if any(p.is_symlink() for p in entries):
+                raise RenderJobError("rendered output contains a symlink")
+            produced = [p for p in entries if p.is_file()]
             suffix = SUFFIXES[fmt]
             if not any(p.suffix == suffix and p.stat().st_size > 0 for p in produced):
                 raise RenderJobError(f"missing {fmt} artifact")
