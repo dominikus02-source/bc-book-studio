@@ -134,7 +134,7 @@ def validate(snapshot: dict[str, Any], *, release: bool = True) -> None:
             raise PipelineError("citations require reviewed bibliography")
     for chapter in chapters:
         for ref in REFERENCES.findall(chapter["content"]):
-            if ref not in labels and not ref.startswith("sec-"):
+            if ref not in labels and ref not in {("sec-" + item["slug"]) for item in chapters}:
                 raise PipelineError(f"unresolved reference {ref}")
     # Images only from reviewed asset manifest; reject remote and traversal paths.
     declared = {asset["path"] for asset in assets}
@@ -169,7 +169,7 @@ def generate(snapshot: dict[str, Any], root: Path, *, release: bool = True) -> d
         hashes[chapter["slug"]] = digest(chapter["content"].encode("utf-8"))
         chapter_files.append(filename)
     title = metadata["title"]
-    introduction = f"# {_q(title)} {{.unnumbered}}\n\n"
+    introduction = f"# {title} {{.unnumbered}}\n\n"
     if not release:
         introduction += "**DRAFT — BELUM DISETUJUI UNTUK TERBIT**\n\n"
     (root / "index.qmd").write_text(introduction, encoding="utf-8")
