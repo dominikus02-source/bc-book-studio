@@ -24,3 +24,20 @@ jobs:
       - name: Check registry keeps eleven core agents
         run: |
           python -c "import json; r=json.load(open('agents/agent-registry.json')); assert len(r['agents']) == r['orchestration']['logicalAgentCount'] == 11; assert r['technicalSpecialists'][0]['allowedCallers'] == ['layout','qa','publisher']; assert not r['technicalSpecialists'][0]['productionEnabled']"
+
+  render-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Quarto CLI (CI environment only)
+        uses: quarto-dev/quarto-actions/setup@v2
+      - name: Check Quarto installation
+        run: |
+          quarto --version
+          quarto check
+      - name: Render synthetic scientific book (HTML, Typst PDF, EPUB, DOCX)
+        run: python -m publishing.tests.render_smoke
