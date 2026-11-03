@@ -39,8 +39,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y epubcheck poppler-utils
-          epubcheck --version
-          pdfinfo -v
+          dpkg-query -W -f='${Version}\n' epubcheck
+          command -v pdfinfo
       - name: Check Quarto installation
         run: |
           quarto --version
