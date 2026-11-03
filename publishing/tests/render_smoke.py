@@ -49,7 +49,12 @@ def main():
             assert any(p.is_file() and p.suffix == extensions[target] and p.stat().st_size > 0 for p in produced), (
                 f"no {target} artifact in {output}: {produced}"
             )
-        print("Trusted multi-format fixture render completed", flush=True)
+        epub_files = list((root / "_book").glob("*.epub"))
+        pdf_files = list((root / "_book").glob("*.pdf"))
+        assert len(epub_files) == 1 and len(pdf_files) == 1
+        subprocess.run(["epubcheck", str(epub_files[0])], check=True, timeout=120)
+        subprocess.run(["pdfinfo", str(pdf_files[0])], check=True, timeout=30)
+        print("Trusted multi-format fixture render and EPUB/PDF inspection completed", flush=True)
 
 
 if __name__ == "__main__":
