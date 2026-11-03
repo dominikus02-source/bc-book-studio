@@ -4,5 +4,9 @@ node_modules
 .env
 .env.*
 !.env.example
-__pycache__
-.pytest_cache
+*.log
+coverage
+playwright-report
+test-results
+.work
+_book

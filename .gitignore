@@ -147,3 +147,13 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Browser tests and publishing workspaces
+playwright-report/
+test-results/
+.work/
+_book/
+!.env.staging.example
+
+# Generated Next.js type declarations
+next-env.d.ts

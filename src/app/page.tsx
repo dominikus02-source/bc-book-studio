@@ -47,14 +47,26 @@ export default function Home() {
     return () => window.removeEventListener("bc-studio-navigate", navigate);
   }, []);
 
-  return <div className="shell">
-    <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileOpen]);
+
+  return <div className="shell min-h-dvh">
+    <a className="skip-link" href="#main-content">Lewati navigasi</a>
+    {mobileOpen && <button type="button" className="sidebar-backdrop" aria-label="Tutup menu melalui latar" onClick={() => setMobileOpen(false)} />}
+    <nav id="studio-sidebar" aria-label="Menu studio" className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+      <button type="button" className="sidebar-close" aria-label="Tutup menu" onClick={() => setMobileOpen(false)}>×</button>
       <div className="brand"><div className="brand-mark">BC</div><div><div className="brand-name">BOOK STUDIO</div><div className="brand-sub">Ekosistem Penerbitan Cerdas</div></div></div>
       <div>{["UTAMA","PRODUKSI","MUTU & TERBIT","PENGELOLAAN"].map(group=><div key={group} style={{marginBottom:19}}><div className="nav-label">{group}</div><div className="nav-list">{navigation.filter(item=>item.group===group).map(item=>{const Icon=item.icon;return <button key={item.label} className={`nav-item ${active===item.label?"active":""}`} onClick={()=>{setActive(item.label);setMobileOpen(false);}}><Icon size={16} strokeWidth={1.8}/>{item.label}</button>;})}</div></div>)}</div>
       <div className="sidebar-bottom"><strong><Sparkles size={13} style={{display:"inline",marginRight:5}}/>Ruang kerja cerdas</strong><p>Setiap naskah melewati pemeriksaan dan persetujuan editor sebelum diterbitkan.</p></div>
-    </aside>
-    <main className="main">
-      <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button className="icon-button mobile-menu" aria-label="Buka menu" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><button className="icon-button" aria-label="Pemberitahuan"><Bell size={16}/></button><div className="avatar">DW</div></div></header>
+    </nav>
+    <main id="main-content" tabIndex={-1} className="main min-w-0">
+      <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button className="icon-button mobile-menu" aria-label="Buka menu" aria-expanded={mobileOpen} aria-controls="studio-sidebar" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><button className="icon-button" aria-label="Pemberitahuan"><Bell size={16}/></button><div className="avatar">DW</div></div></header>
       {active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Satu formulir perintah untuk seluruh proses produksi.</p></div><BookCommandForm/></>:active==="Dasbor"?<>
         <div style={{marginBottom:21}}><h1 className="page-title">Selamat datang di ruang penerbitan</h1><p className="page-sub">Rancang, tulis, periksa, dan terbitkan buku dalam satu alur kerja.</p></div>
         <section className="welcome"><div><div className="eyebrow">PUSAT KENDALI PENERBITAN</div><h2>Dari gagasan menjadi karya bermutu.</h2><p>Kelola proses penerbitan buku pendidikan, literasi, sastra, dan referensi dengan bantuan agen AI serta kendali editor manusia.</p></div><div className="welcome-mark">BC</div></section>
