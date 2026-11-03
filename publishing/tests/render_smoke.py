@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 from publishing.qmd_pipeline import canonical_bytes, digest, generate
+from publishing.render_job import render_job
 
 
 def main():
@@ -57,7 +58,20 @@ def main():
                 pdf_files = list(output.glob("*.pdf"))
                 assert len(pdf_files) == 1
                 subprocess.run(["pdfinfo", str(pdf_files[0])], check=True, timeout=30)
-        print("Trusted multi-format fixture render and EPUB/PDF inspection completed", flush=True)
+        # Exercise the manifest-producing standalone worker with a fresh source.
+        # Only synthetic CI input is used here; production requires Docker sandbox.
+        second_root = Path(tmp) / "renderer-input"
+        generate(fixture, second_root)
+        output_root = Path(tmp) / "renderer-output"
+        output_root.mkdir()
+        output_manifest = render_job(second_root, output_root)
+        assert output_manifest["renderStatus"] == "rendered_not_approved_for_publication"
+        assert output_manifest["qaStatus"] == "technical_checks_only"
+        assert len(output_manifest["artifacts"]) > 4
+        assert (output_root / "manifest.json").is_file()
+        for fmt in fixture["targetFormats"]:
+            assert (output_root / fmt).is_dir()
+        print("Trusted multi-format fixture render, EPUB/PDF inspection, and artifact manifest verified", flush=True)
 
 
 if __name__ == "__main__":
