@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -10,10 +13,34 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Validate workflow semantics
+        run: bash tools/check-workflow.sh
+      - name: Configure CI npm cache
+        run: printf 'npm_config_cache=%s/bc-book-studio-ci-npm\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
+      - name: Restore CI npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/bc-book-studio-ci-npm/_cacache
+          key: bc-book-studio-ci-${{ runner.os }}-${{ runner.arch }}-node22-npm-${{ hashFiles('package-lock.json', 'next.config.*', 'tsconfig.json', 'postcss.config.*', 'tailwind.config.*') }}
+
+      - name: Restore Next compiler cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache/webpack
+            .next/cache/turbopack
+            .next/cache/swc
+          key: bc-book-studio-ci-${{ runner.os }}-${{ runner.arch }}-node22-compiler-v2-${{ hashFiles('package-lock.json', 'next.config.*', 'tsconfig.json', 'postcss.config.*', 'tailwind.config.*') }}-${{ github.sha }}
+          restore-keys: |
+            bc-book-studio-ci-${{ runner.os }}-${{ runner.arch }}-node22-compiler-v2-${{ hashFiles('package-lock.json', 'next.config.*', 'tsconfig.json', 'postcss.config.*', 'tailwind.config.*') }}-
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
       - run: npm run db:generate
       - run: npm run typecheck
       - run: npm run build
+      - name: Verify staging-compatible Docker build
+        run: docker build --build-arg BUILD_CACHE_SCOPE=bc-book-studio-ci -t bc-book-studio:ci .
