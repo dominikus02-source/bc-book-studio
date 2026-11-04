@@ -37,6 +37,15 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      audit-init: { condition: service_completed_successfully }
+    networks: [studio]
+  audit-init:
+    image: alpine:3.20
+    user: "0:0"
+    command: ["sh","-ec","chown 10001:10001 /audit && chmod 0700 /audit"]
+    volumes:
+      - studio_audit_data:/audit
+    restart: "no"
     networks: [studio]
   postgres:
     image: postgres:16-alpine
