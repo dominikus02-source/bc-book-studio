@@ -41,7 +41,7 @@ def svg_to_png(source: Path, destination: Path, *, width: int = 900) -> dict:
     try:
         import resvg_py
         from PIL import Image
-        payload = resvg_py.svg_to_bytes(svg_string=text, width=width, resources_dir="")
+        payload = resvg_py.svg_to_bytes(svg_string=text, width=width)
         with Image.open(BytesIO(payload)) as img:
             if img.format != "PNG" or img.width * img.height > MAX_PIXELS:
                 raise SVGConversionError("invalid or oversized PNG output")
