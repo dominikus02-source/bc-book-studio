@@ -10,12 +10,12 @@ The reusable CI job runs a locked install, production build, type check, depende
 
 Image verification applies migrations to an ephemeral CI-only PostgreSQL database, checks the homepage and health endpoint, rejects anonymous/forged API authentication, and executes a Prisma query from the final runtime image. Browser CRUD tests use API fixtures; they do not establish real-user JWT or database isolation PASS.
 
-Manual workflow dispatch publishes only the tested images, tagged with the exact source SHA. Digests appear in the run summary. No workflow changes a VPS, domain, Access policy or production database.
+An explicit bookstudio-rc-* tag publishes only the tested images, tagged with the exact source SHA. After this workflow reaches the default branch, manual workflow dispatch is also available. Digests appear in the run summary. No workflow changes a VPS, domain, Access policy or production database.
 
 ## Deployment to bcbookstudio.bahasacerdas.com
 1. Complete the Linux image checks on this candidate.
 2. Review a real Cloudflare-authenticated editor session and two-user CRUD isolation in preview.
-3. Publish the same reviewed source SHA with Release candidate workflow dispatch.
+3. Publish the same reviewed source SHA with an explicit bookstudio-rc-* tag (or workflow dispatch after the workflow exists on main).
 4. Copy compose.release.yml and scripts/deploy-release.sh to the existing dedicated Book Studio Compose directory. Preserve its server-only .env and compose.edge.yml.
 5. Set BC_BOOK_STUDIO_IMAGE and BC_BOOK_STUDIO_MIGRATOR_IMAGE to the immutable digests in the run summary, and BC_BOOK_STUDIO_VERIFIED_SHA to the source commit.
 6. Run bash scripts/deploy-release.sh --check. This pulls only those images, verifies the runtime revision and checks migration status. Pending migrations block deployment.
