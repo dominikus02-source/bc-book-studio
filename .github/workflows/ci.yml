@@ -146,6 +146,9 @@ jobs:
       - name: Caddy JWT routing, log hygiene and reload continuity
         shell: bash
         run: bash ops/ci/caddy-routing.sh
+      - name: Rollback through 03 and 99 isolated fixture
+        shell: bash
+        run: bash ops/ci/caddy-rollback.sh
       - name: Caddy validation summary
         if: always()
         run: |
