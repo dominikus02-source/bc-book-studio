@@ -126,3 +126,27 @@ def test_outbox_survives_sqlite_failure_and_replays(tmp_path, monkeypatch):
     import sqlite3
     with sqlite3.connect(tmp_path / "audit.sqlite3") as db:
         assert db.execute("SELECT COUNT(*) FROM job_events WHERE event_id='completed:outbox1'").fetchone()[0] == 1
+
+
+def test_outbox_survives_sqlite_failure_and_replay(tmp_path, monkeypatch):
+    from app.worker import reconcile_audit
+    from app.audit_events import has_event
+    monkeypatch.setenv("STUDIO_AUDIT_DB", str(tmp_path / "audit.sqlite3"))
+    async def scenario():
+        client = await setup()
+        try:
+            await client.lpush(PENDING, payload("outboxcase"))
+            item = await claim(client, "worker-a")
+            assert item is not None
+            assert await client.hlen("studio:audit:outbox") == 1
+            with patch("app.worker.record_event", side_effect=OSError("SQLite disk unavailable")):
+                with pytest.raises(OSError, match="SQLite disk unavailable"):
+                    await reconcile_audit(client)
+            assert await client.hlen("studio:audit:outbox") == 1
+            assert await reconcile_audit(client) == 1
+            assert await reconcile_audit(client) == 0
+            assert await client.hlen("studio:audit:outbox") == 0
+            assert has_event("claimed:outboxcase:1")
+        finally:
+            await client.aclose()
+    asyncio.run(scenario())
