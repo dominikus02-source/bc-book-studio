@@ -26,3 +26,5 @@ done
 docker exec "$name" node -e 'const {PrismaClient}=require("@prisma/client");const db=new PrismaClient();db.book.count().then(n=>console.log("Prisma runtime query PASS:",n)).finally(()=>db.$disconnect()).catch(e=>{console.error(e.message);process.exitCode=1})'
 docker image inspect "$WEB_IMAGE" --format 'Runtime image bytes: {{.Size}}'
 echo 'PASS: migrations, non-root runtime, homepage, database engine and unauthorized API checks'
+
+TEST_DATABASE_URL="$db" node scripts/verify-signed-api.cjs
