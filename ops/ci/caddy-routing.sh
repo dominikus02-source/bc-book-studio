@@ -20,7 +20,14 @@ https://bcbookstudio.test:8443 {
  tls /ci/keys/caddy.crt /ci/keys/caddy.key
  log {
   output stdout
-  format json
+  format filter {
+   wrap json
+   fields {
+    request>headers>Cf-Access-Jwt-Assertion delete
+    request>headers>Cookie delete
+    request>headers>X-Access-Identity delete
+   }
+  }
  }
  forward_auth bc-ci-verifier:8080 {
   uri /auth
