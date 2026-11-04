@@ -148,9 +148,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Shellcheck owner scripts
+      - name: Shellcheck full diagnostics
+        id: shellcheck_diagnostics
         run: |
-          shellcheck -x ops/owner-run/*.sh
+          shellcheck -x -f gcc ops/owner-run/*.sh 2>&1 | tee shellcheck-findings.txt
+          exit "${PIPESTATUS[0]}"
+      - name: Publish ShellCheck findings
+        if: always()
+        run: |
+          if test -f shellcheck-findings.txt; then cat shellcheck-findings.txt; else echo "ShellCheck did not produce findings"; fi
       - name: Hadolint Dockerfiles
         run: |
           docker run --rm -v "$PWD:/work:ro" -w /work hadolint/hadolint:latest hadolint Dockerfile verifier/Dockerfile
