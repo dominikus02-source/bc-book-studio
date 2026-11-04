@@ -24,7 +24,7 @@ done
 if [[ "$BASELINE_COMPLETE" != true ]]; then echo "GAGAL: hostname inventory incomplete"; fail=1; fi
 # The origin IP must be explicitly supplied; do not guess it from DNS/Cloudflare.
 if [[ -n "${ORIGIN_IP:-}" ]]; then
-  code="$(curl -ksS --max-time 12 --resolve "bcbookstudio.bahasacerdas.com:443:$ORIGIN_IP" -o /dev/null -w '%{http_code}' https://bcbookstudio.bahasacerdas.com/ 2>/dev/null)" || code=000
+  code="$(curl -ksS --noproxy '*' --max-time 12 --resolve "bcbookstudio.bahasacerdas.com:443:$ORIGIN_IP" -o /dev/null -w '%{http_code}' https://bcbookstudio.bahasacerdas.com/ 2>/dev/null)" || code=000
   if [[ "$code" == 401 || "$code" == 403 || "$code" == 404 ]]; then echo "LULUS: origin direct rejected ($code)"; else echo "GAGAL: origin direct $code"; fail=1; fi
 else echo "GAGAL: ORIGIN_IP not provided; direct-origin denial unverified"; fail=1; fi
 # Access edge must redirect unauthenticated browser. Curl without cookie or JWT.
