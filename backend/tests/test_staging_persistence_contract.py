@@ -8,6 +8,9 @@ def test_staging_worker_has_durable_audit_volume():
     worker = text.split("\n  worker:", 1)[1].split("\n  postgres:", 1)[0]
     assert "STUDIO_AUDIT_DB: /var/lib/bc-book-studio/audit/audit.sqlite3" in worker
     assert "studio_audit_data:/var/lib/bc-book-studio/audit" in worker
+    assert "audit-init: { condition: service_completed_successfully }" in worker
+    assert "chown 10001:10001 /audit" in text
+    assert "chmod 0700 /audit" in text
     assert "\n  studio_audit_data:" in text
     assert "studio_audit_data" not in text.split("\n  worker:",1)[0]
 
