@@ -1,0 +1,54 @@
+name: Buku kelas VII - validasi tiga format
+on:
+  pull_request:
+    paths:
+      - 'publishing/**'
+      - '.github/workflows/grade7-book.yml'
+  workflow_dispatch:
+jobs:
+  book-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Quarto
+        run: |
+          curl -fsSL --retry 3 https://github.com/quarto-dev/quarto-cli/releases/download/v1.11.9/quarto-1.11.9-linux-amd64.deb -o /tmp/quarto.deb
+          echo "64078d1623d9ab89da766591f3410a0756f3737a37efb0897c7e84b863bf092a  /tmp/quarto.deb" | sha256sum -c -
+          sudo apt-get update
+          sudo apt-get install -y /tmp/quarto.deb epubcheck poppler-utils
+      - name: Unit and grade VII tests
+        run: |
+          python -m unittest publishing.tests.test_qmd_pipeline publishing.tests.test_grade7_fixture -v
+      - name: Build approved-free preview source
+        run: |
+          python -m publishing.tests.build_grade7_fixture "$RUNNER_TEMP/grade7-source" > "$RUNNER_TEMP/grade7-source-manifest.json"
+      - name: Render and preserve DOCX PDF EPUB
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/grade7-artifacts"
+          cd "$RUNNER_TEMP/grade7-source"
+          for fmt in docx typst epub; do
+            quarto render . --to "$fmt" 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/render-$fmt.log"
+            case "$fmt" in docx) ext=docx;; typst) ext=pdf;; epub) ext=epub;; esac
+            count=$(find _book -maxdepth 1 -name "*.$ext" -type f | wc -l)
+            test "$count" -eq 1
+            cp _book/*."$ext" "$RUNNER_TEMP/grade7-artifacts/"
+          done
+          epubcheck "$RUNNER_TEMP"/grade7-artifacts/*.epub
+          pdfinfo "$RUNNER_TEMP"/grade7-artifacts/*.pdf
+          cp manifest.json "$RUNNER_TEMP/grade7-artifacts/source-manifest.json"
+          (cd "$RUNNER_TEMP/grade7-artifacts" && sha256sum *.docx *.pdf *.epub > checksums.sha256)
+      - name: Save preview evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: grade7-preview-not-approved
+          path: ${{ runner.temp }}/grade7-artifacts/
+          retention-days: 14
+          if-no-files-found: warn
