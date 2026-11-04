@@ -2,7 +2,7 @@
 set -euo pipefail
 # Strict read-only inventory. No sudo, writes, or Docker container creation.
 base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=config.env
+# shellcheck source=ops/owner-run/config.env
 source "$base/config.env"
 C="$CADDY_CONTAINER"
 if [[ "${1:-}" == "--dry-run" ]]; then echo "DRY RUN: inspect Caddy image/digest, mounts, imports, hostname status/latency; no remote writes"; exit 0; fi
