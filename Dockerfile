@@ -9,5 +9,5 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app ./
 EXPOSE 3000
-USER node
+USER 1000:1000
 CMD ["npm","run","start"]
