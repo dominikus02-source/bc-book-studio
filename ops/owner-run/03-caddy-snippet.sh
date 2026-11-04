@@ -3,6 +3,30 @@ set -euo pipefail
 base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ops/owner-run/config.env
 source "$base/config.env"
+
+# CI fixture only: refuses all real host paths and requires explicit opt-in.
+if [[ "${1:-}" == "--ci-fixture" ]]; then
+  [[ "${BC_CI_FIXTURE:-}" == "1" && -n "${BC_CI_ROOT:-}" && "$BC_CI_ROOT" == /tmp/* ]] || { echo "BLOCKED: fixture isolation missing"; exit 1; }
+  [[ -f "$BC_CI_ROOT/.fixture-marker" && -d "$BC_CI_ROOT/conf.d" ]] || { echo "BLOCKED: fixture marker missing"; exit 1; }
+  backup="$BC_CI_ROOT/backup-$(date -u +%Y%m%dT%H%M%S)"
+  cp -a "$BC_CI_ROOT/conf.d" "$backup"
+  echo "$backup" > "$BC_CI_ROOT/backup-path"
+  cp "$BC_CI_ROOT/new.caddy" "$BC_CI_ROOT/conf.d/new.caddy"
+  if ! bash "$BC_CI_ROOT/validate.sh"; then
+    echo "CI FIXTURE: validate failed; calling 99 rollback without reload"
+    BC_CI_FIXTURE=1 BC_CI_ROOT="$BC_CI_ROOT" bash "$base/99-rollback.sh" --ci-fixture "$backup"
+    exit 1
+  fi
+  bash "$BC_CI_ROOT/reload.sh"
+  if ! bash "$BC_CI_ROOT/baseline.sh"; then
+    echo "CI FIXTURE: baseline regression; calling 99 rollback"
+    BC_CI_FIXTURE=1 BC_CI_ROOT="$BC_CI_ROOT" bash "$base/99-rollback.sh" --ci-fixture "$backup"
+    exit 1
+  fi
+  echo "CI FIXTURE: applied and baseline passed"
+  exit 0
+fi
+
 dest="$HOST_CONFD/$SNIPPET_NAME"
 certdir="$HOST_CONFD/$CERT_SUBDIR"
 if [[ "${1:-}" == "--dry-run" ]]; then
