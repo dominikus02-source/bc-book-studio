@@ -27,13 +27,13 @@ Tes `backend/tests/test_worker_sigkill_process.py` menggunakan subprocess Python
 | 7 | Restart worker saat lease aktif | Belum diuji dengan proses restart lengkap |
 | 8 | Dua worker paralel | Dua subprocess worker bersaing mengambil pekerjaan; tes ditambahkan, hasil CI perlu diperiksa |
 | 9 | Lease habis saat worker lama hidup | Tes subprocess worker lama tetap hidup dan hasilnya ditolak fencing; hasil CI perlu diperiksa |
-| 10 | Redis restart saat pekerjaan aktif | Belum diuji |
+| 10 | Redis restart saat pekerjaan aktif | Tes baru mematikan proses Redis via SIGKILL dan menjalankan ulang Redis dengan AOF pada volume sama; hasil CI terbaru perlu diperiksa |
 
 **Tidak boleh dianggap 10/10 PASS.** Tes menggunakan provider test-double khusus reliability, bukan evaluasi model nyata.
 
 ## Persistensi
 - SQLite: tes baru membuat database WAL, menguji insert idempoten, backup melalui SQLite backup API, restore, `PRAGMA integrity_check`, indeks dan pembacaan event. Hasil CI terbaru harus diverifikasi.
-- Redis: belum ada bukti AOF, fsync, volume, SIGKILL Redis, container remove/recreate dan restore volume. Belum ada deployment konfigurasi yang boleh diklaim aman.
+- Redis: tes baru menggunakan AOF, fsync always, volume temporer dan SIGKILL proses Redis lalu restart pada direktori sama. Hasilnya perlu diverifikasi melalui CI. **Container remove/recreate dan restore volume Docker belum diuji.** Belum ada deployment konfigurasi yang boleh diklaim aman.
 - Audit: CLAIM, FINISH, FAIL dan RECLAIM kini memiliki sebagian event outbox. Redis durability tetap prasyarat; perbandingan komprehensif state Redis versus SQLite belum teruji.
 
 ## Keamanan
@@ -57,3 +57,8 @@ Baseline tiga CI PASS; commit tahap ini memerlukan hasil CI tersendiri. Bukti SI
 - CI pada commit `a7e9b7c`: Backend [41754454968](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454968), Quarto [41754454939](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454939), Buku VII [41754454961](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454961). Saat pertama diperiksa ketiganya `in_progress`; hasil akhir harus diperiksa lagi.
 - Pemeriksaan PC pengembangan hanya membaca keberadaan environment variables tanpa nilainya: `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, dan `STUDIO_AUDIT_DB` semuanya tidak tersedia. Ini bukan bukti tidak adanya GitHub Secrets atau secret manager lain.
 - Pengujian SIGKILL yang ditambahkan memerlukan runner Linux. Tidak ada klaim telah dijalankan lokal pada PC Windows.
+
+## Bukti dan perubahan berikutnya
+- Backend run [41754454968](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454968) pada commit `a7e9b7c`: **SUCCESS**. Ini bukti tes yang ada pada commit itu, bukan tes Redis AOF yang ditambahkan sesudahnya.
+- Tes Redis AOF `backend/tests/test_redis_aof_restart.py` dan instalasi `redis-server` dalam CI ditambahkan pada commit `849b5387`. Run Backend [41754551041](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754551041) belum selesai saat pertama diperiksa.
+- Runbook evaluasi model aman: `docs/CHIEF_EDITOR_REAL_PROVIDER_EVALUATION_RUNBOOK.md`.
