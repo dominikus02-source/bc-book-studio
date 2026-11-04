@@ -25,3 +25,8 @@ Tidak ada skor numerik karena belum ada hasil uji yang dapat diverifikasi. Pengu
 ## Tahap 1C — bukti pelaksanaan
 
 GitHub Actions baseline `adc4256a`: Backend 41749468027, Quarto 41749468118, buku 41749468004, semuanya SUCCESS. Percobaan pytest di PC pengembangan tidak berjalan karena modul pytest tidak terpasang pada interpreter yang digunakan. **Dua belas evaluasi keluaran model nyata: 0/12; semua skor BELUM DINILAI.** Tes persiapan konteks tidak dihitung sebagai keluaran model. Rincian di `docs/STAGE_1C_AGENT_EVALUATION_REPORT.md`.
+
+
+## Pembaruan Tahap 1C.1
+
+Worker produksi telah memperoleh Lua lease/heartbeat/fencing, reclaimer, batas retry dan dead-letter serta audit SQLite pada volume khusus proyek yang dikonfigurasi. Ini belum membuktikan seluruh simulasi crash nyata atau ketahanan terhadap Redis restart. Evaluasi 12 skenario provider nyata tetap **0/12 — BLOCKED**; tidak ada skor atau persetujuan manusia. Lihat `docs/STAGE_1C_1_RELIABILITY_AND_AI_EVALUATION_REPORT.md` untuk risiko dan bukti yang belum tersedia.
