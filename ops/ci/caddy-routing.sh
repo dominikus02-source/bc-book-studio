@@ -35,7 +35,7 @@ CADDY
 docker build --target test -t bc-verifier-ci ./verifier
 docker network create "$network" >/dev/null
 docker run -d --name bc-ci-jwks --network "$network" --network-alias jwks.test -v "$PWD/ops/ci:/ci:ro" -v "$work/keys:/keys:ro" -e TEST_KEY=/keys/sign.pem -e TEST_CERT=/keys/jwks.crt -e TEST_TLS_KEY=/keys/jwks.key bc-verifier-ci python /ci/jwks_fixture.py >/dev/null
-docker run -d --name bc-ci-verifier --network "$network" --network-alias bc-ci-verifier -v "$work/keys/jwks.crt:/ci/ca.crt:ro" -e REQUESTS_CA_BUNDLE=/ci/ca.crt -e CF_ACCESS_TEAM_DOMAIN=jwks.test:8443 -e CF_ACCESS_AUD=ci-audience bc-verifier-ci python /app/server.py >/dev/null
+docker run -d --name bc-ci-verifier --network "$network" --network-alias bc-ci-verifier -v "$work/keys/jwks.crt:/ci/ca.crt:ro" -e SSL_CERT_FILE=/ci/ca.crt -e REQUESTS_CA_BUNDLE=/ci/ca.crt -e CF_ACCESS_TEAM_DOMAIN=jwks.test:8443 -e CF_ACCESS_AUD=ci-audience bc-verifier-ci python /app/server.py >/dev/null
 docker run -d --name bc-ci-static --network "$network" --network-alias bc-ci-static -v "$PWD/ops/ci:/ci:ro" bc-verifier-ci python /ci/static_fixture.py >/dev/null
 docker run -d --name bc-ci-caddy --network "$network" -p 127.0.0.1:18443:8443 -p 127.0.0.1:18080:8080 -v "$work/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$work/keys:/ci/keys:ro" "caddy@$CADDY_IMAGE_DIGEST" >/dev/null
 for i in $(seq 1 35); do
@@ -53,7 +53,7 @@ check() {
  [[ "$got" == "$expected" ]]
 }
 check missing-jwt 401
-docker run --rm --network none -v "$work/keys:/keys:ro" -v "$PWD/ops/ci:/ci:ro" bc-verifier-ci python -c 'import jwt,time; k=open("/keys/sign.pem").read(); n=int(time.time()); claims={"iss":"https://jwks.test:8443","aud":"ci-audience","email":"verified@example.invalid","exp":n+300,"nbf":n-5}; open("/keys/valid.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"})); claims["aud"]="wrong"; open("/keys/wrong.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"})); claims["aud"]="ci-audience"; claims["exp"]=n-3600; open("/keys/expired.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"}))'
+docker run --rm --network none -v "$work/keys:/keys" -v "$PWD/ops/ci:/ci:ro" bc-verifier-ci python -c 'import jwt,time; k=open("/keys/sign.pem").read(); n=int(time.time()); claims={"iss":"https://jwks.test:8443","aud":"ci-audience","email":"verified@example.invalid","exp":n+300,"nbf":n-5}; open("/keys/valid.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"})); claims["aud"]="wrong"; open("/keys/wrong.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"})); claims["aud"]="ci-audience"; claims["exp"]=n-3600; open("/keys/expired.jwt","w").write(jwt.encode(claims,k,algorithm="RS256",headers={"kid":"ci-key"}))'
 check valid-jwt 200 -H "Cf-Access-Jwt-Assertion: $(cat "$work/keys/valid.jwt")"
 grep -q 'identity=verified@example.invalid' "$work/body"
 check wrong-audience 401 -H "Cf-Access-Jwt-Assertion: $(cat "$work/keys/wrong.jwt")"
