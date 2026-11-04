@@ -62,3 +62,5 @@ Baseline tiga CI PASS; commit tahap ini memerlukan hasil CI tersendiri. Bukti SI
 - Backend run [41754454968](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454968) pada commit `a7e9b7c`: **SUCCESS**. Ini bukti tes yang ada pada commit itu, bukan tes Redis AOF yang ditambahkan sesudahnya.
 - Tes Redis AOF `backend/tests/test_redis_aof_restart.py` dan instalasi `redis-server` dalam CI ditambahkan pada commit `849b5387`. Run Backend [41754551041](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754551041) belum selesai saat pertama diperiksa.
 - Runbook evaluasi model aman: `docs/CHIEF_EDITOR_REAL_PROVIDER_EVALUATION_RUNBOOK.md`.
+
+- Backend run [41754551041](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754551041) pada commit `849b5387` kemudian terkonfirmasi **SUCCESS**, termasuk tes AOF yang tersedia pada commit tersebut. Tes outbox saat SQLite gagal ditambahkan sesudahnya dan memerlukan CI baru.
