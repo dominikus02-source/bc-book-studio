@@ -22,7 +22,7 @@ jobs:
       - name: Restore CI npm downloads
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/bc-book-studio-ci-npm
+          path: ${{ runner.temp }}/bc-book-studio-ci-npm/_cacache
           key: bc-book-studio-ci-${{ runner.os }}-node22-npm-${{ hashFiles('package-lock.json') }}
 
       - name: Restore Next compiler cache
@@ -40,3 +40,5 @@ jobs:
       - run: npm run db:generate
       - run: npm run typecheck
       - run: npm run build
+      - name: Verify staging-compatible Docker build
+        run: docker build --build-arg BUILD_CACHE_SCOPE=bc-book-studio-ci -t bc-book-studio:ci .
