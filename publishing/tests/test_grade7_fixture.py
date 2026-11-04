@@ -17,7 +17,7 @@ class Grade7FixtureTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "source"
             manifest = build(root)
-            self.assertFalse(manifest["releaseEligible"])
+            self.assertIs(manifest["releaseEligible"], False)
             self.assertEqual(len(manifest["chapterHashes"]), 3)
             for _, slug, text in CHAPTERS:
                 self.assertGreater(len(text), 1500, slug)
