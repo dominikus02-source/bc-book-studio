@@ -91,6 +91,7 @@ check docker kill --signal=SIGKILL "$sigkill_container"
 check docker rm "$sigkill_container"
 stamp "Simulate lease expiration without waiting 120 seconds (real worker was SIGKILLed)"
 check "${compose[@]}" exec -T redis redis-cli DEL studio:lease:sigkill-recovery-test
+check "${compose[@]}" exec -T redis redis-cli HSET studio:inflight:sigkill-recovery-test started_at 1
 check "${compose[@]}" run --rm --no-deps worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reclaim,claim,PENDING,PROCESSING; c=redis.from_url('redis://redis:6379/0',decode_responses=True); assert 'recovered' in asyncio.run(reclaim(c)); assert asyncio.run(c.llen(PROCESSING))==0; assert asyncio.run(c.llen(PENDING))==1; item=asyncio.run(claim(c,'recovery-probe')); assert item and item[1]=='sigkill-recovery-test' and item[3]==2,item; assert asyncio.run(c.llen(PENDING))==0; assert asyncio.run(c.llen(PROCESSING))==1; print('SIGKILL_RECLAIM_AND_SINGLE_RECLAIMED_CLAIM_OK')"
 stamp "SIGKILL recovery assertions passed; no duplicate queue entry"
 stamp "All isolated Docker volume recovery assertions passed"
