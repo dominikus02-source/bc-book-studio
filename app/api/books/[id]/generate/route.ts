@@ -13,9 +13,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (book.status !== "DRAFT") return NextResponse.json({ error: "Book must be a draft" }, { status: 409 });
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid generation request" }, { status: 400 });
-  const apiKey = process.env.AI_API_KEY, model = process.env.AI_MODEL;
-  if (!apiKey || !model) return NextResponse.json({ error: "AI provider is not configured" }, { status: 503 });
-  const endpoint = process.env.AI_API_URL || "https://api.openai.com/v1/chat/completions";
+  const apiKey = process.env.AI_API_KEY;
+  // Default provider is DeepSeek; other OpenAI-compatible providers are configurable.
+  const model = process.env.AI_MODEL || "deepseek-flash";
+  if (!apiKey) return NextResponse.json({ error: "AI provider key is not configured" }, { status: 503 });
+  const endpoint = process.env.AI_API_URL || "https://api.deepseek.com/chat/completions";
   if (!endpoint.startsWith("https://")) return NextResponse.json({ error: "AI endpoint must use HTTPS" }, { status: 503 });
   const maxTokens = Math.min(3000, Math.max(300, Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1800));
   const controller = new AbortController();
