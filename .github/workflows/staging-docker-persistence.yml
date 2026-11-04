@@ -24,7 +24,21 @@ jobs:
           unset api_key db_password
       - name: Run isolated real Docker recovery test
         shell: bash
-        run: bash backend/tests/staging_docker_recovery.sh
+        run: |
+          set -uo pipefail
+          bash backend/tests/staging_docker_recovery.sh > docker-recovery.log 2>&1
+          result=$?
+          while IFS='=' read -r name value; do
+            case "$name" in STUDIO_API_KEY|STUDIO_DB_PASSWORD)
+              if [[ -n "$value" ]] && grep -Fq -- "$value" docker-recovery.log; then
+                echo "::error::Ephemeral credential detected in captured Docker log; refusing to print it"
+                exit 1
+              fi
+              ;;
+            esac
+          done < .env.staging
+          cat docker-recovery.log
+          exit "$result"
       - name: Remove ephemeral staging containers
         if: always()
         shell: bash
