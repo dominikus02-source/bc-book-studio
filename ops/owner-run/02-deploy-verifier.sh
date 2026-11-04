@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
-echo "Will deploy ONLY bc-book-studio verifier using its own compose file."
-read -r -p "Confirm verifier deployment? [yes/NO] " answer
+base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=config.env
+source "$base/config.env"
+compose="$base/../../compose.phase1.yml"
+if [[ "${1:-}" == "--dry-run" ]]; then
+  printf 'DRY RUN: docker compose -f %q config --quiet\n' "$compose"
+  printf 'DRY RUN: docker compose -f %q up -d --no-deps verifier static\n' "$compose"
+  exit 0
+fi
+[[ $# -eq 0 ]] || { echo "Usage: $0 [--dry-run]"; exit 2; }
+read -r -p "Deploy ONLY Phase 1 verifier/static containers? [yes/NO] " answer
 [[ "$answer" == yes ]] || exit 0
-mkdir -p "$HOME/bcbookstudio-owner-logs"
-log="$HOME/bcbookstudio-owner-logs/verifier-$(date -u +%Y%m%dT%H%M%SZ).log"
-{
- docker compose --project-directory /opt/bc-book-studio -f /opt/bc-book-studio/compose.phase1.yml config --quiet
- docker compose --project-directory /opt/bc-book-studio -f /opt/bc-book-studio/compose.phase1.yml up -d --no-deps verifier
- docker inspect bc-book-studio-staging-verifier-1 --format '{{.State.Health.Status}}'
-} 2>&1 | tee "$log"
+export CADDY_NETWORK
+docker network inspect "$CADDY_NETWORK" >/dev/null
+[[ -n "${CF_ACCESS_TEAM_DOMAIN:-}" && -n "${CF_ACCESS_AUD:-}" ]] || { echo "Access settings missing; do not echo their values"; exit 1; }
+docker compose -f "$compose" config --quiet
+docker compose -f "$compose" up -d --no-deps verifier static
+docker compose -f "$compose" ps
