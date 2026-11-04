@@ -40,3 +40,6 @@ Semua container, Redis, PostgreSQL, SQLite, dan volume tes memakai project name 
 
 ## Perubahan pemeriksaan kebocoran log
 Workflow menyimpan log pengujian sementara pada runner, memeriksa string secret dari `.env.staging` dengan `grep -Fq` tanpa menampilkan nilainya, baru mencetak log jika aman. File log dan `.env.staging` dihapus saat cleanup. Mekanisme ini hanya memeriksa dua credential sementara yang dihasilkan CI, bukan bukti tidak ada semua jenis rahasia.
+
+## Verifikasi volume eksplisit
+Script juga membaca `docker inspect .Mounts` pada container dan mencocokkan named volume proyek, termasuk `redis_data` pada `/data` serta `postgres_data` pada `/var/lib/postgresql/data` setelah recreate. Ini lebih kuat daripada hanya memeriksa keberadaan marker; hasil runtime masih menunggu CI.
