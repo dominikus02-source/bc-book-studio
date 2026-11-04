@@ -11,3 +11,6 @@ pint>=0.24,<1
 pygments>=2.18,<3
 cairosvg>=2.7,<3
 rdkit>=2025.3,<2027
+
+# Native-Cairo-free SVG to PNG fallback for Windows and isolated workers.
+resvg_py>=0.5,<1
