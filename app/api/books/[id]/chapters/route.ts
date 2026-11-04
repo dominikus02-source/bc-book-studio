@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
-import { authorized, deny } from "../../../../../lib/auth";
+import { identity, deny } from "../../../../../lib/auth";
 import { chapterInput, badInput } from "../../../../../lib/validation";
 export const runtime = "nodejs";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  const ownerId = await identity(req);
+  if (!ownerId) return deny();
   try {
     const { id } = await params;
     const input = chapterInput.parse(await req.json());
     const chapter = await db.$transaction(async tx => {
-      const book = await tx.book.findUnique({ where: { id }, include: { chapters: { orderBy: { position: "desc" }, take: 1 } } });
+      const book = await tx.book.findFirst({ where: { id, ownerId }, include: { chapters: { orderBy: { position: "desc" }, take: 1 } } });
       if (!book) throw new Error("NOT_FOUND");
       if (book.status !== "DRAFT") throw new Error("LOCKED");
       return tx.chapter.create({ data: { bookId: id, position: (book.chapters[0]?.position ?? 0) + 1, ...input } });

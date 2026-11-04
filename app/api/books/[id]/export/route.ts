@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import JSZip from "jszip";
 import { db } from "../../../../../lib/db";
-import { authorized, deny } from "../../../../../lib/auth";
+import { identity, deny } from "../../../../../lib/auth";
 export const runtime = "nodejs";
 function xml(s: string) { return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c] ?? c)); }
 function slug(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0,60) || "buku"; }
@@ -20,11 +20,12 @@ function wrap(text: string, font: { widthOfTextAtSize: (text: string, size: numb
   return result;
 }
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  const ownerId = await identity(req);
+  if (!ownerId) return deny();
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format");
   if (format !== "pdf" && format !== "epub") return NextResponse.json({ error: "Choose pdf or epub" }, { status: 400 });
-  const book = await db.book.findUnique({ where: { id }, include: { chapters: { orderBy: { position: "asc" } } } });
+  const book = await db.book.findFirst({ where: { id, ownerId }, include: { chapters: { orderBy: { position: "asc" } } } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   if (book.status !== "APPROVED" || book.chapters.length === 0) return NextResponse.json({ error: "Only approved books can be exported" }, { status: 409 });
   const filename = slug(book.title) + "." + format;
