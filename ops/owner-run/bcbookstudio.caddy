@@ -1,0 +1,17 @@
+# TEMPLATE: rendered by 03 from config.env; never install raw.
+# Hostname is protected by Cloudflare Access at the edge AND by origin JWT verifier.
+bcbookstudio.bahasacerdas.com {
+  tls __CERT_PATH__/tls.crt __CERT_PATH__/tls.key
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy no-referrer
+    Content-Security-Policy "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'"
+    Cache-Control "no-store"
+  }
+  forward_auth bc-book-studio-verifier:8080 {
+    uri /auth
+    copy_headers X-Access-Identity
+  }
+  reverse_proxy bc-book-studio-static:8080
+}
