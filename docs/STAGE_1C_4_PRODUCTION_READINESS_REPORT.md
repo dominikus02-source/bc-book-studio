@@ -13,7 +13,7 @@ Baseline CI:
 ## 2. Audit aktual dan perubahan
 Dibaca: laporan 1C.1, 1C.2, 1C.3; `backend/app/worker.py`, `backend/app/audit_events.py`, `backend/app/main.py`, `backend/app/ai.py`, `compose.staging.yml`, tes Redis/SQLite dan daftar skenario. Runtime API memanggil `prepare_draft` dan `complete`, menghasilkan `perlu_tinjauan`. Worker memakai Redis Lua CLAIM/FINISH/FAIL/RECLAIM, lease, fencing dan outbox; SQLite WAL menyimpan event. Semantik at-least-once, bukan exactly-once.
 
-**Temuan kritis:** `compose.staging.yml` belum memasang volume audit SQLite untuk worker walaupun `STUDIO_AUDIT_DB` diwajibkan. Perbaikan menambahkan `studio_audit_data` ke worker, menetapkan lokasi audit project-owned dan mengatur Redis AOF fsync everysec secara eksplisit. Tes kontrak staging ditambahkan. Ini belum membuktikan pemulihan Docker volume setelah container remove/recreate. `everysec` memiliki jendela kehilangan data saat crash sistem; tidak ada klaim zero data loss saat kehilangan daya.
+**Temuan kritis:** `compose.staging.yml` belum memasang volume audit SQLite untuk worker walaupun `STUDIO_AUDIT_DB` diwajibkan. Perbaikan menambahkan `studio_audit_data` ke worker, menetapkan lokasi audit project-owned dan mengatur Redis AOF fsync everysec secara eksplisit. Audit `backend/Dockerfile` menemukan worker berjalan sebagai UID 10001, sedangkan named volume baru dapat dimiliki root. Service satu kali `audit-init` kini mengatur owner UID 10001 dan permission 0700 sebelum worker dijalankan; ini kontrak staging yang masih memerlukan tes Docker nyata. Tes kontrak staging ditambahkan. Ini belum membuktikan pemulihan Docker volume setelah container remove/recreate. `everysec` memiliki jendela kehilangan data saat crash sistem; tidak ada klaim zero data loss saat kehilangan daya.
 
 ## 3. Sepuluh skenario crash
 | No | Skenario | Bukti / status |
@@ -68,3 +68,8 @@ Perubahan tahap ini: perbaikan `compose.staging.yml`, tes `backend/tests/test_st
 
 ## 9. Keputusan dan rekomendasi
 **Tidak layak dinyatakan production ready.** Prioritas berikutnya: (1) tes Docker volume removal/recreate dan crash yang belum tercakup; (2) lengkapi audit durable untuk seluruh transisi dan approval; (3) validasi authz, ACL, cost cap, prompt injection; (4) jalankan 12 skenario provider nyata dengan secret staging aman, reviewer manusia; (5) produksi satu draf kelas VII lalu validasi DOCX/PDF/EPUB dan human approval. Tidak ada merge, deployment, atau perubahan database produksi.
+
+## Koreksi lanjutan: izin volume
+- `backend/Dockerfile` menjalankan proses sebagai user nonroot UID 10001. Mount volume audit tanpa inisialisasi kepemilikan berisiko menyebabkan `sqlite3.OperationalError: unable to open database file`.
+- `audit-init` menggunakan Alpine untuk `chown 10001:10001` dan `chmod 0700` pada root volume sebelum worker mulai; tidak mengakses database produksi.
+- Bukti aktual Docker Compose up/down pada staging belum tersedia, jadi status verifikasi runtime volume **BLOCKED** sampai dites.
