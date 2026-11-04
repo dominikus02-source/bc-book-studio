@@ -170,6 +170,12 @@ jobs:
       - name: Hadolint Dockerfiles
         run: |
           docker run --rm -v "$PWD:/work:ro" -w /work hadolint/hadolint:latest hadolint Dockerfile verifier/Dockerfile
+      - name: Inventory ingest valid and invalid cases
+        shell: bash
+        run: bash ops/ci/inventory-ingest.sh
+      - name: Owner phase1 orchestration dry-run
+        shell: bash
+        run: bash ops/owner-run/run-phase1.sh --dry-run
       - name: Verify staging compose configuration
         env:
           CF_ACCESS_TEAM_DOMAIN: test.cloudflareaccess.com
