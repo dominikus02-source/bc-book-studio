@@ -30,3 +30,8 @@ GitHub Actions baseline `adc4256a`: Backend 41749468027, Quarto 41749468118, buk
 ## Pembaruan Tahap 1C.1
 
 Worker produksi telah memperoleh Lua lease/heartbeat/fencing, reclaimer, batas retry dan dead-letter serta audit SQLite pada volume khusus proyek yang dikonfigurasi. Ini belum membuktikan seluruh simulasi crash nyata atau ketahanan terhadap Redis restart. Evaluasi 12 skenario provider nyata tetap **0/12 — BLOCKED**; tidak ada skor atau persetujuan manusia. Lihat `docs/STAGE_1C_1_RELIABILITY_AND_AI_EVALUATION_REPORT.md` untuk risiko dan bukti yang belum tersedia.
+
+
+## Tahap 1C.2 — status verifikasi
+
+Outbox Redis atomik untuk penyelesaian/kegagalan worker dan rekonsiliasi SQLite idempoten telah ditambahkan, tetapi persistensi Redis, SIGKILL nyata, dan 10 skenario crash belum terbukti. Evaluasi 12 skenario provider nyata tetap **0/12 — BLOCKED**; skor dan persetujuan manusia belum tersedia. Rincian: `docs/STAGE_1C_2_CRASH_RECOVERY_AND_AI_EVALUATION_REPORT.md`.
