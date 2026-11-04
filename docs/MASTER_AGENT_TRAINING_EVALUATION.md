@@ -20,3 +20,8 @@ Untuk setiap kasus: jalankan instruksi Chief Editor dan KB versi tercatat, simpa
 | Integrasi BahasaCerdas | tujuan, izin, akses dan keamanan | BELUM DIJALANKAN |
 
 Tidak ada skor numerik karena belum ada hasil uji yang dapat diverifikasi. Pengujian harus diotomatisasi dan dilengkapi reviewer manusia.
+
+
+## Tahap 1C — bukti pelaksanaan
+
+GitHub Actions baseline `adc4256a`: Backend 41749468027, Quarto 41749468118, buku 41749468004, semuanya SUCCESS. Percobaan pytest di PC pengembangan tidak berjalan karena modul pytest tidak terpasang pada interpreter yang digunakan. **Dua belas evaluasi keluaran model nyata: 0/12; semua skor BELUM DINILAI.** Tes persiapan konteks tidak dihitung sebagai keluaran model. Rincian di `docs/STAGE_1C_AGENT_EVALUATION_REPORT.md`.
