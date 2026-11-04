@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=config.env
+# shellcheck source=ops/owner-run/config.env
 source "$base/config.env"
 backup="${1:-}"
 if [[ "$backup" == "--dry-run" ]]; then
