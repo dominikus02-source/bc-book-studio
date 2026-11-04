@@ -145,10 +145,20 @@ jobs:
           echo "PASS: positive and negative Caddy certificate validation"
       - name: Caddy JWT routing, log hygiene and reload continuity
         shell: bash
-        run: bash ops/ci/caddy-routing.sh
+        run: |
+          bash ops/ci/caddy-routing.sh 2>&1 | tee caddy-routing-results.txt
+          exit "${PIPESTATUS[0]}"
       - name: Rollback through 03 and 99 isolated fixture
         shell: bash
-        run: bash ops/ci/caddy-rollback.sh
+        run: |
+          bash ops/ci/caddy-rollback.sh 2>&1 | tee caddy-rollback-results.txt
+          exit "${PIPESTATUS[0]}"
+      - name: Publish routing and rollback results
+        if: always()
+        run: |
+          for f in caddy-routing-results.txt caddy-rollback-results.txt; do
+            if test -f "$f"; then grep -E "PASS:|FAIL:|SHA256=|expected=|CI FIXTURE:|BLOCKED:" "$f" || true; else echo "NOT RUN: $f"; fi
+          done
       - name: Caddy validation summary
         if: always()
         run: |
