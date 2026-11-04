@@ -8,7 +8,7 @@ source "$base/config.env"
 if [[ "${1:-}" == "--ci-fixture" ]]; then
   [[ "${BC_CI_FIXTURE:-}" == "1" && -n "${BC_CI_ROOT:-}" && "$BC_CI_ROOT" == /tmp/* ]] || { echo "BLOCKED: fixture isolation missing"; exit 1; }
   [[ -f "$BC_CI_ROOT/.fixture-marker" && -d "$BC_CI_ROOT/conf.d" ]] || { echo "BLOCKED: fixture marker missing"; exit 1; }
-  backup="$BC_CI_ROOT/backup-$(date -u +%Y%m%dT%H%M%S)"
+  backup="$BC_CI_ROOT/backup-$(date -u +%Y%m%dT%H%M%S%N)"
   cp -a "$BC_CI_ROOT/conf.d" "$backup"
   echo "$backup" > "$BC_CI_ROOT/backup-path"
   cp "$BC_CI_ROOT/new.caddy" "$BC_CI_ROOT/conf.d/new.caddy"
