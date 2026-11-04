@@ -1,0 +1,2 @@
+# Standar Editorial QA
+Versi 1.0.0. PASS hanya dengan bukti; WARNING untuk kekurangan nonkritis; BLOCKED untuk prasyarat belum terpenuhi; FAIL untuk cacat kritis. Catat ID, lokasi, bukti, dampak, pemilik, tindakan dan verifikasi ulang setiap temuan. Gerbang keilmuan, kurikulum, editorial, pedagogi, desain dan penerbitan terpisah. Periksa sumber, istilah, bahasa, soal, hak cipta, aksesibilitas, struktur, gambar, metadata, manifest dan checksum. Pemeriksaan seluruh halaman wajib sebelum menyatakan kelayakan cetak. Persetujuan manusia tidak dapat digantikan hasil CI.
