@@ -1,0 +1,30 @@
+name: Pemeriksaan Backend
+on:
+  push:
+    branches: [feat/production-foundation-20261104]
+  pull_request:
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      TEST_REDIS_URL: redis://localhost:6379/15
+      STUDIO_AUDIT_DB: /tmp/bc-book-studio-ci-audit.sqlite3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y redis-server
+      - run: pip install -r backend/requirements.txt pytest
+      - run: PYTHONPATH=backend pytest -q backend/tests --junitxml=backend-test-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-stage1c-tests
+          path: backend-test-results.xml
+      - run: python -m compileall -q backend/app

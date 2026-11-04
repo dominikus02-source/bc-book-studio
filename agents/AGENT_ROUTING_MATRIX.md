@@ -26,3 +26,15 @@ Status: rancangan untuk backend. Matriks ini menjadi aturan awal, bukan eksekusi
 
 ## Batas concurrency awal
 Pada VPS 4 vCPU / 8 GB RAM, mulai dengan 1 pekerjaan produksi aktif, maksimum 2 setelah uji beban dan pemantauan memori. Agen adalah peran logis, bukan 11 proses permanen.
+
+## Spesialis produksi Quarto (QMD)
+
+`qmd-book-agent` adalah **subagen kemampuan teknis**, bukan agen inti ke-12 atau proses permanen. Hanya `layout`, `qa`, dan `publisher` yang boleh dispatch subtask ini. Agen lain mengajukan kebutuhan melalui pemilik tahap terkait.
+
+| Pemanggil | Handoff | Kewenangan tetap pada |
+|---|---|---|
+| `layout` | Generate `.qmd`, konfigurasi Quarto, tipografi, preview `DRAFT` | Layout: keputusan layout |
+| `qa` | Lint, render uji, accessibility/format validation, bukti G7/G8 | QA: pass/fail |
+| `publisher` | Artefak & manifest dari approved immutable snapshot | Publisher + manusia: keputusan rilis/G9 |
+
+Kontrak lengkap: [`agents/specialists/qmd-book-agent.md`](specialists/qmd-book-agent.md). Rendering produksi tetap **nonaktif** sampai ada worker durable, sandbox aman, snapshot/approval terverifikasi, dan tes end-to-end. `logicalAgentCount` tetap 11.

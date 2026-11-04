@@ -64,3 +64,7 @@ Nilai batas dan rubrik setiap kelas wajib ditelaah ahli pendidikan sebelum dipak
 Riset → Kurikulum → Rencana Buku → Penulisan → Latihan → Visual → Penyuntingan → Telaah Pedagogis → Penjaminan Mutu → Tata Letak → Persetujuan Manusia → Penerbitan.
 
 Tahap dapat bercabang atau berulang jika ditemukan temuan, tetapi setiap perpindahan harus tercatat dan dapat diaudit.
+
+## Subagen teknis Quarto
+
+[`qmd-book-agent`](specialists/qmd-book-agent.md) membantu agen `layout`, `qa`, dan `publisher` membuat, memvalidasi, serta mengemas artefak Quarto dari snapshot buku. Subagen ini **bukan** agen ke-12, tidak memiliki persetujuan atau kewenangan penerbitan, dan bukan proses permanen. Rendering produksi menunggu worker durable, sandbox, dan approval gate yang teruji. Lihat [matriks penugasan](AGENT_ROUTING_MATRIX.md).

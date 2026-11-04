@@ -1,0 +1,81 @@
+name: bc-book-studio-staging
+services:
+  frontend:
+    build: .
+    restart: unless-stopped
+    ports: ["127.0.0.1:3180:3000"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [studio]
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env.staging
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [studio]
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python","-m","app.worker"]
+    env_file: .env.staging
+    environment:
+      STUDIO_AUDIT_DB: /var/lib/bc-book-studio/audit/audit.sqlite3
+    volumes:
+      - studio_audit_data:/var/lib/bc-book-studio/audit
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      audit-init: { condition: service_completed_successfully }
+    networks: [studio]
+  audit-init:
+    image: alpine:3.20
+    user: "0:0"
+    command: ["sh","-ec","chown 10001:10001 /audit && chmod 0700 /audit"]
+    volumes:
+      - studio_audit_data:/audit
+    restart: "no"
+    networks: [studio]
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: studio
+      POSTGRES_DB: studio
+      POSTGRES_PASSWORD: ${STUDIO_DB_PASSWORD:?Set STUDIO_DB_PASSWORD}
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U studio -d studio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [studio]
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server","--appendonly","yes","--appendfsync","everysec"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [studio]
+volumes:
+  postgres_data:
+  redis_data:
+  studio_audit_data:
+networks:
+  studio:
+    internal: false

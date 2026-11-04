@@ -1,0 +1,87 @@
+name: Quarto publishing foundation
+on:
+  pull_request:
+    paths:
+      - 'publishing/**'
+      - '.github/workflows/qmd-pipeline-ci.yml'
+      - 'agents/specialists/qmd-book-agent.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Python syntax and agent contracts
+        run: |
+          python -m compileall -q publishing
+          python -m unittest discover -s publishing/tests -v
+      - name: Check registry keeps eleven core agents
+        run: |
+          python -c "import json; r=json.load(open('agents/agent-registry.json')); assert len(r['agents']) == r['orchestration']['logicalAgentCount'] == 11; assert r['technicalSpecialists'][0]['allowedCallers'] == ['layout','qa','publisher']; assert not r['technicalSpecialists'][0]['productionEnabled']"
+
+  render-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Quarto CLI (CI environment only)
+        uses: quarto-dev/quarto-actions/setup@v2
+      - name: Install EPUBCheck and PDF inspection utilities (CI only)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y epubcheck poppler-utils
+          dpkg-query -W -f='${Version}\n' epubcheck
+          command -v pdfinfo
+      - name: Check Quarto installation
+        run: |
+          quarto --version
+          quarto check
+      - name: Render synthetic scientific book (HTML, Typst PDF, EPUB, DOCX)
+        run: python -m publishing.tests.render_smoke
+
+  sandbox-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build Quarto runtime image with PDF and EPUB validators
+        run: docker build -f publishing/Dockerfile -t bc-book-studio-qmd:1.11.9 .
+      - name: Prepare synthetic approved fixture (NOT real human approval)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from publishing.tests.test_qmd_pipeline import fixture
+          from publishing.qmd_pipeline import generate
+          generate(fixture(), Path("/tmp/qmd-fixture-input"))
+          Path("/tmp/qmd-fixture-output").mkdir()
+          PY
+          chmod -R a+rX /tmp/qmd-fixture-input
+          chmod a+rwx /tmp/qmd-fixture-output
+      - name: Run hardened container without network or host secrets
+        run: bash publishing/run-sandbox.sh /tmp/qmd-fixture-input /tmp/qmd-fixture-output
+      - name: Verify rendered artifacts and audit manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/qmd-fixture-output")
+          manifest=json.loads((root/"manifest.json").read_text())
+          assert manifest["renderStatus"] == "rendered_not_approved_for_publication"
+          assert manifest["qaStatus"] == "technical_checks_only"
+          for fmt in ("html","typst","epub","docx"):
+              assert (root/fmt).is_dir(), fmt
+          assert manifest["artifacts"]
+          print("Sandbox validation successful:",len(manifest["artifacts"]),"artifacts")
+          PY
