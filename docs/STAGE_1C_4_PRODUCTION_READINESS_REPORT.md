@@ -73,3 +73,8 @@ Perubahan tahap ini: perbaikan `compose.staging.yml`, tes `backend/tests/test_st
 - `backend/Dockerfile` menjalankan proses sebagai user nonroot UID 10001. Mount volume audit tanpa inisialisasi kepemilikan berisiko menyebabkan `sqlite3.OperationalError: unable to open database file`.
 - `audit-init` menggunakan Alpine untuk `chown 10001:10001` dan `chmod 0700` pada root volume sebelum worker mulai; tidak mengakses database produksi.
 - Bukti aktual Docker Compose up/down pada staging belum tersedia, jadi status verifikasi runtime volume **BLOCKED** sampai dites.
+
+## Runbook dan bukti CI tambahan
+- Runbook pemulihan staging: `docs/STAGING_STORAGE_RECOVERY_RUNBOOK.md`; langkah volume Docker bersifat prosedur yang belum dieksekusi.
+- Backend CI pada commit `257ce90` [run 41756308892](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41756308892): **SUCCESS**; tes kontrak volume pertama telah dijalankan. Perbaikan ownership UID 10001 dan tesnya ditambahkan sesudah commit itu, sehingga memerlukan CI tersendiri.
+- Commit `02aa515` memicu Backend [41756393506](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41756393506), Quarto [41756393479](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41756393479), Buku VII [41756393750](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41756393750), masih `in_progress` saat diperiksa. Hasil final terbaru harus diverifikasi.
