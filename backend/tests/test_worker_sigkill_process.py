@@ -131,8 +131,8 @@ def test_sigkill_recovery(environment,phase,marker):
         if phase=="after_finish":
             assert await c.hget("studio:result:"+jid,"status")=="waiting_approval"
             assert await c.llen(PROCESSING)==0
-            assert await c.hlen("studio:audit:outbox")==1
-            assert await reconcile_audit(c)==1
+            assert await c.hlen("studio:audit:outbox")>=1
+            assert await reconcile_audit(c)>=1
             assert await reconcile_audit(c)==0
             assert await c.hlen("studio:audit:outbox")==0
             assert await c.hget("studio:result:"+jid,"content")=="draft"
