@@ -1,0 +1,6 @@
+# Optional heavy geospatial layer. Install only in offline scientific worker.
+-r requirements-core.txt
+shapely>=2.0,<3
+geopandas>=1.0,<2
+pyproj>=3.7,<4
+cartopy>=0.24,<1
