@@ -35,3 +35,8 @@ SQLite menggunakan WAL dan indeks job/time. `STUDIO_AUDIT_DB` wajib menunjuk ke 
 Outbox reconciliation: **PARTIAL**, karena hanya beberapa transisi terlindungi dan persistensi Redis belum terbukti. Sepuluh crash proses nyata, restart Redis, audit lengkap, seluruh test/build terbaru, dan 12 evaluasi nyata: **BLOCKED sampai bukti tersedia**. Jalankan pengujian pada runner Linux terisolasi dengan Redis AOF volume, SIGKILL worker child process, restart container, dan validasi hasil/SQLite; verifikasi CI dan review manusia sebelum keputusan PASS.
 
 Tidak menyentuh main, tidak merge, tidak deploy, tidak mengubah database produksi.
+
+
+### Pengujian proses tambahan
+
+`backend/tests/test_worker_sigkill_integration.py` menambahkan pengujian subprocess Linux yang benar-benar mengirim SIGKILL setelah Redis CLAIM, lalu memajukan waktu lease/grace secara terkontrol dan menjalankan reclaim. Pengujian ini **hanya** mencakup batas setelah claim; belum membuktikan sembilan batas lain atau persistensi Redis saat restart. Status PASS menunggu log CI commit terbaru.
