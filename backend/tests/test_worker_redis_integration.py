@@ -5,6 +5,7 @@ These test interrupted state transitions, not OS-level SIGKILL or Redis power lo
 import asyncio
 import json
 import os
+import time
 from unittest.mock import AsyncMock, patch
 import pytest
 import redis.asyncio as redis
@@ -39,6 +40,7 @@ def test_claim_recovery_and_duplicate(tmp_path, monkeypatch):
             assert await reclaim(client) == ["active"]
             # Simulate crash and lease expiry by removing the abandoned lease.
             await client.delete("studio:lease:case1")
+            await client.hset("studio:inflight:case1", "started_at", time.time() - 130)
             assert await reclaim(client) == ["recovered"]
             assert await client.llen(PENDING) == 1
             second = await claim(client, "worker-b")
@@ -89,6 +91,7 @@ def test_stale_worker_cannot_commit(tmp_path, monkeypatch):
             await client.lpush(PENDING, payload("case3"))
             item = await claim(client, "worker-a")
             await client.delete("studio:lease:case3")
+            await client.hset("studio:inflight:case3", "started_at", time.time() - 130)
             await reclaim(client)
             replacement = await claim(client, "worker-b")
             fake = {"content": "Draf", "provider": "deepseek", "model": "mock"}
