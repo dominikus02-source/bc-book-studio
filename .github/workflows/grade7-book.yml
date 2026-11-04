@@ -24,7 +24,7 @@ jobs:
           sudo apt-get install -y /tmp/quarto.deb epubcheck poppler-utils
       - name: Unit and grade VII tests
         run: |
-          python -m unittest publishing.tests.test_qmd_pipeline publishing.tests.test_grade7_fixture -v
+          python -m unittest publishing.tests.test_qmd_pipeline publishing.tests.test_grade7_fixture publishing.tests.test_grade7_export_validator -v
       - name: Build approved-free preview source
         run: |
           python -m publishing.tests.build_grade7_fixture "$RUNNER_TEMP/grade7-source" > "$RUNNER_TEMP/grade7-source-manifest.json"
