@@ -63,7 +63,7 @@ grep -q 'identity=verified@example.invalid' "$work/body"
 # Requests carry a deliberately recognizable cookie; logs must not echo its value or JWT.
 check cookie-log-probe 200 -H 'Cookie: ci_sensitive_cookie_marker=SECRET_NEVER_LOG' -H "Cf-Access-Jwt-Assertion: $(cat "$work/keys/valid.jwt")"
 docker logs bc-ci-caddy > "$work/caddy.log" 2>&1
-if grep -Ei 'Cf-Access-Jwt-Assertion|ci_sensitive_cookie_marker|SECRET_NEVER_LOG|$(cat' "$work/caddy.log"; then
+if grep -Ei 'Cf-Access-Jwt-Assertion|ci_sensitive_cookie_marker|SECRET_NEVER_LOG' "$work/caddy.log"; then
  echo 'FAIL: sensitive header/cookie marker appeared in Caddy log'; exit 1
 fi
 if grep -Fq "$(cat "$work/keys/valid.jwt")" "$work/caddy.log"; then echo 'FAIL: JWT leaked to log'; exit 1; fi
