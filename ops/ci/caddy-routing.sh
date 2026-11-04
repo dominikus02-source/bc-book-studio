@@ -79,13 +79,13 @@ echo 'PASS: Caddy log has no JWT header name, token, or cookie marker'
 # Concurrent old-host requests while Caddy reloads the same valid config.
 (
  for i in $(seq 1 30); do
-  curl -fsS -H "Host: legacy.test" --max-time 3 http://127.0.0.1:18080/ | grep -q legacy-ok || exit 1
+  curl -fsS -H "Host: legacy.test" --max-time 3 http://127.0.0.1:18080/ | grep -q legacy-ok || { echo "FAIL: legacy probe $i during reload"; exit 1; }
   sleep 0.1
  done
 ) &
 watcher=$!
-docker exec bc-ci-caddy caddy reload --config /etc/caddy/Caddyfile
-wait "$watcher"
+if ! docker exec bc-ci-caddy caddy reload --config /etc/caddy/Caddyfile; then echo "FAIL: Caddy reload command"; exit 1; fi
+if ! wait "$watcher"; then echo "FAIL: legacy continuity watcher"; exit 1; fi
 echo 'PASS: 30 legacy host probes during Caddy reload'
 echo '=== JWT cases ==='
 cat "$work/results"
