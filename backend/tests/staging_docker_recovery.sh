@@ -75,4 +75,22 @@ stamp "Reconcile Redis outbox into durable SQLite while worker remains stopped"
 check "${compose[@]}" run --rm --no-deps worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reconcile_audit; from app.audit_events import has_event; url='redis://redis:6379/0'; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))>=1; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))==0; assert has_event('docker-outbox'); print('OUTBOX_RECONCILED_OK')"
 stamp "Restart worker after outbox reconciliation"
 check "${compose[@]}" up -d --no-deps worker
+stamp "SIGKILL an active claimed worker and prove lease-expiry recovery without duplicate result"
+check "${compose[@]}" stop worker
+sigkill_container="${COMPOSE_PROJECT_NAME}-sigkill-probe"
+docker rm -f "$sigkill_container" >/dev/null 2>&1 || true
+check "${compose[@]}" exec -T redis redis-cli LPUSH studio:pending '{"id":"sigkill-recovery-test","topic":"Recovery test","grade":"VII","objectives":"Verify fenced recovery"}'
+check "${compose[@]}" run -d --name "$sigkill_container" --no-deps worker python -c "import asyncio, time, redis.asyncio as redis; from app.worker import claim; c=redis.from_url('redis://redis:6379/0',decode_responses=True); item=asyncio.run(claim(c,'sigkill-probe')); assert item and item[1]=='sigkill-recovery-test',item; print('ACTIVE_CLAIMED',flush=True); time.sleep(300)"
+sigkill_claimed=0
+for i in $(seq 1 30); do
+  if [[ "$("${compose[@]}" exec -T redis redis-cli HGET studio:inflight:sigkill-recovery-test worker)" == sigkill-probe ]]; then sigkill_claimed=1; break; fi
+  sleep 1
+done
+if [[ "$sigkill_claimed" != 1 ]]; then stamp "FAIL active SIGKILL probe did not claim job"; exit 1; fi
+check docker kill --signal=SIGKILL "$sigkill_container"
+check docker rm "$sigkill_container"
+stamp "Simulate lease expiration without waiting 120 seconds (real worker was SIGKILLed)"
+check "${compose[@]}" exec -T redis redis-cli DEL studio:lease:sigkill-recovery-test
+check "${compose[@]}" run --rm --no-deps worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reclaim,claim,PENDING,PROCESSING; c=redis.from_url('redis://redis:6379/0',decode_responses=True); assert 'recovered' in asyncio.run(reclaim(c)); assert asyncio.run(c.llen(PROCESSING))==0; assert asyncio.run(c.llen(PENDING))==1; item=asyncio.run(claim(c,'recovery-probe')); assert item and item[1]=='sigkill-recovery-test' and item[3]==2,item; assert asyncio.run(c.llen(PENDING))==0; assert asyncio.run(c.llen(PROCESSING))==1; print('SIGKILL_RECLAIM_AND_SINGLE_RECLAIMED_CLAIM_OK')"
+stamp "SIGKILL recovery assertions passed; no duplicate queue entry"
 stamp "All isolated Docker volume recovery assertions passed"
