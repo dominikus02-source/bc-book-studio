@@ -45,3 +45,10 @@ Sesuai instruksi untuk berhenti bila arsitektur belum terbukti, **UI-3B (identit
 2. Tetapkan verifikasi token signature, issuer, audience, expiry, replay/CSRF, user mapping, membership dan logout; tambah tes negatif.
 3. Uji `001_initial.sql` pada PostgreSQL baru terisolasi, catat migrasi dan rollback; audit kemungkinan data existing.
 4. Baru tambahkan migrasi aditif bila diperlukan, endpoint terotorisasi, transaksi idempotensi, tes paralel, dan integrasi UI.
+
+## Temuan lanjutan: identitas BahasaCerdas (audit baca-saja)
+Repository lokal `F:\\bahasa-cerdas` pada branch `feat/jumpa-simple-scheduling` diperiksa tanpa memodifikasi kode maupun mengakses layanan produksi. `README.md` menyebut Supabase Auth dan `@supabase/ssr`; `app/api/auth/login/route.ts` menggunakan `supabase.auth.signInWithPassword`, `app/api/auth/logout/route.ts` memanggil `supabase.auth.signOut`, dan sejumlah endpoint menggunakan `supabase.auth.getUser()`. README menjelaskan helper aplikasi `getUser()` memakai `supabase.auth.getClaims()` untuk validasi JWT via JWKS lalu memeriksa ulang baris User dan wewenangnya.
+
+**Rekomendasi arsitektur:** gunakan **Supabase Auth BahasaCerdas sebagai sumber identitas**, tanpa membuat login kedua. Tetapi token sesi lintas aplikasi/subdomain, issuer/JWKS/audience, dan mapping `sub` ke `users.id` Book Studio belum dibuktikan. Jangan menganggap cookie dapat langsung dipakai lintas subdomain atau menerima header email/user ID dari proxy tanpa validasi. Lakukan integrasi server-side dengan validasi signature dan claim `iss`, `aud`, `exp`, `sub`; verifikasi kebijakan akun aktif dan mapping ke workspace secara eksplisit. Uji rotasi kunci, token expired, revoked/logout dan pembatasan CORS/CSRF. Jangan memindahkan secret Supabase ke frontend.
+
+Keputusan sumber identitas kini memiliki dasar kode; **gerbang implementasi tetap BLOCKED** sampai kontrak token, sesi lintas aplikasi, dan provisioning/membership terbukti.
