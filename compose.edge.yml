@@ -1,0 +1,9 @@
+services:
+  web:
+    networks:
+      - default
+      - edge
+networks:
+  edge:
+    external: true
+    name: bahasacerdas-prod_edge

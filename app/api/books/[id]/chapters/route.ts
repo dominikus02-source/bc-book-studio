@@ -4,7 +4,7 @@ import { authorized, deny } from "../../../../../lib/auth";
 import { chapterInput, badInput } from "../../../../../lib/validation";
 export const runtime = "nodejs";
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  if (!(await authorized(req))) return deny();
   try {
     const { id } = await params;
     const input = chapterInput.parse(await req.json());
