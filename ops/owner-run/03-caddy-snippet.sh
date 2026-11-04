@@ -15,7 +15,7 @@ fi
 # identity, or cert/key accessibility. Do not mutate production until proven.
 [[ "$BASELINE_COMPLETE" == true ]] || { echo "BLOCKED: complete hostname baseline not verified"; exit 1; }
 [[ -f "$base/caddy-ci-approved.txt" ]] || { echo "BLOCKED: Caddy CI validation evidence missing"; exit 1; }
-mount="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/etc/caddy/conf.d"}}{{.Source}}|{{.RW}}{{end}}{{end}}' "$CADDY_CONTAINER")"
+mount="$(docker inspect -f '{{range .Mounts}}{{println .Source "|" .Destination "|" .RW}}{{end}}' "$CADDY_CONTAINER" | awk -F ' \\| ' -v target="$CT_CONFD" '$2 == target {print $1 "|" $3}')" 
 [[ "$mount" == "$HOST_CONFD|false" ]] || { echo "BLOCKED: Caddy conf.d mount is not the expected read-only bind"; exit 1; }
 docker exec "$CADDY_CONTAINER" grep -F "import $CT_CONFD/*.caddy" /etc/caddy/Caddyfile >/dev/null || { echo "BLOCKED: Caddy import absent"; exit 1; }
 [[ "$CERT_SUBDIR" == */* && "$CERT_SUBDIR" != *.caddy ]] || { echo "BLOCKED: invalid certificate subdir"; exit 1; }
