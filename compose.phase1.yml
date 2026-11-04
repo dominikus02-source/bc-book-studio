@@ -1,0 +1,43 @@
+# Phase 1 only: static staging + JWT verifier. No database, no published ports.
+services:
+  verifier:
+    build:
+      context: ./verifier
+      target: runtime
+    environment:
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:?set Cloudflare Access team domain}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:?set Cloudflare Access application AUD}
+    networks:
+      edge:
+        aliases: [bc-book-studio-verifier]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  static:
+    image: caddy@sha256:d44355d3c2149dc580ce2cac735955d1c08d3d00882c30489c241aa51a5c10d9
+    command: ["caddy","run","--config","/etc/caddy/Caddyfile","--adapter","caddyfile"]
+    volumes:
+      - ./ops/owner-run/static:/srv:ro
+      - ./ops/owner-run/static/Caddyfile:/etc/caddy/Caddyfile:ro
+    networks:
+      edge:
+        aliases: [bc-book-studio-static]
+    read_only: true
+    tmpfs: [/tmp, /config, /data]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: ["CMD", "caddy", "version"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+networks:
+  edge:
+    external: true
+    name: ${CADDY_NETWORK:?set CADDY_NETWORK from owner-run/config.env}
