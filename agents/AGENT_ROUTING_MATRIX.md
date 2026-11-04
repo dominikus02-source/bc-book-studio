@@ -38,3 +38,19 @@ Pada VPS 4 vCPU / 8 GB RAM, mulai dengan 1 pekerjaan produksi aktif, maksimum 2 
 | `publisher` | Artefak & manifest dari approved immutable snapshot | Publisher + manusia: keputusan rilis/G9 |
 
 Kontrak lengkap: [`agents/specialists/qmd-book-agent.md`](specialists/qmd-book-agent.md). Rendering produksi tetap **nonaktif** sampai ada worker durable, sandbox aman, snapshot/approval terverifikasi, dan tes end-to-end. `logicalAgentCount` tetap 11.
+
+## Scientific/multiformat publishing routing (contract v1.0.0)
+
+Maintain **11 logical core agents** and dispatch `qmd-book-agent` only through `layout`, `qa`, or `publisher`.
+
+| Requirement | Accountable core agent | Technical handoff |
+|---|---|---|
+| EYD V/KBBI VI, glossary, tracked changes, bilingual copy | `editorial` | `qa` reviews discrepancies |
+| Scientific claims, physics/chemistry/mathematics | `research` and relevant specialization | `qa` checks evidence; subject expert human review where needed |
+| Images, QR, maps, graphs, code and multimedia fallback specs | `visual` | `layout` calls QMD only for render preparation |
+| Paper presets/custom, fonts, crop/bleed, portrait/landscape, templates | `layout` | `qmd-book-agent` for QMD and DRAFT preview |
+| Export cross-format checks, accessibility, layout preflight | `qa` | `qmd-book-agent` for offline test rendering and evidence |
+| Approved snapshot, release manifest, human signoff | `publisher` | `qmd-book-agent` generates artifacts only after snapshot/approval verification |
+| AI provider selection incl. DeepSeek default policy | `chief_editor` and orchestration/provider gateway | No unrestricted model access by QMD renderer |
+
+Detailed acceptance rules: [Scientific & Multiformat Publishing Contract](../docs/SCIENTIFIC_MULTIFORMAT_PUBLISHING_CONTRACT.md). These are **specifications, not implemented runtime capabilities**.

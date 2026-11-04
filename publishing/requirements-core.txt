@@ -1,0 +1,16 @@
+# Isolated trusted scientific-asset worker, not the web/backend container.
+# Bounded dependencies; lock exact versions and hashes before production release.
+numpy>=2.1,<3
+scipy>=1.14,<2
+sympy>=1.13,<2
+matplotlib>=3.9,<4
+pillow>=11,<13
+segno>=1.6,<2
+python-docx>=1.2,<2
+pint>=0.24,<1
+pygments>=2.18,<3
+cairosvg>=2.7,<3
+rdkit>=2025.3,<2027
+
+# Native-Cairo-free SVG to PNG fallback for Windows and isolated workers.
+resvg_py>=0.5,<1

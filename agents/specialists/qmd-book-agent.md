@@ -76,3 +76,13 @@ Ini kontrak peran, **bukan** bukti generator/sandbox atau render sudah ada. Sebe
 ## Format laporan
 
 Laporkan apa yang benar-benar dijalankan, perintah dan versi, jumlah warning/error, daftar artefak/hash, **Terverifikasi**, **Belum diverifikasi/Perlu keputusan manusia**, dan satu langkah lanjut. Jangan klaim siap produksi atau siap rilis sebelum gerbang lengkap.
+
+## Scientific and multimedia publication extension (contract v1.0.0)
+
+Follow [Scientific & Multiformat Publishing Contract](../../docs/SCIENTIFIC_MULTIFORMAT_PUBLISHING_CONTRACT.md). Handle paper presets/custom mm size, orientation, margins/gutter, licensed embedded body/title/code/math fonts, figure captions/xrefs and format-specific conversion manifests. Preserve immutable source text and do not modify scientific claims.
+
+- Allow only canonical, sanitized media objects; HTML interactive visual/video may use reviewed trusted components while PDF/DOCX/EPUB get accessible static fallback and QR/human-readable link. Untrusted content never enables code execution or arbitrary Quarto extensions.
+- Chemical/math equations, maps, molecular figures, statistical plots, flow charts and programming listings require upstream verified assets/rendering, per-format availability tests and provenance; missing fallback => BLOCKED.
+- EPUBCheck, DOCX archive + semantic inspection, PDF Unicode/font/preflight and actual visual review are acceptance gates, never inferred from successful export.
+- All scientific library names are **candidate dependencies**, not claims of installation. Verify version, license, security and operational footprint; record failures and evidence.
+- Keep preview watermarked DRAFT, isolated and offline. Renderer remains unauthorized to release or publish, and no new core agent is created.
