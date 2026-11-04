@@ -10,6 +10,8 @@ import sqlite3
 import subprocess
 import sys
 import time
+import queue
+import threading
 from pathlib import Path
 
 import pytest
@@ -76,16 +78,21 @@ def child(phase, env):
                             stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
 
 def until_line(proc, expected):
-    deadline = time.monotonic()+12
-    import select
-    # child writes one line per phase; reads are bounded by process timeout via polling
+    q = queue.Queue()
+    def reader():
+        for line in proc.stdout:
+            q.put(line.strip())
+    threading.Thread(target=reader, daemon=True).start()
+    deadline = time.monotonic()+15
     while time.monotonic()<deadline:
-        if proc.poll() is not None:
-            raise AssertionError("child exited: "+proc.stderr.read())
-        ready,_,_=select.select([proc.stdout],[],[],0.2)
-        if ready:
-            line=proc.stdout.readline().strip()
-            if line==expected: return
+        try:
+            line = q.get(timeout=0.2)
+        except queue.Empty:
+            if proc.poll() is not None:
+                raise AssertionError("child exited: "+proc.stderr.read())
+            continue
+        if line == expected:
+            return
     raise AssertionError("missing child marker "+expected)
 
 def kill(proc):
