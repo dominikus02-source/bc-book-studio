@@ -45,6 +45,8 @@ if attempts > tonumber(ARGV[3]) then
 end
 redis.call('SET', lock, ARGV[1], 'EX', ARGV[2])
 redis.call('HSET', 'studio:inflight:' .. id, 'worker', ARGV[4], 'started_at', ARGV[5], 'token', ARGV[1], 'raw', raw, 'attempt', attempts)
+local event_id = 'claimed:' .. id .. ':' .. attempts
+redis.call('HSET', 'studio:audit:outbox', event_id, cjson.encode({event_id=event_id, job_id=id, event_type='job_claimed', worker_id=ARGV[4], attempt=attempts, status='processing'}))
 return {'claimed', raw, id, tostring(attempts)}
 """
 
@@ -103,10 +105,14 @@ end
 local attempts = tonumber(redis.call('HGET', 'studio:attempts', id) or '0')
 if attempts >= tonumber(ARGV[4]) then
   redis.call('LPUSH', KEYS[3], raw)
+  local event_id = 'reclaimed_dead:' .. id .. ':' .. attempts
+  redis.call('HSET', 'studio:audit:outbox', event_id, cjson.encode({event_id=event_id, job_id=id, event_type='job_dead_lettered', attempt=attempts, status='dead'}))
   redis.call('DEL', meta)
   return 'dead'
 end
 redis.call('LPUSH', KEYS[2], raw)
+local event_id = 'reclaimed:' .. id .. ':' .. attempts
+redis.call('HSET', 'studio:audit:outbox', event_id, cjson.encode({event_id=event_id, job_id=id, event_type='job_reclaimed', attempt=attempts, status='pending'}))
 redis.call('DEL', meta)
 return 'recovered'
 """
@@ -205,7 +211,7 @@ async def reclaim(client):
         if state in ("recovered", "dead", "completed"):
             try:
                 job_id = validate_task(raw)["id"]
-                record_event(job_id, state, status=state)
+                await reconcile_audit(client)
             except ValueError:
                 pass
     return states
