@@ -149,6 +149,7 @@ jobs:
           bash ops/ci/caddy-routing.sh 2>&1 | tee caddy-routing-results.txt
           exit "${PIPESTATUS[0]}"
       - name: Rollback through 03 and 99 isolated fixture
+        if: always()
         shell: bash
         run: |
           bash ops/ci/caddy-rollback.sh 2>&1 | tee caddy-rollback-results.txt
