@@ -10,3 +10,9 @@ Gunakan builder staging terpisah dari produksi. Jangan paralelkan dua build bera
 Ukur dua build pada commit dan konfigurasi sama; bandingkan durasi install dan build. Belum ada klaim percepatan sebelum pengukuran.
 Rollback: revert commit ini. Tidak ada perubahan database, auth, LiveKit atau DNS.
 Referensi: https://docs.docker.com/build/cache/optimize/ dan https://nextjs.org/docs/app/guides/ci-build-caching
+
+## Verifikasi 4 November 2026
+PC Windows: install/build awal 27.298 + 30.472 = 57.770 detik; pengulangan 16.832 + 22.660 = 39.492 detik (sekitar 31.6% lebih singkat). Ini observasi dua run, bukan benchmark terkontrol. VPS Node 22: install 37.507 detik, build 54.191 detik, keduanya exit 0. Tidak ada pengujian CRUD/browser pada tugas ini.
+Node 22.23.4 dipasang terpisah di PC: F:\bc-tool-cache\node22\node_modules\node\bin\node.exe. Gunakan PATH sesi PowerShell ke direktori bin tersebut sebelum npm run staging:build; Node global tidak diganti.
+VPS: Node 22.23.4 tersedia melalui nvm use 22 untuk akun bcagent. Checkout alat di /home/bcagent/book-staging-accelerator.
+Aktivasi Docker pada layanan staging belum dilakukan: akun bcagent tidak memiliki izin socket Docker/direktori staging; SSH bcadmin dari PC ditolak publickey. Tidak ada perubahan hak akses atau restart layanan.
