@@ -1,0 +1,2 @@
+# Kerangka Kurikulum
+Versi 1.0.0. Pemetaan awal: I–II fondasi membaca dan menulis; III–IV pemahaman dan kosakata; V–VI analisis teks sederhana; VII–IX analisis, sastra dan argumentasi; X–XII literasi akademik dan penelitian. Setiap proyek wajib mencatat fase, kelas, dokumen resmi yang diperiksa, tanggal berlaku, capaian pembelajaran, tujuan, materi, aktivitas, asesmen dan bukti. Jangan mengarang rumusan capaian pembelajaran. Jika sumber resmi belum dibaca, tandai BLOCKED. Review guru wajib untuk klaim kesesuaian kurikulum.
