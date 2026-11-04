@@ -52,3 +52,58 @@ jobs:
       - name: Diagnostics
         if: always()
         run: docker image ls bc-verifier-test || true
+  prisma-migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bc_ci
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: bc_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bc_ci -d bc_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://bc_ci:ci_only_password@localhost:5432/bc_ci?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-fund
+      - name: Strict security audit
+        run: npm audit --audit-level=high
+      - name: Verify dependency resolutions
+        run: npm ls postcss deepmerge-ts prisma @prisma/client
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Validate schema
+        run: npx prisma validate
+      - name: Apply migrations to empty Postgres 16
+        run: npx prisma migrate deploy
+      - name: Verify migration status
+        run: npx prisma migrate status
+      - name: Query using generated Prisma client
+        run: |
+          node - <<'NODE'
+          const { PrismaClient } = require('@prisma/client');
+          (async () => {
+            const db = new PrismaClient();
+            try {
+              const rows = await db.$queryRaw`SELECT 1 AS ok`;
+              if (Number(rows[0]?.ok) !== 1) throw new Error('Prisma query returned unexpected result');
+              const count = await db.book.count();
+              if (count !== 0) throw new Error('Expected empty Book table');
+              console.log('Prisma client query and empty Book table OK');
+            } finally { await db.$disconnect(); }
+          })().catch(err => { console.error(err); process.exitCode = 1; });
+          NODE
