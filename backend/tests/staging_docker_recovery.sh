@@ -69,10 +69,10 @@ docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgre
 stamp "Negative control: an unrelated fresh named volume must NOT contain the audit event"
 negative_volume="${COMPOSE_PROJECT_NAME}_negative_audit"
 docker volume create "$negative_volume" >/dev/null
-docker run --rm --user 10001:10001 -v "$negative_volume:/audit:ro" alpine:3.20 sh -ec 'test ! -e /audit/audit.sqlite3'
+docker run --rm -v "$negative_volume:/audit:ro" alpine:3.20 sh -ec 'test -d /audit; test -z "$(ls -A /audit)"'
 stamp "PASS negative control: fresh volume is empty"
 stamp "Reconcile Redis outbox into durable SQLite while worker remains stopped"
-check "${compose[@]}" exec -T worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reconcile_audit; from app.audit_events import has_event; url='redis://redis:6379/0'; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))>=1; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))==0; assert has_event('docker-outbox'); print('OUTBOX_RECONCILED_OK')"
+check "${compose[@]}" run --rm --no-deps worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reconcile_audit; from app.audit_events import has_event; url='redis://redis:6379/0'; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))>=1; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))==0; assert has_event('docker-outbox'); print('OUTBOX_RECONCILED_OK')"
 stamp "Restart worker after outbox reconciliation"
 check "${compose[@]}" up -d --no-deps worker
 stamp "All isolated Docker volume recovery assertions passed"
