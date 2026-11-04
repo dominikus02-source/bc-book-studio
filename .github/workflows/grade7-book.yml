@@ -33,15 +33,17 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/grade7-artifacts"
           cd "$RUNNER_TEMP/grade7-source"
+          quarto --version
           for fmt in docx typst epub; do
             quarto render . --to "$fmt" 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/render-$fmt.log"
             case "$fmt" in docx) ext=docx;; typst) ext=pdf;; epub) ext=epub;; esac
+            find _book -maxdepth 2 -type f -printf "%p %s byte\\n" | sort
             count=$(find _book -maxdepth 1 -name "*.$ext" -type f | wc -l)
             test "$count" -eq 1
             cp _book/*."$ext" "$RUNNER_TEMP/grade7-artifacts/"
           done
-          epubcheck "$RUNNER_TEMP"/grade7-artifacts/*.epub
-          pdfinfo "$RUNNER_TEMP"/grade7-artifacts/*.pdf
+          epubcheck "$RUNNER_TEMP"/grade7-artifacts/*.epub 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/epubcheck.log"
+          pdfinfo "$RUNNER_TEMP"/grade7-artifacts/*.pdf 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/pdfinfo.log"
           cp manifest.json "$RUNNER_TEMP/grade7-artifacts/source-manifest.json"
           cd "$GITHUB_WORKSPACE"
           python -m publishing.tests.validate_grade7_exports "$RUNNER_TEMP/grade7-artifacts" --report "$RUNNER_TEMP/grade7-artifacts/validation.json"
