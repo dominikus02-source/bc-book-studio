@@ -7,7 +7,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { id } = await params;
     const { action, note } = reviewInput.parse(await req.json());
-    if (action === "submit" ? !authorized(req) : !reviewerAuthorized(req)) return deny();
+    if (action === "submit" ? !(await authorized(req)) : !reviewerAuthorized(req)) return deny();
     const book = await db.$transaction(async tx => {
       const current = await tx.book.findUnique({ where: { id }, include: { _count: { select: { chapters: true } } } });
       if (!current) throw new Error("NOT_FOUND");

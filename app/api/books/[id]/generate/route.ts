@@ -5,7 +5,7 @@ import { authorized, deny } from "../../../../../lib/auth";
 export const runtime = "nodejs";
 const schema = z.object({ topic: z.string().trim().min(4).max(250), learningGoals: z.string().trim().min(10).max(2000) });
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  if (!(await authorized(req))) return deny();
   const { id } = await params;
   const book = await db.book.findUnique({ where: { id } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });

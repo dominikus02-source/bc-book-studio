@@ -15,5 +15,6 @@ jobs:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
       - run: npm run db:generate
+      - run: npm run test:access
       - run: npm run typecheck
       - run: npm run build

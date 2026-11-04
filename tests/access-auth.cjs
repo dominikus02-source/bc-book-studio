@@ -1,0 +1,43 @@
+// Signed JWT regression tests. Only remote JWKS retrieval is replaced with a local fixture.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const Module = require('node:module');
+const ts = require('typescript');
+(async () => {
+ const jose = await import('jose');
+ const { publicKey, privateKey } = await jose.generateKeyPair('RS256');
+ const publicJwk = await jose.exportJWK(publicKey);
+ publicJwk.kid = 'fixture';
+ global.__studioTestKeys = jose.createLocalJWKSet({keys:[publicJwk]});
+ const source = fs.readFileSync('lib/auth.ts','utf8').replace('createRemoteJWKSet(new URL(issuer + "/cdn-cgi/access/certs"))','globalThis.__studioTestKeys');
+ const compiled = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const mod = new Module(process.cwd()+'/lib/auth.fixture.cjs',module);
+ mod.filename = process.cwd()+'/lib/auth.fixture.cjs'; mod.paths = module.paths;
+ mod._compile(compiled,mod.filename);
+ const {authorized,reviewerAuthorized} = mod.exports;
+ process.env.CF_ACCESS_ISSUER='https://fixture.cloudflareaccess.com';
+ process.env.CF_ACCESS_AUD='studio-fixture';
+ process.env.CF_ACCESS_EDITOR_EMAILS='editor@example.com';
+ process.env.STUDIO_API_KEY='editor-key-'.repeat(4);
+ process.env.STUDIO_REVIEWER_API_KEY='reviewer-key-'.repeat(4);
+ const req = (jwt, extra={}) => ({headers:new Headers({...extra,...(jwt?{'cf-access-jwt-assertion':jwt}:{})})});
+ const claims={email:'editor@example.com',type:'app'};
+ const sign=async(payload=claims,opts={})=>new jose.SignJWT(payload).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer(opts.issuer||process.env.CF_ACCESS_ISSUER).setAudience(opts.audience||process.env.CF_ACCESS_AUD).setSubject('fixture-user').setIssuedAt().setExpirationTime(opts.exp||'5m').sign(privateKey);
+ let count=0;
+ async function check(name, request, expected){assert.equal(await authorized(request),expected,name);console.log('PASS '+name);count++}
+ const good=await sign();
+ await check('approved signed identity',req(good),true);
+ await check('missing session',req(),false);
+ await check('forged email header',req(null,{'cf-access-authenticated-user-email':'editor@example.com'}),false);
+ await check('wrong audience',req(await sign(claims,{audience:'other-app'})),false);
+ await check('wrong issuer',req(await sign(claims,{issuer:'https://other.cloudflareaccess.com'})),false);
+ await check('expired session',req(await sign(claims,{exp:1})),false);
+ await check('unapproved email',req(await sign({...claims,email:'other@example.com'})),false);
+ await check('organization token',req(await sign({...claims,type:'org'})),false);
+ const parts=good.split('.');parts[1]=Buffer.from(JSON.stringify({...claims,email:'attacker@example.com'})).toString('base64url');
+ await check('tampered signature',req(parts.join('.')),false);
+ await check('legacy server token remains valid',req(null,{authorization:'Bearer '+process.env.STUDIO_API_KEY}),true);
+ assert.equal(reviewerAuthorized(req(good)),false); console.log('PASS editor cannot approve as reviewer');count++;
+ assert.equal(reviewerAuthorized(req(null,{authorization:'Bearer '+process.env.STUDIO_REVIEWER_API_KEY})),true);count++;
+ console.log('PASS '+count+' authentication checks');
+})().catch(e=>{console.error(e);process.exit(1)});
