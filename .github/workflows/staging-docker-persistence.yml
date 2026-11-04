@@ -13,10 +13,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf 'STUDIO_API_KEY=%s\n' "$(openssl rand -hex 32)" > .env.staging
-          printf 'STUDIO_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" >> .env.staging
+          umask 077
+          api_key="$(openssl rand -hex 32)"
+          db_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$api_key"
+          echo "::add-mask::$db_password"
+          printf 'STUDIO_API_KEY=%s\nSTUDIO_DB_PASSWORD=%s\n' "$api_key" "$db_password" > .env.staging
           chmod 600 .env.staging
-          echo 'STUDIO_DB_PASSWORD='$(grep '^STUDIO_DB_PASSWORD=' .env.staging | cut -d= -f2-) >> "$GITHUB_ENV"
+          printf 'STUDIO_DB_PASSWORD=%s\n' "$db_password" >> "$GITHUB_ENV"
+          unset api_key db_password
       - name: Run isolated real Docker recovery test
         shell: bash
         run: bash backend/tests/staging_docker_recovery.sh
@@ -25,4 +30,4 @@ jobs:
         shell: bash
         run: |
           docker compose -p bc-studio-ci-${{ github.run_id }} -f compose.staging.yml down --remove-orphans || true
-          rm -f .env.staging
+          shred -u .env.staging 2>/dev/null || rm -f .env.staging
