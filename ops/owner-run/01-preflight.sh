@@ -1,26 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
-echo "READ-ONLY preflight: no configuration changes"
-read -r -p "Run preflight? [yes/NO] " answer
-[[ "$answer" == yes ]] || exit 0
-mkdir -p "$HOME/bcbookstudio-owner-logs"
-log="$HOME/bcbookstudio-owner-logs/preflight-$(date -u +%Y%m%dT%H%M%SZ).log"
-{
- date -u
- id
- df -h /opt/bc-book-studio
- docker version --format '{{.Server.Version}}'
- docker network inspect bahasacerdas-prod_edge --format '{{.Name}}'
- docker inspect bahasacerdas-prod-caddy-1 --format '{{.Config.Image}}'
- for f in /opt/bahasacerdas/config/caddy.d /var/lib/docker/volumes/bahasacerdas-prod_caddy_data/_data/bcbookstudio/tls.crt /var/lib/docker/volumes/bahasacerdas-prod_caddy_data/_data/bcbookstudio/tls.key; do
-   if sudo test -e "$f"; then echo "PRESENT: $f"; else echo "MISSING: $f"; fi
- done
- echo "Hostname baseline: supply complete approved hostname list in ops/owner-run/hostnames.txt"
- if [[ -f "$(dirname "$0")/hostnames.txt" ]]; then
-   while IFS= read -r host; do
-     [[ -z "$host" || "$host" == \#* ]] && continue
-     curl -sS -o /dev/null -w "$host HTTP:%{http_code} LATENCY:%{time_total}\n" --max-time 12 "https://$host" || true
-   done < "$(dirname "$0")/hostnames.txt"
- fi
-} 2>&1 | tee "$log"
-echo "Saved $log"
+# Strict read-only inventory. No sudo, writes, or Docker container creation.
+C=bahasacerdas-prod-caddy-1
+echo "== timestamp"; date -u
+echo "== identity"; id
+echo "== containers"; docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+echo "== caddy image tag"; docker inspect -f '{{.Config.Image}}' "$C"
+echo "== caddy image digest"
+image_id="$(docker inspect -f '{{.Image}}' "$C")"
+docker image inspect "$image_id" --format '{{json .RepoDigests}}'
+echo "== caddy version"; docker exec "$C" caddy version
+echo "== networks"; docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' "$C"
+echo "== caddyfile and imports (paths only; may include hostnames)"
+docker exec "$C" sh -c "grep -nE '^[^ #].*\\{|^[[:space:]]*import[[:space:]]' /etc/caddy/Caddyfile" || true
+echo "== conf.d metadata"; ls -ld /opt/bahasacerdas/config/caddy.d; ls -la /opt/bahasacerdas/config/caddy.d || true
+echo "== cert and key existence (no content)"
+for f in /var/lib/docker/volumes/bahasacerdas-prod_caddy_data/_data/bcbookstudio/tls.crt /var/lib/docker/volumes/bahasacerdas-prod_caddy_data/_data/bcbookstudio/tls.key; do
+ if test -e "$f"; then echo "PRESENT $f"; elif test -r "$f"; then echo "READABLE $f"; else echo "UNKNOWN/INACCESSIBLE $f"; fi
+done
+echo "== disk"; df -h /
+echo "== hostname inventory (from Caddyfile; review imports separately)"
+docker exec "$C" sh -c "grep -nE '^[^ #].*\\{' /etc/caddy/Caddyfile" || true
+echo "== baseline known hosts (NOT proof of full inventory)"
+for h in www.bahasacerdas.com jumpa.bahasacerdas.com bcbookstudio.bahasacerdas.com; do
+ printf '%s ' "$h"
+ curl -sS -o /dev/null -m 12 -w 'HTTP:%{http_code} LATENCY:%{time_total}s\n' "https://$h/" || echo "REQUEST FAILED"
+done
+echo "== IMPORTANT: owner must supply complete host list from all imported Caddy snippets; do not assume these three hosts are exhaustive"
