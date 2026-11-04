@@ -2,6 +2,16 @@
 # Hostname is protected by Cloudflare Access at the edge AND by origin JWT verifier.
 bcbookstudio.bahasacerdas.com {
   tls __CERT_PATH__/tls.crt __CERT_PATH__/tls.key
+  log {
+    format filter {
+      wrap json
+      fields {
+        request>headers>Cf-Access-Jwt-Assertion delete
+        request>headers>Cookie delete
+        request>headers>X-Access-Identity delete
+      }
+    }
+  }
   header {
     X-Content-Type-Options nosniff
     X-Frame-Options DENY
