@@ -5,6 +5,7 @@ import httpx
 
 PROVIDERS = {
     "deepseek": ("https://api.deepseek.com/chat/completions", "DEEPSEEK_API_KEY", "deepseek-chat"),
+    "qwen": ("https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions", "QWEN_API_KEY", "qwen-plus"),
     "openai": ("https://api.openai.com/v1/chat/completions", "OPENAI_API_KEY", "gpt-4.1-mini"),
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "GEMINI_API_KEY", "gemini-2.5-flash"),
 }
@@ -12,7 +13,9 @@ PROVIDERS = {
 class AIProviderError(RuntimeError):
     pass
 
-async def complete(system: str, prompt: str, provider: str = "deepseek", max_tokens: int = 1500) -> dict:
+async def complete(system: str, prompt: str, provider: str | None = None, max_tokens: int = 1500) -> dict:
+    # Centralized default; only configured providers can be selected.
+    provider = provider or os.getenv("AI_DEFAULT_PROVIDER", "deepseek")
     if provider not in PROVIDERS:
         raise AIProviderError("Penyedia AI tidak dikenal")
     endpoint, key_name, default_model = PROVIDERS[provider]
