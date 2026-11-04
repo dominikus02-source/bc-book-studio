@@ -1,0 +1,28 @@
+name: Staging Docker persistence recovery
+on:
+  push:
+    branches: [feat/production-foundation-20261104]
+  pull_request:
+jobs:
+  docker-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated staging secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'STUDIO_API_KEY=%s\n' "$(openssl rand -hex 32)" > .env.staging
+          printf 'STUDIO_DB_PASSWORD=%s\n' "$(openssl rand -hex 24)" >> .env.staging
+          chmod 600 .env.staging
+          echo 'STUDIO_DB_PASSWORD='$(grep '^STUDIO_DB_PASSWORD=' .env.staging | cut -d= -f2-) >> "$GITHUB_ENV"
+      - name: Run isolated real Docker recovery test
+        shell: bash
+        run: bash backend/tests/staging_docker_recovery.sh
+      - name: Remove ephemeral staging containers
+        if: always()
+        shell: bash
+        run: |
+          docker compose -p bc-studio-ci-${{ github.run_id }} -f compose.staging.yml down --remove-orphans || true
+          rm -f .env.staging
