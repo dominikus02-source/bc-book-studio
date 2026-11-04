@@ -23,18 +23,48 @@ check "${compose[@]}" stop worker
 check "${compose[@]}" rm -f worker
 check "${compose[@]}" up -d --no-deps worker
 check "${compose[@]}" exec -T worker python -c "from app.audit_events import has_event; assert has_event('docker-created'); print('SQLITE_AFTER_WORKER_RECREATE_OK')"
+stamp "Stop worker before Redis persistence check so its reconciler cannot consume the outbox marker"
+check "${compose[@]}" stop worker
 stamp "Recreate Redis container with same named AOF volume"
 check "${compose[@]}" stop redis
 check "${compose[@]}" rm -f redis
 check "${compose[@]}" up -d --no-deps redis
-for i in $(seq 1 30); do if "${compose[@]}" exec -T redis redis-cli ping | grep -q PONG; then break; fi; sleep 2; done
-check "${compose[@]}" exec -T redis sh -c 'test "$(redis-cli GET docker:marker)" = persistent && test "$(redis-cli HEXISTS studio:audit:outbox docker-outbox)" = 1'
+stamp "Poll Redis Docker health (60s max), then PING; do not conflate readiness with data loss"
+redis_ready=0
+for i in $(seq 1 30); do
+  health=$(docker inspect --format '{{.State.Health.Status}}' "$("${compose[@]}" ps -q redis)" 2>/dev/null || true)
+  if [[ "$health" == healthy ]] && "${compose[@]}" exec -T redis redis-cli ping | grep -qx PONG; then redis_ready=1; break; fi
+  sleep 2
+done
+if [[ "$redis_ready" != 1 ]]; then
+  stamp "FAIL Redis health timeout; showing status and limited sanitized logs"
+  "${compose[@]}" ps -a
+  "${compose[@]}" logs --tail=35 redis | sed -E 's/(password|token|secret|key)=([^ ]+)/\\1=[REDACTED]/Ig' || true
+  exit 1
+fi
+stamp "Redis healthy and responding to PING"
+check "${compose[@]}" exec -T redis sh -ec 'test "$(redis-cli GET docker:marker)" = persistent; test "$(redis-cli HEXISTS studio:audit:outbox docker-outbox)" = 1; test "$(redis-cli HGET studio:audit:outbox docker-outbox)" = "{\"event_id\":\"docker-outbox\",\"job_id\":\"docker-test-job\",\"event_type\":\"job_claimed\",\"status\":\"processing\"}"'
+stamp "Redis AOF marker and full outbox payload retained"
 stamp "Recreate PostgreSQL container with same named volume"
 check "${compose[@]}" stop postgres
 check "${compose[@]}" rm -f postgres
 check "${compose[@]}" up -d --no-deps postgres
-for i in $(seq 1 30); do if "${compose[@]}" exec -T postgres pg_isready -U studio -d studio >/dev/null; then break; fi; sleep 2; done
+postgres_ready=0
+for i in $(seq 1 30); do
+  health=$(docker inspect --format '{{.State.Health.Status}}' "$("${compose[@]}" ps -q postgres)" 2>/dev/null || true)
+  if [[ "$health" == healthy ]] && "${compose[@]}" exec -T postgres pg_isready -U studio -d studio >/dev/null; then postgres_ready=1; break; fi
+  sleep 2
+done
+if [[ "$postgres_ready" != 1 ]]; then stamp "FAIL PostgreSQL readiness timeout"; "${compose[@]}" ps -a; exit 1; fi
 check "${compose[@]}" exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U studio -d studio -Atqc "SELECT id FROM docker_persistence_test WHERE id='"'"'persisted'"'"'" | grep -qx persisted'
+stamp "PostgreSQL persisted marker verified after recreate"
+stamp "Negative control: an unrelated fresh named volume must NOT contain the audit event"
+negative_volume="${COMPOSE_PROJECT_NAME}_negative_audit"
+docker volume create "$negative_volume" >/dev/null
+docker run --rm --user 10001:10001 -v "$negative_volume:/audit:ro" alpine:3.20 sh -ec 'test ! -e /audit/audit.sqlite3'
+stamp "PASS negative control: fresh volume is empty"
+stamp "Restart worker after Redis and PostgreSQL are healthy"
+check "${compose[@]}" up -d --no-deps worker
 stamp "Reconcile Redis outbox into durable SQLite"
 check "${compose[@]}" exec -T worker python -c "import asyncio,redis.asyncio as redis; from app.worker import reconcile_audit; from app.audit_events import has_event; url='redis://redis:6379/0'; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))>=1; assert asyncio.run(reconcile_audit(redis.from_url(url,decode_responses=True)))==0; assert has_event('docker-outbox'); print('OUTBOX_RECONCILED_OK')"
 stamp "All isolated Docker volume recovery assertions passed"
