@@ -9,6 +9,11 @@ trap 'stamp "Container status"; "${compose[@]}" ps -a || true; stamp "Sanitized 
 stamp "Build and launch complete isolated staging stack"
 check "${compose[@]}" up -d --build --wait --wait-timeout 180
 stamp "Verify audit-init completion, worker nonroot identity and volume permission"
+for service in worker redis postgres; do
+  container_id=$("${compose[@]}" ps -q "$service")
+  stamp "Inspect persistent mount for $service"
+  docker inspect --format '{{range .Mounts}}{{if eq .Type "volume"}}{{.Name}}:{{.Destination}}{{println}}{{end}}{{end}}' "$container_id" | grep -F "${COMPOSE_PROJECT_NAME}_" >/dev/null
+done
 check "${compose[@]}" ps -a
 check "${compose[@]}" exec -T worker python -c "import os,stat; p='/var/lib/bc-book-studio/audit'; assert os.getuid()==10001,os.getuid(); assert os.stat(p).st_uid==10001; assert stat.S_IMODE(os.stat(p).st_mode)==0o700"
 check "${compose[@]}" exec -T worker python -c "from app.audit_events import record_event,has_event; record_event('docker-test-job','job_created',event_id='docker-created'); assert has_event('docker-created')"
@@ -44,6 +49,7 @@ if [[ "$redis_ready" != 1 ]]; then
   exit 1
 fi
 stamp "Redis healthy and responding to PING"
+docker inspect --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$("${compose[@]}" ps -q redis)" | grep -Fx "${COMPOSE_PROJECT_NAME}_redis_data"
 check "${compose[@]}" exec -T redis sh -ec 'test "$(redis-cli GET docker:marker)" = persistent; test "$(redis-cli HEXISTS studio:audit:outbox docker-outbox)" = 1; test "$(redis-cli HGET studio:audit:outbox docker-outbox)" = "{\"event_id\":\"docker-outbox\",\"job_id\":\"docker-test-job\",\"event_type\":\"job_claimed\",\"status\":\"processing\"}"'
 stamp "Redis AOF marker and full outbox payload retained"
 stamp "Recreate PostgreSQL container with same named volume"
@@ -59,6 +65,7 @@ done
 if [[ "$postgres_ready" != 1 ]]; then stamp "FAIL PostgreSQL readiness timeout"; "${compose[@]}" ps -a; exit 1; fi
 check "${compose[@]}" exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U studio -d studio -Atqc "SELECT id FROM docker_persistence_test WHERE id='"'"'persisted'"'"'" | grep -qx persisted'
 stamp "PostgreSQL persisted marker verified after recreate"
+docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/postgresql/data"}}{{.Name}}{{end}}{{end}}' "$("${compose[@]}" ps -q postgres)" | grep -Fx "${COMPOSE_PROJECT_NAME}_postgres_data"
 stamp "Negative control: an unrelated fresh named volume must NOT contain the audit event"
 negative_volume="${COMPOSE_PROJECT_NAME}_negative_audit"
 docker volume create "$negative_volume" >/dev/null
