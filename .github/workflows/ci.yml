@@ -127,7 +127,7 @@ jobs:
           fi
           test "$BASELINE_COMPLETE" = false
           for script in ops/owner-run/*.sh; do bash -n "$script"; done
-          for script in ops/owner-run/*.sh; do bash "$script" --dry-run; done
+          for script in ops/owner-run/{01-preflight,02-deploy-verifier,03-caddy-snippet,04-verify,99-rollback,run-phase1}.sh; do bash "$script" --dry-run; done
       - name: Caddy production image digest and self-signed certificate fixture
         shell: bash
         run: |
