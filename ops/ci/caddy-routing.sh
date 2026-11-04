@@ -46,9 +46,10 @@ docker run -d --name bc-ci-verifier --network "$network" --network-alias bc-ci-v
 docker run -d --name bc-ci-static --network "$network" --network-alias bc-ci-static -v "$PWD/ops/ci:/ci:ro" bc-verifier-ci python /ci/static_fixture.py >/dev/null
 docker run -d --name bc-ci-caddy --network "$network" -p 127.0.0.1:18443:8443 -p 127.0.0.1:18080:8080 -v "$work/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$work/keys:/ci/keys:ro" "caddy@$CADDY_IMAGE_DIGEST" >/dev/null
 for i in $(seq 1 35); do
- if curl -fsS --max-time 2 http://127.0.0.1:18080/ | grep -q legacy-ok; then break; fi
+ if curl -fsS -H "Host: legacy.test" --max-time 2 http://127.0.0.1:18080/ | grep -q legacy-ok; then break; fi
  sleep 1
 done
+curl -fsS -H "Host: legacy.test" --max-time 3 http://127.0.0.1:18080/ | grep -q legacy-ok || { echo "FAIL: legacy baseline unavailable before reload"; exit 1; }
 request() {
  curl -ksS --noproxy '*' --resolve bcbookstudio.test:18443:127.0.0.1 -o "$work/body" -w '%{http_code}' "$@" https://bcbookstudio.test:18443/
 }
@@ -78,7 +79,7 @@ echo 'PASS: Caddy log has no JWT header name, token, or cookie marker'
 # Concurrent old-host requests while Caddy reloads the same valid config.
 (
  for i in $(seq 1 30); do
-  curl -fsS --max-time 3 http://127.0.0.1:18080/ | grep -q legacy-ok || exit 1
+  curl -fsS -H "Host: legacy.test" --max-time 3 http://127.0.0.1:18080/ | grep -q legacy-ok || exit 1
   sleep 0.1
  done
 ) &
