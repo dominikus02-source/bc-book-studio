@@ -19,6 +19,17 @@ class ScientificAssetsTest(unittest.TestCase):
                 with self.subTest(spec=spec), self.assertRaises(AssetSpecError):
                     create_asset(spec,out)
 
+    def test_molecule_renders_if_dependency_installed(self):
+        try:
+            from rdkit import Chem
+        except ImportError:
+            self.skipTest("rdkit not installed")
+        with tempfile.TemporaryDirectory() as tmp:
+            p=create_asset({"kind":"molecule","id":"water","smiles":"O"},Path(tmp))
+            self.assertTrue(p.is_file())
+            self.assertIn("<svg",p.read_text(encoding="utf-8"))
+            self.assertGreater(p.stat().st_size,100)
+
     def test_qr_renders_if_dependency_installed(self):
         try:
             import segno
