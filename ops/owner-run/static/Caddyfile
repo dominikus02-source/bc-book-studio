@@ -1,0 +1,13 @@
+:8080 {
+  root * /srv
+  file_server
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy no-referrer
+    Cache-Control "no-store"
+  }
+  log {
+    output discard
+  }
+}
