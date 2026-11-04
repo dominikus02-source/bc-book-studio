@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!authorized(req)) return deny();
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format");
-  if (format !== "pdf" && format !== "epub") return NextResponse.json({ error: "Choose pdf or epub" }, { status: 400 });
+  if (format !== "pdf" && format !== "epub" && format !== "docx") return NextResponse.json({ error: "Choose pdf, epub or docx" }, { status: 400 });
   const book = await db.book.findUnique({ where: { id }, include: { chapters: { orderBy: { position: "asc" } } } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   if (book.status !== "APPROVED" || book.chapters.length === 0) return NextResponse.json({ error: "Only approved books can be exported" }, { status: 409 });
@@ -47,6 +47,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     for (const chapter of book.chapters) { line(chapter.position + ". " + chapter.title, 16, true); y -= 10; line(chapter.content); y -= 25; }
     const bytes = await pdf.save();
     return new NextResponse(Buffer.from(bytes), { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="' + filename + '"', "Cache-Control": "no-store" } });
+  }
+  if (format === "docx") {
+    const zip = new JSZip();
+    const paragraph = (text: string) => '<w:p><w:r><w:t xml:space="preserve">' + xml(text) + '</w:t></w:r></w:p>';
+    const sections = [book.title, 'Kelas ' + book.grade + ' | ' + book.subject];
+    for (const chapter of book.chapters) {
+      sections.push(chapter.position + '. ' + chapter.title);
+      sections.push(...chapter.content.split(/\r?\n/));
+    }
+    const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+      + sections.map(paragraph).join('')
+      + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr></w:body></w:document>';
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>'
+      + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+      + '</Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+      + '</Relationships>');
+    zip.file('word/document.xml', documentXml);
+    const bytes = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    return new NextResponse(new Uint8Array(bytes), { headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": 'attachment; filename="' + filename + '"',
+      "Cache-Control": "no-store"
+    } });
   }
   const zip = new JSZip();
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });
