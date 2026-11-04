@@ -143,3 +143,24 @@ jobs:
         if: always()
         run: |
           echo "NOTE: Full production Caddyfile adaptation, routing, log leak and rollback remain BLOCKED until exact fixture and complete host baseline are verified."
+  script-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck owner scripts
+        run: |
+          shellcheck -x ops/owner-run/*.sh
+      - name: Hadolint Dockerfiles
+        run: |
+          docker run --rm -v "$PWD:/work:ro" -w /work hadolint/hadolint:latest hadolint Dockerfile verifier/Dockerfile
+      - name: Verify staging compose configuration
+        env:
+          CF_ACCESS_TEAM_DOMAIN: test.cloudflareaccess.com
+          CF_ACCESS_AUD: test-audience
+        run: |
+          set -euo pipefail
+          source ops/owner-run/config.env
+          export CADDY_NETWORK
+          docker compose -f compose.phase1.yml config --quiet
+          ! docker compose -f compose.phase1.yml config | grep -E 'published:|host_ip:'
