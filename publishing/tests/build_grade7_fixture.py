@@ -206,7 +206,6 @@ def build(destination: Path) -> dict:
     }
     snapshot["snapshotHash"] = digest(canonical_bytes(snapshot))
     manifest = generate(snapshot, destination, release=False)
-    (destination / "fixture-source.json").write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
 
 if __name__ == "__main__":
