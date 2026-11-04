@@ -37,6 +37,7 @@ async def main():
     async def fake_complete(system, prompt, provider):
         print('PROVIDER_STARTED', flush=True)
         if phase == 'provider': await asyncio.sleep(120)
+        if phase == 'provider_delay': await asyncio.sleep(3)
         print('PROVIDER_COMPLETED', flush=True)
         if phase in ('after_provider','before_save'): await asyncio.sleep(120)
         return {'content':'draft', 'provider':'test-double', 'model':'reliability-only'}
@@ -167,3 +168,61 @@ def test_two_workers_compete(environment):
         assert await c.hget("studio:attempts","competition")=="1"
         await c.aclose()
     run(scenario())
+
+
+def test_two_real_worker_processes(environment):
+    async def seed():
+        c=redis.from_url(URL,decode_responses=True)
+        await c.lpush(PENDING,task("two_processes"))
+        await c.aclose()
+    run(seed())
+    first=child("claim",environment)
+    second=None
+    try:
+        until_line(first,"CLAIMED")
+        second=child("claim",environment)
+        until_line(second,"EMPTY")
+        second.wait(timeout=8)
+        assert second.returncode==0
+        async def verify():
+            c=redis.from_url(URL,decode_responses=True)
+            assert await c.llen(PROCESSING)==1
+            assert await c.hget("studio:attempts","two_processes")=="1"
+            await c.aclose()
+        run(verify())
+        kill(first)
+    finally:
+        if first.poll() is None: first.kill()
+        if second is not None and second.poll() is None: second.kill()
+
+
+def test_expired_lease_while_original_process_alive(environment):
+    async def seed():
+        c=redis.from_url(URL,decode_responses=True)
+        await c.lpush(PENDING,task("live_stale"))
+        await c.aclose()
+    run(seed())
+    first=child("provider_delay",environment)
+    try:
+        until_line(first,"PROVIDER_STARTED")
+        async def replace():
+            c=redis.from_url(URL,decode_responses=True)
+            await expire_for_test(c,"live_stale")
+            assert await reclaim(c)==["recovered"]
+            replacement=await claim(c,"new_owner")
+            from unittest.mock import AsyncMock,patch
+            with patch("app.worker.complete",new_callable=AsyncMock,
+                       return_value={"content":"new-owner-result","provider":"test-double","model":"reliability-only"}):
+                assert await process_claim(c,replacement,"new_owner")=="committed"
+            await c.aclose()
+        run(replace())
+        first.wait(timeout=12)
+        assert first.returncode==0
+        async def verify():
+            c=redis.from_url(URL,decode_responses=True)
+            assert await c.hget("studio:result:live_stale","content")=="new-owner-result"
+            assert await c.llen(PROCESSING)==0
+            await c.aclose()
+        run(verify())
+    finally:
+        if first.poll() is None: first.kill()
