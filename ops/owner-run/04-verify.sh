@@ -3,6 +3,10 @@ set -euo pipefail
 base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=ops/owner-run/config.env
 source "$base/config.env"
+if [[ "${1:-}" == "--dry-run" ]]; then
+  echo "DRY RUN: read-only baseline, Access redirect, origin-IP, verifier health, certificate expiry and key mode checks"; exit 0
+fi
+[[ $# -eq 0 ]] || { echo "Usage: $0 [--dry-run]"; exit 2; }
 fail=0
 printf '%-36s %-9s %-9s %-12s %s\n' HOST EXPECTED ACTUAL LATENCY RESULT
 IFS=',' read -r -a entries <<< "$BASELINE_HOSTS"
