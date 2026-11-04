@@ -33,3 +33,10 @@ Renderer only supports allowlisted declarative QR/line_plot/molecule for now. Mo
 - Quarto/Typst/LuaLaTeX cross-format rendering via approved snapshot, EPUBCheck, DOCX media/styles inspection, Unicode font embedding and visual comparison.
 - Pin exact package versions and hashes, scan vulnerabilities, document software/asset licenses, set worker resource limits and audit task provenance before production.
 - Model provider gateway remains distinct; DeepSeek default is a policy, not an activated credential.
+
+## Local Windows verification — 2026-11-04
+- PC `DESKTOP-2NM1AUE`, isolated venv `F:\\bc-book-science-venv`: bounded core Python requirements installed successfully, no existing application/system Python modified.
+- `python -m unittest discover -s publishing/tests -v`: **17 tests PASS, 0 skipped** after install, including real Segno QR and Matplotlib SVG.
+- Quarto existing synthetic textbook exported DOCX, Typst/PDF (25 pages) and EPUB; PDF inspection printed `Syntax Error: Suspects object is wrong type (boolean)` while metadata inspection completed, so forensic PDF QA remains required.
+- Windows import of `cairosvg`: **BLOCKED**, missing native Cairo DLL despite successful pip installation. Linux science image declares `libcairo2` but its build has not been executed. Windows native Cairo runtime must be installed separately before claiming CairoSVG support.
+- No Docker CLI is installed on this PC; no container image build, isolated runtime validation or VPS deployment has occurred.
