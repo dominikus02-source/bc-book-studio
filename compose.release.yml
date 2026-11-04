@@ -1,0 +1,16 @@
+# Override compose.yml for an existing, isolated BC Book Studio project.
+services:
+  web:
+    image: ${BC_BOOK_STUDIO_IMAGE:?Use the verified ghcr image digest}
+    pull_policy: never
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+  migrate:
+    profiles: ["release"]
+    image: ${BC_BOOK_STUDIO_MIGRATOR_IMAGE:?Use the matching migrator digest}
+    pull_policy: never
+    environment:
+      DATABASE_URL: postgresql://bookstudio:${DB_PASSWORD:?Required}@db:5432/bookstudio?schema=public
+    security_opt:
+      - no-new-privileges:true

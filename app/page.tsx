@@ -1,28 +1,82 @@
 "use client";
-import { useCallback, useState } from "react";
-type Chapter={id:string;title:string;content:string;position:number};
-type Review={id:string;decision:string;note:string;createdAt:string};
-type Book={id:string;title:string;grade:string;subject:string;status:"DRAFT"|"REVIEW"|"APPROVED";chapters:Chapter[];reviews:Review[]};
-const inputStyle={padding:"12px",border:"1px solid #cbd5e1",borderRadius:10,width:"100%",boxSizing:"border-box" as const,marginTop:5};
-const buttonStyle={padding:"11px 16px",background:"#2644bd",color:"white",border:0,borderRadius:10,cursor:"pointer"};
-export default function Home(){
- const [reviewerToken,setReviewerToken]=useState(""),[connected,setConnected]=useState(false),[books,setBooks]=useState<Book[]>([]),[selected,setSelected]=useState(""),[title,setTitle]=useState(""),[grade,setGrade]=useState("1"),[subject,setSubject]=useState("Bahasa Indonesia"),[chapterTitle,setChapterTitle]=useState(""),[chapterText,setChapterText]=useState(""),[topic,setTopic]=useState(""),[goals,setGoals]=useState(""),[note,setNote]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
- const book=books.find(b=>b.id===selected);
- const call=useCallback(async(path:string,init?:RequestInit)=>{
-  const response=await fetch("/api"+path,{...init,headers:{...(init?.body?{"Content-Type":"application/json"}:{}),...init?.headers},cache:"no-store"});
-  if(!response.ok){const data=await response.json().catch(()=>({error:"Request failed"}));throw new Error(data.error||"HTTP "+response.status)}
-  return response;
- },[]);
- const refresh=useCallback(async()=>{const response=await call("/books");const data=await response.json();setBooks(data.books);setConnected(true)},[call]);
- async function run(task:()=>Promise<void>){setBusy(true);setError("");setNotice("");try{await task()}catch(e){setError(e instanceof Error?e.message:"Terjadi kesalahan")}finally{setBusy(false)}}
- async function create(){await run(async()=>{const response=await call("/books",{method:"POST",body:JSON.stringify({title,grade,subject})});const data=await response.json();setSelected(data.book.id);setTitle("");await refresh();setNotice("Buku dibuat.")})}
- async function deleteBook(){if(!book||book.status!=="DRAFT")return; if(!window.confirm("Hapus buku draf ini beserta semua babnya?"))return;await run(async()=>{await call("/books/"+book.id,{method:"DELETE"});setSelected("");await refresh();setNotice("Buku dihapus.")})}
- async function addTemplate(){await run(async()=>{const r=await call("/books/template",{method:"POST"});const d=await r.json();await refresh();setSelected(d.bookId);setNotice(d.alreadyExists?"Contoh buku sudah ada.":"Contoh buku disalin ke perpustakaan Anda.")})}
- async function addChapter(){if(!book)return;await run(async()=>{await call("/books/"+book.id+"/chapters",{method:"POST",body:JSON.stringify({title:chapterTitle,content:chapterText})});setChapterTitle("");setChapterText("");await refresh();setNotice("Bab tersimpan.")})}
- async function generate(){if(!book)return;await run(async()=>{const response=await call("/books/"+book.id+"/generate",{method:"POST",body:JSON.stringify({topic,learningGoals:goals})});const data=await response.json();setChapterTitle(data.draft.title);setChapterText(data.draft.content);setNotice("Draf AI dibuat. Periksa fakta dan edit sebelum menyimpan.")})}
- async function review(action:"submit"|"approve"|"reject"){if(!book)return;await run(async()=>{await call("/books/"+book.id+"/review",{method:"POST",headers:action==="submit"?{}:{"Authorization":"Bearer "+reviewerToken},body:JSON.stringify({action,note})});setNote("");await refresh();setNotice("Status editorial diperbarui.")})}
- async function download(format:"pdf"|"epub"){if(!book)return;await run(async()=>{const response=await call("/books/"+book.id+"/export?format="+format);const blob=await response.blob();const url=URL.createObjectURL(blob);const anchor=document.createElement("a");anchor.href=url;anchor.download="bc-book-"+book.id+"."+format;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)})}
- return <main style={{maxWidth:1160,margin:"auto",padding:"24px 18px",fontFamily:"system-ui,sans-serif",color:"#1c2b45"}}><header style={{marginBottom:25}}><h1 style={{marginBottom:5}}>BC Book Studio</h1><p>Studio editorial mandiri · buku kelas 1–12 dan referensi</p></header>
- {!connected?<section style={{maxWidth:500,background:"white",padding:25,borderRadius:16}}><h2>Akses studio</h2><p>Masuk melalui Cloudflare Access menggunakan email yang disetujui Pak Domi.</p><p><button style={buttonStyle} disabled={busy} onClick={()=>run(refresh)}>Masuk ke studio</button></p></section>:<><button style={{...buttonStyle,background:"#53627a"}} onClick={()=>{setConnected(false);setReviewerToken("");setBooks([]);setSelected("")}}>Keluar</button><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:20,marginTop:20}}><section style={{background:"white",padding:24,borderRadius:16}}><h2>Buat buku</h2><label>Judul<input style={inputStyle} value={title} onChange={e=>setTitle(e.target.value)}/></label><p><label>Kelas<select style={inputStyle} value={grade} onChange={e=>setGrade(e.target.value)}>{Array.from({length:12},(_,i)=><option key={i}>{i+1}</option>)}<option>Referensi</option></select></label></p><p><label>Mata pelajaran<input style={inputStyle} value={subject} onChange={e=>setSubject(e.target.value)}/></label></p><button style={buttonStyle} disabled={busy||title.trim().length<2} onClick={create}>Buat buku</button><p><button style={{...buttonStyle,background:"#0f766e"}} disabled={busy} onClick={addTemplate}>Tambahkan contoh buku Kelas VII</button></p><h2>Daftar buku ({books.length})</h2>{books.map(b=><button key={b.id} onClick={()=>setSelected(b.id)} style={{display:"block",width:"100%",textAlign:"left",marginBottom:9,padding:14,border:"1px solid #cbd5e1",borderRadius:10,background:b.id===selected?"#e8edff":"white",cursor:"pointer"}}><strong>{b.title}</strong><div>Kelas {b.grade} · {b.status} · {b.chapters.length} bab</div></button>)}</section><section style={{background:"white",padding:24,borderRadius:16}}>{!book?<p>Pilih buku untuk mengelola naskah.</p>:<><h2>{book.title}</h2>{book.status==="DRAFT"&&<button style={{...buttonStyle,background:"#b91c1c"}} disabled={busy} onClick={deleteBook}>Hapus buku draf</button>}<p>Kelas {book.grade} · {book.subject} · <strong>{book.status}</strong></p>{book.chapters.map(ch=><article key={ch.id} style={{borderBottom:"1px solid #ddd",marginBottom:15}}><h3>{ch.position}. {ch.title}</h3><p style={{whiteSpace:"pre-wrap",maxHeight:250,overflow:"auto"}}>{ch.content}</p></article>)}{book.status==="DRAFT"&&<><h3>Bantuan AI (opsional)</h3><p>AI hanya membuat draf; editor bertanggung jawab atas pemeriksaan fakta dan hak cipta.</p><input aria-label="Topik" placeholder="Topik bab" style={inputStyle} value={topic} onChange={e=>setTopic(e.target.value)}/><textarea aria-label="Tujuan pembelajaran" placeholder="Tujuan pembelajaran" rows={3} style={inputStyle} value={goals} onChange={e=>setGoals(e.target.value)}/><p><button style={buttonStyle} disabled={busy||topic.length<4||goals.length<10} onClick={generate}>Buat draf AI</button></p><h3>Editor bab</h3><input aria-label="Judul bab" placeholder="Judul bab" style={inputStyle} value={chapterTitle} onChange={e=>setChapterTitle(e.target.value)}/><textarea aria-label="Isi bab" placeholder="Isi bab" rows={10} style={inputStyle} value={chapterText} onChange={e=>setChapterText(e.target.value)}/><p><button style={buttonStyle} disabled={busy||chapterTitle.length<2||chapterText.length<20} onClick={addChapter}>Simpan bab</button></p></>}<h3>Persetujuan editorial</h3>{book.status==="REVIEW"&&<><label>Token peninjau terpisah<input aria-label="Token peninjau" type="password" autoComplete="off" style={inputStyle} value={reviewerToken} onChange={e=>setReviewerToken(e.target.value)}/></label><textarea aria-label="Catatan peninjauan" placeholder="Catatan keputusan (wajib untuk persetujuan)" rows={3} style={inputStyle} value={note} onChange={e=>setNote(e.target.value)}/></>}<div style={{display:"flex",gap:9,flexWrap:"wrap",marginTop:12}}>{book.status==="DRAFT"&&<button style={buttonStyle} disabled={busy||!book.chapters.length} onClick={()=>review("submit")}>Ajukan review</button>}{book.status==="REVIEW"&&<><button style={buttonStyle} disabled={busy||!note.trim()||!reviewerToken} onClick={()=>review("approve")}>Setujui buku</button><button style={{...buttonStyle,background:"#64748b"}} disabled={busy||!reviewerToken} onClick={()=>review("reject")}>Kembalikan ke draf</button></>}{book.status==="APPROVED"&&<><button style={buttonStyle} disabled={busy} onClick={()=>download("pdf")}>Unduh PDF</button><button style={buttonStyle} disabled={busy} onClick={()=>download("epub")}>Unduh EPUB</button></>}</div>{book.reviews.length>0&&<p style={{fontSize:12,color:"#64748b"}}>Riwayat terakhir: {book.reviews[0].decision} · {book.reviews[0].note||"Tanpa catatan"}</p>}</>}</section></div></>}
- {error&&<p role="alert" style={{color:"#b91c1c",padding:12}}>{error}</p>}{notice&&<p role="status" style={{color:"#166534",padding:12}}>{notice}</p>}<footer style={{marginTop:30,fontSize:13,color:"#64748b"}}>Akses studio dilindungi Cloudflare Access. Persetujuan editorial tetap memerlukan token peninjau terpisah dan pemeriksaan kurikulum.</footer></main>;
+
+import { useEffect, useState } from "react";
+import BetaWorkspace, { useBooks } from "@/components/beta-workspace";
+import StudioWorkspace from "@/components/studio-workspace";
+import BookCommandForm from "@/components/book-command-form";
+import {
+  Activity, BookOpen, Bot, Boxes, BrainCircuit, ChevronRight, Clock3,
+  FlaskConical, FolderOpen, GraduationCap, Image, LayoutTemplate, Library,
+  Lightbulb, Menu, PenLine, Settings2, ShieldCheck, Sparkles, SpellCheck, Bell
+} from "lucide-react";
+
+const navigation = [
+  { label: "Dasbor", icon: Boxes, group: "UTAMA" },
+  { label: "Proyek Buku", icon: FolderOpen, group: "UTAMA" },
+  { label: "Buat Buku", icon: BookOpen, group: "UTAMA" },
+  { label: "Idea Lab", icon: Lightbulb, group: "PRODUKSI" },
+  { label: "Kurikulum", icon: GraduationCap, group: "PRODUKSI" },
+  { label: "Studio Penulisan", icon: PenLine, group: "PRODUKSI" },
+  { label: "Studio Latihan", icon: FlaskConical, group: "PRODUKSI" },
+  { label: "Studio Visual", icon: Image, group: "PRODUKSI" },
+  { label: "Penyuntingan", icon: SpellCheck, group: "MUTU & TERBIT" },
+  { label: "Tinjauan Pedagogis", icon: ShieldCheck, group: "MUTU & TERBIT" },
+  { label: "Tata Letak", icon: LayoutTemplate, group: "MUTU & TERBIT" },
+  { label: "Penerbitan", icon: Library, group: "MUTU & TERBIT" },
+  { label: "Pusat Agen", icon: Bot, group: "PENGELOLAAN" },
+  { label: "Pengaturan", icon: Settings2, group: "PENGELOLAAN" },
+];
+
+const modules = [
+  { title: "Laboratorium Ide", desc: "Temukan peluang dan rancang gagasan buku.", icon: Lightbulb, target: "Idea Lab" },
+  { title: "Laboratorium Kurikulum", desc: "Petakan capaian, tujuan, dan urutan belajar.", icon: GraduationCap, target: "Kurikulum" },
+  { title: "Studio Penulisan", desc: "Susun naskah bab demi bab.", icon: PenLine, target: "Studio Penulisan" },
+  { title: "Studio Latihan", desc: "Rancang soal, aktivitas, dan rubrik.", icon: FlaskConical, target: "Studio Latihan" },
+  { title: "Studio Visual", desc: "Siapkan ilustrasi dan media pembelajaran.", icon: Image, target: "Studio Visual" },
+  { title: "Penyuntingan", desc: "Periksa bahasa, konsistensi, dan keterbacaan.", icon: SpellCheck, target: "Penyuntingan" },
+  { title: "Tinjauan Pedagogis", desc: "Uji kesesuaian materi dengan peserta didik.", icon: ShieldCheck, target: "Tinjauan Pedagogis" },
+  { title: "Tata Letak & Terbit", desc: "Siapkan PDF, EPUB, dan edisi digital.", icon: BookOpen, target: "Tata Letak" },
+];
+
+export default function Home() {
+  const { books, error: booksError, loading, refresh } = useBooks();
+  const [active, setActive] = useState("Dasbor");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const navigate = (event: Event) => setActive((event as CustomEvent<string>).detail);
+    window.addEventListener("bc-studio-navigate", navigate);
+    return () => window.removeEventListener("bc-studio-navigate", navigate);
+  }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileOpen]);
+
+  return <div className="shell min-h-dvh">
+    <a className="skip-link" href="#main-content">Lewati navigasi</a>
+    {mobileOpen && <button type="button" className="sidebar-backdrop" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
+    <nav id="studio-sidebar" aria-label="Menu studio" className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+      <button type="button" className="sidebar-close" aria-label="Tutup menu" onClick={() => setMobileOpen(false)}>×</button>
+      <div className="brand"><div className="brand-mark">BC</div><div><div className="brand-name">BOOK STUDIO</div><div className="brand-sub">Ekosistem Penerbitan Cerdas</div></div></div>
+      <div>{["UTAMA","PRODUKSI","MUTU & TERBIT","PENGELOLAAN"].map(group=><div key={group} style={{marginBottom:19}}><div className="nav-label">{group}</div><div className="nav-list">{navigation.filter(item=>item.group===group).map(item=>{const Icon=item.icon;return <button key={item.label} className={`nav-item ${active===item.label?"active":""}`} onClick={()=>{setActive(item.label);setMobileOpen(false);}}><Icon size={16} strokeWidth={1.8}/>{item.label}</button>;})}</div></div>)}</div>
+      <div className="sidebar-bottom"><strong><Sparkles size={13} style={{display:"inline",marginRight:5}}/>Ruang kerja cerdas</strong><p>Setiap naskah melewati pemeriksaan dan persetujuan editor sebelum diterbitkan.</p></div>
+    </nav>
+    <main id="main-content" tabIndex={-1} className="main min-w-0">
+      <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button className="icon-button mobile-menu" aria-label="Buka menu" aria-expanded={mobileOpen} aria-controls="studio-sidebar" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><a className="secondary-button" href="/cdn-cgi/access/logout">Keluar</a></div></header>
+      {active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Satu formulir perintah untuk seluruh proses produksi.</p></div><BookCommandForm onCreated={()=>{void refresh();setActive("Proyek Buku");}}/></>:active==="Dasbor"?<>
+        <div style={{marginBottom:21}}><h1 className="page-title">Selamat datang di ruang penerbitan</h1><p className="page-sub">Rancang, tulis, periksa, dan terbitkan buku dalam satu alur kerja.</p></div>
+        <section className="welcome"><div><div className="eyebrow">PUSAT KENDALI PENERBITAN</div><h2>Dari gagasan menjadi karya bermutu.</h2><p>Kelola proses penerbitan buku pendidikan, literasi, sastra, dan referensi dengan bantuan agen AI serta kendali editor manusia.</p></div><div className="welcome-mark">BC</div></section>
+        <div className="stats">{[["Proyek buku",String(books.length),"Buku milik Anda",FolderOpen],["Agen terdefinisi","11","Peran inti siap dikonfigurasi",BrainCircuit],["Naskah disetujui",String(books.filter(b=>b.status==="APPROVED").length),"Persetujuan editorial",BookOpen],["Sesi studio",booksError?"Perlu login":"Terhubung",booksError||"Cloudflare Access",Activity]].map(([label,value,note,Icon])=>{const I=Icon as typeof Activity;return <div className="stat" key={label as string}><div className="stat-top"><span>{label as string}</span><span className="stat-icon"><I size={15}/></span></div><div className="stat-value" style={{fontSize:(value as string).length>5?17:24}}>{value as string}</div><div className="stat-note">{note as string}</div></div>;})}</div>
+        <div className="section-head"><h3>Ruang produksi</h3><span>8 modul utama</span></div><div className="module-grid">{modules.map(({title,desc,icon:Icon,target})=><button className="module-card" key={title} onClick={()=>setActive(target)}><span className="module-symbol"><Icon size={17}/></span><strong>{title}</strong><p>{desc}</p></button>)}</div>
+        <div className="section-head"><h3>Aktivitas ruang kerja</h3><span>{books.length} buku</span></div><div className="panel"><div style={{display:"flex",alignItems:"center",gap:12}}><Clock3 size={18} color="#8b95a5"/><div><div style={{fontSize:12,fontWeight:600}}>Buku terbaru: {books[0]?.title || "Belum ada buku"}</div><div style={{fontSize:11,color:"#536173",marginTop:4}}>Data diambil dari perpustakaan pribadi Anda.</div></div></div></div>
+      </>:<><div style={{marginBottom:20}}><h1 className="page-title">{active}</h1><p className="page-sub">Ruang kerja BC Book Studio · closed beta.</p></div>{!["Proyek Buku","Studio Penulisan","Penyuntingan","Tata Letak","Penerbitan"].includes(active)&&<StudioWorkspace active={active}/>}</>}
+      <div hidden={!["Proyek Buku","Studio Penulisan","Penyuntingan","Tata Letak","Penerbitan"].includes(active)}><BetaWorkspace active={active} onChanged={refresh} books={books} error={booksError} loading={loading}/></div><div className="footer-note">BC BOOK STUDIO · Ruang kerja penerbitan cerdas · Closed beta</div>
+    </main>
+  </div>;
 }

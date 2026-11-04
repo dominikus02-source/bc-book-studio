@@ -1,3 +1,15 @@
-import type { ReactNode } from "react";
-export const metadata = { title: "BC Book Studio", description: "Studio penerbitan buku BahasaCerdas" };
-export default function RootLayout({children}:{children:ReactNode}) {return <html lang="id"><body style={{margin:0,fontFamily:"system-ui, sans-serif",background:"#f3f6fc",color:"#14223b"}}>{children}</body></html>}
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "BC Book Studio — Ekosistem Penerbitan Cerdas",
+  description: "Studio produksi buku pendidikan dan literasi berbantuan kecerdasan buatan.",
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="id">
+      <body>{children}</body>
+    </html>
+  );
+}
