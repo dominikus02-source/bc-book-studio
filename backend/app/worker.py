@@ -3,6 +3,8 @@ import asyncio
 import json
 import os
 import re
+import time
+import uuid
 import redis.asyncio as redis
 from .ai import complete
 from .agents.chief_editor import prepare_draft
@@ -23,6 +25,8 @@ def validate_task(raw):
 
 async def process_task(client, raw):
     task = validate_task(raw)
+    if await client.hget("studio:result:" + task["id"], "status") == "waiting_approval":
+        return task["id"]
     system, prompt, metadata = prepare_draft(task["topic"], task["grade"], task["objectives"], task.get("category", "writing"))
     result = await complete(system, prompt, provider=task.get("provider", "deepseek"))
     await client.hset("studio:result:" + task["id"], mapping={
@@ -31,19 +35,25 @@ async def process_task(client, raw):
     return task["id"]
 
 async def run():
+    worker_id = uuid.uuid4().hex
     client = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"), decode_responses=True)
     try:
         while True:
             item = await client.brpoplpush("studio:pending", "studio:processing", timeout=5)
             if item is None:
                 continue
+            task_id = None
             try:
+                task_id = validate_task(item)["id"]
+                await client.hset("studio:inflight:" + task_id, mapping={"worker": worker_id, "started_at": str(time.time())})
                 await process_task(client, item)
             except Exception as exc:
                 await client.lpush("studio:dead", item)
                 await client.hset("studio:worker_errors", mapping={"last_error_type": type(exc).__name__})
             finally:
                 await client.lrem("studio:processing", 1, item)
+                if task_id:
+                    await client.delete("studio:inflight:" + task_id)
     finally:
         await client.aclose()
 
