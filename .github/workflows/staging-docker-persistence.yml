@@ -28,16 +28,27 @@ jobs:
           set -uo pipefail
           bash backend/tests/staging_docker_recovery.sh > docker-recovery.log 2>&1
           result=$?
+          secret_found=0
           while IFS='=' read -r name value; do
             case "$name" in STUDIO_API_KEY|STUDIO_DB_PASSWORD)
               if [[ -n "$value" ]] && grep -Fq -- "$value" docker-recovery.log; then
-                echo "::error::Ephemeral credential detected in captured Docker log; refusing to print it"
-                exit 1
+                echo "::error::Ephemeral credential detected in captured Docker log"
+                secret_found=1
               fi
               ;;
             esac
           done < .env.staging
-          cat docker-recovery.log
+          python3 - <<'PY'
+          from pathlib import Path
+          log = Path("docker-recovery.log").read_text(errors="replace")
+          for line in Path(".env.staging").read_text().splitlines():
+              if "=" in line:
+                  name, value = line.split("=", 1)
+                  if name in ("STUDIO_API_KEY", "STUDIO_DB_PASSWORD") and value:
+                      log = log.replace(value, "[REDACTED]")
+          print(log[-24000:])
+          PY
+          if [[ "$secret_found" != 0 ]]; then exit 1; fi
           exit "$result"
       - name: Remove ephemeral staging containers
         if: always()
