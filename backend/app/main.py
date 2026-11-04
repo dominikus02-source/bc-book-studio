@@ -4,6 +4,8 @@ import secrets
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from .ai import AIProviderError, complete
+from .agents.chief_editor import prepare_draft
+from .editorial_knowledge import KnowledgeLoadError
 
 app = FastAPI(title="BC Book Studio API", docs_url=None, redoc_url=None)
 
@@ -12,6 +14,7 @@ class DraftRequest(BaseModel):
     grade: str = Field(min_length=1, max_length=20)
     objectives: str = Field(min_length=10, max_length=2000)
     provider: str = "deepseek"
+    category: str = "writing"
 
 def require_editor(authorization: str | None) -> None:
     expected = os.getenv("STUDIO_API_KEY", "")
@@ -26,11 +29,12 @@ def health():
 async def draft(request: DraftRequest, authorization: str | None = Header(default=None)):
     require_editor(authorization)
     try:
-        result = await complete(
-            "Anda penulis buku pendidikan Bahasa Indonesia. Hasil adalah draf yang wajib diverifikasi editor. Jangan mengarang referensi.",
-            f"Topik: {request.topic}\nJenjang: {request.grade}\nTujuan pembelajaran: {request.objectives}\nBuat penjelasan, contoh, dan latihan.",
-            provider=request.provider,
-        )
+        system, prompt, metadata = prepare_draft(request.topic, request.grade, request.objectives, request.category)
+        result = await complete(system, prompt, provider=request.provider)
+    except KnowledgeLoadError as exc:
+        raise HTTPException(status_code=503, detail="Pengetahuan editorial tidak tersedia") from exc
     except AIProviderError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    return {"status": "perlu_tinjauan", "draft": result}
+    return {"status": "perlu_tinjauan", "draft": result, "execution": {
+        **metadata, "provider": result["provider"], "model": result["model"],
+        "execution_status": "completed"}}
