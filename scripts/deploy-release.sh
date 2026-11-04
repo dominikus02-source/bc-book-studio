@@ -14,6 +14,15 @@ compose=(docker compose -p bc-book-studio-runtime -f compose.yml)
 [[ ! -f compose.edge.yml ]] || compose+=(-f compose.edge.yml)
 compose+=(-f compose.release.yml)
 "${compose[@]}" config --quiet
+: "${BC_BOOK_STUDIO_EXPECTED_AUD:?Set the production Access application AUD}"
+"${compose[@]}" config --format json | python3 -c '
+import json,re,sys
+env=json.load(sys.stdin)["services"]["web"]["environment"]
+assert re.fullmatch(r"https://[a-z0-9-]+[.]cloudflareaccess[.]com",env.get("CF_ACCESS_TEAM_DOMAIN","")), "Missing/invalid beta Access team domain"
+assert env.get("CF_ACCESS_AUD")==sys.argv[1], "Access AUD does not match the target application"
+assert len(env.get("STUDIO_REVIEWER_API_KEY",""))>=24, "Missing separate reviewer credential"
+print("PASS target Access configuration and reviewer credential")
+' "$BC_BOOK_STUDIO_EXPECTED_AUD"
 web=$("${compose[@]}" ps -q web)
 db=$("${compose[@]}" ps -q db)
 [[ -n "$web" && -n "$db" ]] || { echo 'Existing web/database not found; no changes made'; exit 2; }
@@ -25,6 +34,8 @@ docker pull "$BC_BOOK_STUDIO_IMAGE"
 docker pull "$BC_BOOK_STUDIO_MIGRATOR_IMAGE"
 revision=$(docker image inspect "$BC_BOOK_STUDIO_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
 [[ "$revision" == "$BC_BOOK_STUDIO_VERIFIED_SHA" ]] || { echo 'Image revision does not match selected CI commit'; exit 2; }
+migration_revision=$(docker image inspect "$BC_BOOK_STUDIO_MIGRATOR_IMAGE" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')
+[[ "$migration_revision" == "$revision" ]] || { echo 'Migrator/runtime source revisions differ'; exit 2; }
 # Never modify the schema implicitly. Pending migrations block the switch.
 "${compose[@]}" --profile release run --rm --no-deps migrate migrate status
 if [[ "$mode" == --check ]]; then

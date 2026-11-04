@@ -17,7 +17,7 @@ An explicit bookstudio-rc-* tag publishes only the tested images, tagged with th
 2. Review a real Cloudflare-authenticated editor session and two-user CRUD isolation in preview.
 3. Publish the same reviewed source SHA with an explicit bookstudio-rc-* tag (or workflow dispatch after the workflow exists on main).
 4. Copy compose.release.yml and scripts/deploy-release.sh to the existing dedicated Book Studio Compose directory. Preserve its server-only .env and compose.edge.yml.
-5. Set BC_BOOK_STUDIO_IMAGE and BC_BOOK_STUDIO_MIGRATOR_IMAGE to the immutable digests in the run summary, and BC_BOOK_STUDIO_VERIFIED_SHA to the source commit.
+5. Set BC_BOOK_STUDIO_IMAGE and BC_BOOK_STUDIO_MIGRATOR_IMAGE to the immutable digests in the run summary, BC_BOOK_STUDIO_VERIFIED_SHA to the source commit, and BC_BOOK_STUDIO_EXPECTED_AUD to the production Access application AUD. The beta requires CF_ACCESS_TEAM_DOMAIN (the old CF_ACCESS_ISSUER name alone is insufficient).
 6. Run bash scripts/deploy-release.sh --check. This pulls only those images, verifies the runtime revision and checks migration status. Pending migrations block deployment.
 7. Apply pending migrations only under a separate backed-up migration plan. In particular, owner isolation changes the old API's insert contract; ensure the rollback image already understands ownerId. Do not silently migrate and then claim an older token-only image is a compatible rollback.
 8. Once preflight passes, run bash scripts/deploy-release.sh --apply. It verifies a fresh database archive, switches only the Book Studio web service, and checks health/API rejection. Failed web startup or smoke checks restore the previous image; no schema rollback is attempted.
