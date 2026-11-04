@@ -42,7 +42,7 @@ jobs:
           done
           epubcheck "$RUNNER_TEMP"/grade7-artifacts/*.epub
           pdfinfo "$RUNNER_TEMP"/grade7-artifacts/*.pdf
-          cp manifest.json "$RUNNER_TEMP/grade7-artifacts/source-manifest.json"
+          cp manifest.json "$RUNNER_TEMP/grade7-artifacts/source-manifest.json"\n          cd "$GITHUB_WORKSPACE"\n          python -m publishing.tests.validate_grade7_exports "$RUNNER_TEMP/grade7-artifacts" --report "$RUNNER_TEMP/grade7-artifacts/validation.json"
           (cd "$RUNNER_TEMP/grade7-artifacts" && sha256sum *.docx *.pdf *.epub > checksums.sha256)
       - name: Save preview evidence
         if: always()
