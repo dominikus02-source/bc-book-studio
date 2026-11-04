@@ -21,13 +21,13 @@ Tanggal: 2026-11-04. **Status: BLOCKED** (kriteria inti penyimpanan proyek belum
 | Idempotensi dan otorisasi | BLOCKED |
 | Perpustakaan nyata | BLOCKED |
 | Autosave | Belum diimplementasikan |
-| TypeScript, lint, build | Belum ada bukti hasil terbaru |
+| TypeScript, lint, build | **LULUS lokal**: `npx tsc --noEmit` exit 0, `npm run lint` exit 0 dengan 9 peringatan, `npm run build` exit 0; Windows checkout `F:\\bc-book-studio-stage1c`, 2026-11-04 |
 | Desktop/tablet/ponsel, dark mode | CSS ditambahkan, belum diverifikasi visual |
 | Tangkapan layar yang diminta | Belum diambil; tidak membuat bukti palsu |
 | Status PR #1 | Tidak diubah; tetap Draft sesuai instruksi |
 
 ## Langkah berikutnya
-1. Jalankan instalasi dependensi, TypeScript, lint, build, dan uji browser; perbaiki kegagalan nyata.
+1. Instalasi dependensi, TypeScript, lint, dan build sudah lulus lokal; bersihkan 9 peringatan lint, lalu uji browser dan aksesibilitas.
 2. Rancang sesi identitas backend dan pemeriksaan hak akses pemilik.
 3. Tambahkan model proyek/bab serta migrasi yang diuji di PostgreSQL terisolasi.
 4. Implementasikan API pembuatan dan daftar proyek dengan idempotensi, transaksi, pagination, dan uji lintas pengguna.
