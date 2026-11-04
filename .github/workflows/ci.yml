@@ -143,10 +143,13 @@ jobs:
             echo "ERROR: invalid certificate path incorrectly accepted"; exit 1
           fi
           echo "PASS: positive and negative Caddy certificate validation"
+      - name: Caddy JWT routing, log hygiene and reload continuity
+        shell: bash
+        run: bash ops/ci/caddy-routing.sh
       - name: Caddy validation summary
         if: always()
         run: |
-          echo "NOTE: Full production Caddyfile adaptation, routing, log leak and rollback remain BLOCKED until exact fixture and complete host baseline are verified."
+          echo "NOTE: Production Caddyfile adaptation and rollback through owner scripts remain BLOCKED until complete host baseline and CI rollback proof."
   script-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
