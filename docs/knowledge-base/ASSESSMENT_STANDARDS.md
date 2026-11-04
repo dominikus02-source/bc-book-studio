@@ -1,0 +1,2 @@
+# Standar Asesmen
+Versi 1.0.0. Setiap butir harus memetakan kompetensi, stimulus, instruksi, jawaban atau pedoman dan bukti dari materi. Pilihan ganda satu jawaban memiliki satu opsi paling tepat dan pengecoh yang masuk akal. Soal terbuka wajib memiliki rubrik analitik dan deskriptor teramati. Audit ambiguitas, opsi duplikat, petunjuk jawaban tidak sengaja, kunci salah, stimulus tidak relevan dan ketidaksesuaian jenjang. Butir ambigu BLOCKED sampai direvisi. Penilai manusia memeriksa kunci dan rubrik.
