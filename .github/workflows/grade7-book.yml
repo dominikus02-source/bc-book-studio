@@ -21,7 +21,7 @@ jobs:
           curl -fsSL --retry 3 https://github.com/quarto-dev/quarto-cli/releases/download/v1.11.9/quarto-1.11.9-linux-amd64.deb -o /tmp/quarto.deb
           echo "64078d1623d9ab89da766591f3410a0756f3737a37efb0897c7e84b863bf092a  /tmp/quarto.deb" | sha256sum -c -
           sudo apt-get update
-          sudo apt-get install -y /tmp/quarto.deb epubcheck poppler-utils
+          sudo apt-get install -y /tmp/quarto.deb epubcheck poppler-utils qpdf mupdf-tools
       - name: Unit and grade VII tests
         run: |
           python -m unittest publishing.tests.test_qmd_pipeline publishing.tests.test_grade7_fixture publishing.tests.test_grade7_export_validator -v
@@ -44,6 +44,12 @@ jobs:
           done
           epubcheck "$RUNNER_TEMP"/grade7-artifacts/*.epub 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/epubcheck.log"
           pdfinfo "$RUNNER_TEMP"/grade7-artifacts/*.pdf 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/pdfinfo.log"
+          qpdf --check "$RUNNER_TEMP"/grade7-artifacts/*.pdf 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/qpdf-check.log"
+          pdffonts "$RUNNER_TEMP"/grade7-artifacts/*.pdf 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/pdffonts.log"
+          pdfimages -list "$RUNNER_TEMP"/grade7-artifacts/*.pdf 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/pdfimages.log"
+          mutool show "$RUNNER_TEMP"/grade7-artifacts/*.pdf trailer/Root 2>&1 | tee "$RUNNER_TEMP/grade7-artifacts/pdf-catalog.log"
+          mkdir -p "$RUNNER_TEMP/grade7-artifacts/pdf-pages"
+          pdftoppm -f 1 -l 100 -scale-to 1000 -png "$RUNNER_TEMP"/grade7-artifacts/*.pdf "$RUNNER_TEMP/grade7-artifacts/pdf-pages/halaman"
           cp manifest.json "$RUNNER_TEMP/grade7-artifacts/source-manifest.json"
           cd "$GITHUB_WORKSPACE"
           python -m publishing.tests.validate_grade7_exports "$RUNNER_TEMP/grade7-artifacts" --report "$RUNNER_TEMP/grade7-artifacts/validation.json"
