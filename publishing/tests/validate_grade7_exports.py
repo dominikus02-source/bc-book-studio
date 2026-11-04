@@ -30,25 +30,58 @@ def docx_text(path: Path) -> str:
         document = ET.fromstring(z.read("word/document.xml"))
         return " ".join(node.text or "" for node in document.iter(W + "t"))
 
+def normalize_text(value: str) -> str:
+    import html
+    import unicodedata
+    return " ".join(unicodedata.normalize("NFC", html.unescape(value)).split())
+
 def epub_text(path: Path) -> tuple[str, dict]:
+    import posixpath
+    from urllib.parse import unquote, urlsplit
+    container_ns = "{urn:oasis:names:tc:opendocument:xmlns:container}"
+    opf_ns = "{http://www.idpf.org/2007/opf}"
+    xhtml_ns = "{http://www.w3.org/1999/xhtml}"
     with zipfile.ZipFile(path) as z:
         bad = z.testzip()
         if bad:
             raise ValueError("EPUB ZIP rusak: " + bad)
-        names = z.namelist()
         if z.read("mimetype") != b"application/epub+zip":
             raise ValueError("MIME EPUB tidak valid")
-        opf = [name for name in names if name.endswith(".opf")]
-        if len(opf) != 1:
-            raise ValueError("OPF EPUB tidak tunggal")
-        meta = ET.fromstring(z.read(opf[0]))
-        titles = [e.text for e in meta.iter(DC + "title")]
-        parts = []
-        for name in names:
-            if name.endswith((".xhtml", ".html", ".htm")):
-                tree = ET.fromstring(z.read(name))
-                parts.extend(node.text for node in tree.iter() if node.text)
-        return " ".join(parts), {"judul": titles, "dokumen_html": len([n for n in names if n.endswith((".xhtml", ".html", ".htm"))])}
+        container = ET.fromstring(z.read("META-INF/container.xml"))
+        roots = container.findall(".//" + container_ns + "rootfile")
+        if len(roots) != 1:
+            raise ValueError("EPUB: rootfile tidak tunggal")
+        opf_path = roots[0].attrib["full-path"]
+        package = ET.fromstring(z.read(opf_path))
+        manifest = package.find(opf_ns + "manifest")
+        spine = package.find(opf_ns + "spine")
+        if manifest is None or spine is None:
+            raise ValueError("EPUB: manifest atau spine tidak tersedia")
+        items = {item.attrib["id"]: item.attrib for item in manifest.findall(opf_ns + "item")}
+        parts, paths = [], []
+        for ref in spine.findall(opf_ns + "itemref"):
+            item = items.get(ref.attrib.get("idref"))
+            if item is None:
+                raise ValueError("EPUB: idref spine tidak ditemukan")
+            if item.get("media-type") != "application/xhtml+xml":
+                raise ValueError("EPUB: spine bukan XHTML")
+            href = unquote(urlsplit(item["href"]).path)
+            if not href or href.startswith("/"):
+                raise ValueError("EPUB: path tidak aman")
+            name = posixpath.normpath(posixpath.join(posixpath.dirname(opf_path), href))
+            if name == ".." or name.startswith("../"):
+                raise ValueError("EPUB: path keluar arsip")
+            root = ET.fromstring(z.read(name))
+            body = root.find(".//" + xhtml_ns + "body")
+            if body is None:
+                raise ValueError("EPUB: XHTML tanpa body: " + name)
+            # itertext membaca teks anak dan tail setelah elemen inline.
+            parts.append(normalize_text(" ".join(body.itertext())))
+            paths.append(name)
+        if not parts:
+            raise ValueError("EPUB: spine kosong")
+        titles = [node.text for node in package.iter(DC + "title")]
+        return normalize_text(" ".join(parts)), {"judul": titles, "dokumen_html": len(parts), "spine": paths}
 
 def pdf_text(path: Path) -> tuple[str, dict]:
     info = subprocess.run(["pdfinfo", str(path)], capture_output=True, text=True, check=True)
@@ -78,7 +111,7 @@ def main():
     failures = []
     for suffix, text in texts.items():
         for marker in EXPECTED + MARKERS:
-            if marker.casefold() not in " ".join(text.split()).casefold():
+            if marker.casefold() not in normalize_text(text).casefold():
                 failures.append(f"{suffix}: bagian hilang: {marker}")
     epubcheck = subprocess.run(["epubcheck", str(files[".epub"])], capture_output=True, text=True)
     if epubcheck.returncode:
