@@ -9,7 +9,7 @@ import time
 from unittest.mock import AsyncMock, patch
 import pytest
 import redis.asyncio as redis
-from app.worker import claim, reclaim, process_claim, PENDING, PROCESSING, DEAD
+from app.worker import claim, reclaim, process_claim, reconcile_audit, PENDING, PROCESSING, DEAD
 from app.audit_events import record_event
 
 def payload(job_id):
@@ -103,3 +103,26 @@ def test_stale_worker_cannot_commit(tmp_path, monkeypatch):
         finally:
             await client.aclose()
     asyncio.run(scenario())
+
+def test_outbox_survives_sqlite_failure_and_replays(tmp_path, monkeypatch):
+    monkeypatch.setenv("STUDIO_AUDIT_DB", str(tmp_path / "audit.sqlite3"))
+    async def scenario():
+        client = await setup()
+        try:
+            await client.lpush(PENDING, payload("outbox1"))
+            item = await claim(client, "worker-a")
+            fake = {"content": "Draf", "provider": "deepseek", "model": "mock"}
+            # Simulate crash window after Redis commit, before SQLite insertion.
+            with patch("app.worker.complete", new_callable=AsyncMock, return_value=fake), patch("app.worker.reconcile_audit", side_effect=OSError("SQLite offline")):
+                await process_claim(client, item, "worker-a")
+            assert await client.hget("studio:result:outbox1", "status") == "waiting_approval"
+            assert await client.hexists("studio:audit:outbox", "completed:outbox1")
+            assert await reconcile_audit(client) >= 1
+            assert await reconcile_audit(client) == 0
+            assert not await client.hexists("studio:audit:outbox", "completed:outbox1")
+        finally:
+            await client.aclose()
+    asyncio.run(scenario())
+    import sqlite3
+    with sqlite3.connect(tmp_path / "audit.sqlite3") as db:
+        assert db.execute("SELECT COUNT(*) FROM job_events WHERE event_id='completed:outbox1'").fetchone()[0] == 1
