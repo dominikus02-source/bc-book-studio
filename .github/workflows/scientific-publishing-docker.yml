@@ -42,3 +42,17 @@ jobs:
             --tmpfs /tmp:rw,nosuid,size=256m --entrypoint quarto bc-book-publishing:ci --version
           docker run --rm --network none --read-only --cap-drop ALL \
             --tmpfs /tmp:rw,nosuid,size=256m --entrypoint python3 bc-book-publishing:ci -m unittest discover -s /opt/bc/publishing/tests -p test_qmd_pipeline.py -v
+  geo-docker-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated base and optional GIS worker
+        run: |
+          docker build --progress plain -f publishing/Dockerfile.science -t bc-book-science:ci .
+          docker build --progress plain -f publishing/Dockerfile.geo -t bc-book-geo:ci .
+      - name: Verify geospatial libraries and coordinate transformation offline
+        run: |
+          docker run --rm --network none --read-only --cap-drop ALL \
+            --pids-limit 64 --memory 2g --cpus 2 --tmpfs /tmp:rw,nosuid,size=256m \
+            --entrypoint python bc-book-geo:ci -m unittest discover -s /opt/bc/publishing/tests -p test_geospatial.py -v
