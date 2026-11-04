@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-echo "Rollback ONLY BC Book Studio snippet. Other routes are untouched."
-backup="${1:?Usage: 99-rollback.sh /absolute/path/to/previous/bcbookstudio.caddy.backup}"
-[[ -f "$backup" ]] || { echo "Backup missing"; exit 1; }
-read -r -p "Restore BC Book Studio snippet and reload Caddy? [yes/NO] " answer
-[[ "$answer" == yes ]] || exit 0
-dest=/opt/bahasacerdas/config/caddy.d/bcbookstudio.caddy
-sudo cp "$backup" "$dest"
-docker exec bahasacerdas-prod-caddy-1 caddy validate --config /etc/caddy/Caddyfile
-docker exec bahasacerdas-prod-caddy-1 caddy reload --config /etc/caddy/Caddyfile
-echo "Rollback applied; verify host baselines."
+base="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=config.env
+source "$base/config.env"
+backup="${1:-}"
+if [[ "$backup" == "--dry-run" ]]; then
+  echo "DRY RUN: restore dated conf.d backup to $HOST_CONFD; validate; reload; verify all baseline hosts"
+  exit 0
+fi
+[[ -n "$backup" && -d "$backup" ]] || { echo "Usage: $0 BACKUP_DIRECTORY [--dry-run]"; exit 2; }
+[[ "${2:-}" != "--dry-run" ]] || { echo "DRY RUN: would restore $backup"; exit 0; }
+echo "BLOCKED: full-directory restoration is not yet tested in CI; no production changes performed."
+exit 1
