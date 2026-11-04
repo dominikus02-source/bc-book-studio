@@ -38,3 +38,29 @@ docker exec bahasacerdas-prod-caddy-1 sh -c 'ls -la /etc/caddy/conf.d; grep -nE 
 ```
 
 The owner must also supply resolved site addresses from Caddy environment values and all imported snippets; do not guess from these grep outputs.
+
+## Fast owner-only Phase 1 path (still blocked until all gates)
+
+Inventory parser expects **explicit section markers** `[CADDY_ADAPT_JSON]`, `[CURL]`, `[MOUNTS]`, `[IMPORTS]` (and matching closing tags). Put the complete JSON returned by `caddy adapt --pretty` in the first section. CURL lines use `host HTTP:status LATENCY:seconds`. MOUNTS lines use `Source Destination RW`; IMPORTS lines use `import /etc/caddy/conf.d/*.caddy`. Unknown lines and missing statuses fail closed. This normalized format is required; arbitrary console output is not silently guessed.
+
+**Owner sequence:** 01 read-only preflight -> send full inventory -> ingest -> inspect diff -> owner-run orchestration (01 -> 02 -> 03 -> 04). Do not copy generated config into active config until every hostname, mount and import is reviewed.
+
+```bash
+# On the owner's authorized machine/checkout, NOT an agent VPS session:
+git switch feat/staging-auth-crud
+bash ops/owner-run/01-preflight.sh
+# Save and inspect complete inventory-output.txt in documented normalized format.
+bash ops/owner-run/ingest-inventory.sh inventory-output.txt
+diff -u ops/owner-run/config.env ops/owner-run/config.env.generated || true
+# Only after complete independent review of generated data and CI evidence:
+# cp ops/owner-run/config.env.generated ops/owner-run/config.env
+bash ops/owner-run/run-phase1.sh --dry-run
+# Real mode intentionally blocked until full production backup/rollback is implemented and CI proven:
+# bash ops/owner-run/run-phase1.sh
+```
+
+**Rollback owner command** (only with verified backup and fully tested 99 real mode): `bash ops/owner-run/99-rollback.sh /path/to/verified/dated-backup`. At present, 99 real mode intentionally refuses. Do not assume a rollback was performed. Caddy must remain the existing production container; never connect it to another network, restart or recreate it.
+
+**After deployment:** `04-verify.sh` performs read-only baseline comparisons (preserves non-200 statuses), Access 302, direct-origin denial if `ORIGIN_IP` is explicitly supplied, verifier health and port bindings, cert validity and key mode. Owner must still test allowlisted login, other email rejection, logout via `/cdn-cgi/access/logout`, www and JUMPA.
+
+**Security caution:** `run-phase1.sh` is a fail-closed orchestration scaffold, not a production-ready installer. Its 03/99 real modes remain blocked, and it cannot guarantee rollback before a backup path has been verified. Never bypass those gates.
