@@ -40,7 +40,8 @@ key="${CERT_KEY_FILE:-$HOST_CONFD/$CERT_SUBDIR/tls.key}"
 if [[ -r "$cert" ]]; then
   expiry="$(openssl x509 -in "$cert" -noout -enddate 2>/dev/null || true)"
   if openssl x509 -in "$cert" -checkend 0 -noout >/dev/null 2>&1; then echo "LULUS: certificate currently valid ($expiry)"; else echo "GAGAL: expired/unreadable certificate"; fail=1; fi
-  echo "NOTE: owner must confirm intended expiration date 2027-11-04; this check does not assume it."
+  expiry_day="$(date -u -d "${expiry#notAfter=}" +%Y-%m-%d 2>/dev/null || true)"
+  if [[ "$expiry_day" == "2027-11-04" ]]; then echo "LULUS: certificate expiry 2027-11-04"; else echo "GAGAL: expected expiry 2027-11-04, actual $expiry_day"; fail=1; fi
 else echo "GAGAL: certificate not readable at $cert"; fail=1; fi
 if [[ -e "$key" ]]; then
   mode="$(stat -c %a "$key" 2>/dev/null || true)"
