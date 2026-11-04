@@ -107,3 +107,39 @@ jobs:
             } finally { await db.$disconnect(); }
           })().catch(err => { console.error(err); process.exitCode = 1; });
           NODE
+  caddy-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate single source of truth
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ops/owner-run/config.env
+          test "$CADDY_IMAGE_DIGEST" = "sha256:d44355d3c2149dc580ce2cac735955d1c08d3d00882c30489c241aa51a5c10d9"
+          test "$HOST_CONFD" = "/opt/bahasacerdas/config/caddy.d"
+          test "$CT_CONFD" = "/etc/caddy/conf.d"
+          ! grep -Rn '/etc/caddy/caddy.d' ops/owner-run --include='*.sh'
+          test "$BASELINE_COMPLETE" = false
+          for script in ops/owner-run/*.sh; do bash -n "$script"; done
+          for script in ops/owner-run/{02-deploy-verifier,03-caddy-snippet,99-rollback}.sh; do bash "$script" --dry-run; done
+      - name: Caddy production image digest and self-signed certificate fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          source ops/owner-run/config.env
+          mkdir -p fixture/conf.d/certs/bcbookstudio
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=bcbookstudio.bahasacerdas.com' -keyout fixture/conf.d/certs/bcbookstudio/tls.key -out fixture/conf.d/certs/bcbookstudio/tls.crt 2>/dev/null
+          sed "s|__CERT_PATH__|$CT_CONFD/$CERT_SUBDIR|g" ops/owner-run/bcbookstudio.caddy > fixture/conf.d/bcbookstudio.caddy
+          printf 'import %s/*.caddy\n' "$CT_CONFD" > fixture/Caddyfile
+          docker run --rm -v "$PWD/fixture/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$PWD/fixture/conf.d:$CT_CONFD:ro" "caddy@$CADDY_IMAGE_DIGEST" caddy validate --config /etc/caddy/Caddyfile
+          sed -i 's|tls.crt|missing.crt|' fixture/conf.d/bcbookstudio.caddy
+          if docker run --rm -v "$PWD/fixture/Caddyfile:/etc/caddy/Caddyfile:ro" -v "$PWD/fixture/conf.d:$CT_CONFD:ro" "caddy@$CADDY_IMAGE_DIGEST" caddy validate --config /etc/caddy/Caddyfile; then
+            echo "ERROR: invalid certificate path incorrectly accepted"; exit 1
+          fi
+          echo "PASS: positive and negative Caddy certificate validation"
+      - name: Caddy validation summary
+        if: always()
+        run: |
+          echo "NOTE: Full production Caddyfile adaptation, routing, log leak and rollback remain BLOCKED until exact fixture and complete host baseline are verified."
