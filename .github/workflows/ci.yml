@@ -121,9 +121,13 @@ jobs:
           test "$HOST_CONFD" = "/opt/bahasacerdas/config/caddy.d"
           test "$CT_CONFD" = "/etc/caddy/conf.d"
           ! grep -Rn '/etc/caddy/caddy.d' ops/owner-run --include='*.sh'
+          # Fail when scripts embed conf.d host/container paths rather than using config.env.
+          if grep -nE '/opt/bahasacerdas/config/caddy.d|/etc/caddy/conf.d' ops/owner-run/*.sh; then
+            echo "ERROR: hard-coded conf.d path in owner script"; exit 1
+          fi
           test "$BASELINE_COMPLETE" = false
           for script in ops/owner-run/*.sh; do bash -n "$script"; done
-          for script in ops/owner-run/{02-deploy-verifier,03-caddy-snippet,99-rollback}.sh; do bash "$script" --dry-run; done
+          for script in ops/owner-run/*.sh; do bash "$script" --dry-run; done
       - name: Caddy production image digest and self-signed certificate fixture
         shell: bash
         run: |
