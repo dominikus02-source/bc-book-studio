@@ -30,6 +30,10 @@ services:
     restart: unless-stopped
     command: ["python","-m","app.worker"]
     env_file: .env.staging
+    environment:
+      STUDIO_AUDIT_DB: /var/lib/bc-book-studio/audit/audit.sqlite3
+    volumes:
+      - studio_audit_data:/var/lib/bc-book-studio/audit
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -51,7 +55,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: ["redis-server","--appendonly","yes"]
+    command: ["redis-server","--appendonly","yes","--appendfsync","everysec"]
     volumes: ["redis_data:/data"]
     healthcheck:
       test: ["CMD","redis-cli","ping"]
@@ -62,6 +66,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  studio_audit_data:
 networks:
   studio:
     internal: false
