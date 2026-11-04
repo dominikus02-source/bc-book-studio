@@ -12,3 +12,5 @@ tools/
 *.log
 apply-ownership.cjs
 update-ui.cjs
+test-results/
+playwright-report/
