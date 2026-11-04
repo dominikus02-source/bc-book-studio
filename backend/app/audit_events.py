@@ -16,7 +16,7 @@ def audit_path():
     return Path(value)
 
 def record_event(job_id, event_type, *, worker_id="", attempt=0, metadata=None,
-                 status="", error_category="", output_ref="", duration_ms=0):
+                 status="", error_category="", output_ref="", duration_ms=0, event_id=None):
     path = audit_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path, timeout=15) as db:
@@ -33,11 +33,24 @@ def record_event(job_id, event_type, *, worker_id="", attempt=0, metadata=None,
         db.execute("CREATE INDEX IF NOT EXISTS idx_job_events_time ON job_events(timestamp)")
         meta = metadata or {}
         docs = meta.get("knowledge_documents", [])
-        db.execute("""INSERT INTO job_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (uuid.uuid4().hex, job_id, event_type, time.time(), worker_id, attempt,
+        db.execute("""INSERT OR IGNORE INTO job_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (event_id or uuid.uuid4().hex, job_id, event_type, time.time(), worker_id, attempt,
              meta.get("agent", ""), meta.get("prompt_version", ""),
              meta.get("knowledge_version", ""),
              json.dumps([{"name": d.get("name"), "sha256": d.get("sha256")} for d in docs]),
              meta.get("provider", ""), meta.get("model", ""), status,
              error_category, duration_ms, meta.get("human_approval", "belum_disetujui"),
              output_ref))
+
+
+def has_event(event_id):
+    path = audit_path()
+    if not path.is_file():
+        return False
+    with sqlite3.connect(path, timeout=15) as db:
+        try:
+            return db.execute("SELECT 1 FROM job_events WHERE event_id=?", (event_id,)).fetchone() is not None
+        except sqlite3.OperationalError as exc:
+            if "no such table" in str(exc):
+                return False
+            raise
