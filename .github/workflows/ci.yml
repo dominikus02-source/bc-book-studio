@@ -1,19 +1,54 @@
-name: CI
+name: Staging CI
 on:
   push:
-    branches: [main]
+    branches: [main, feat/staging-auth-crud]
   pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  verify:
+  app:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
-      - run: npm run db:generate
-      - run: npm run typecheck
-      - run: npm run build
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Require lockfile
+        run: test -f package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --no-fund
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+      - name: Generate Prisma client
+        run: npm run db:generate
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build
+        run: npm run build
+      - name: Diagnostics
+        if: always()
+        run: |
+          node --version
+          npm --version
+          git status --short
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require verifier tests and Dockerfile
+        run: |
+          test -f verifier/Dockerfile
+          test -d verifier/tests
+          find verifier/tests -name 'test_*.py' | grep -q .
+      - name: Build isolated verifier test image
+        run: docker build --target test -t bc-verifier-test ./verifier
+      - name: Run JWT tests without external network
+        run: docker run --rm --network none -e CF_ACCESS_TEAM_DOMAIN=test.cloudflareaccess.com -e CF_ACCESS_AUD=local-test-audience bc-verifier-test
+      - name: Diagnostics
+        if: always()
+        run: docker image ls bc-verifier-test || true
