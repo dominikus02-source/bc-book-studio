@@ -25,8 +25,8 @@ Tes `backend/tests/test_worker_sigkill_process.py` menggunakan subprocess Python
 | 5 | SIGKILL setelah save | Tahap `after_finish` ditambahkan; eksekusi perlu diperiksa |
 | 6 | SIGKILL sebelum acknowledgment | Belum diuji sebagai titik terpisah; FINISH menggabungkan result+ack secara atomik |
 | 7 | Restart worker saat lease aktif | Belum diuji dengan proses restart lengkap |
-| 8 | Dua worker paralel | `asyncio.gather` claim bersamaan diuji; bukan dua proses worker |
-| 9 | Lease habis saat worker lama hidup | Belum diuji sebagai proses nyata |
+| 8 | Dua worker paralel | Dua subprocess worker bersaing mengambil pekerjaan; tes ditambahkan, hasil CI perlu diperiksa |
+| 9 | Lease habis saat worker lama hidup | Tes subprocess worker lama tetap hidup dan hasilnya ditolak fencing; hasil CI perlu diperiksa |
 | 10 | Redis restart saat pekerjaan aktif | Belum diuji |
 
 **Tidak boleh dianggap 10/10 PASS.** Tes menggunakan provider test-double khusus reliability, bukan evaluasi model nyata.
@@ -52,3 +52,8 @@ Baseline tiga CI PASS; commit tahap ini memerlukan hasil CI tersendiri. Bukti SI
 4. Jalankan 12 skenario serta satu draf kelas VII pada environment nonproduksi dengan secret aman; simpan keluaran aktual, minta penilaian editor dan guru.
 
 **Keputusan: BLOCKED untuk kelulusan Tahap 1C.3.**
+
+## Catatan eksekusi lanjutan
+- CI pada commit `a7e9b7c`: Backend [41754454968](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454968), Quarto [41754454939](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454939), Buku VII [41754454961](https://github.com/dominikus02-source/bc-book-studio/actions/runs/41754454961). Saat pertama diperiksa ketiganya `in_progress`; hasil akhir harus diperiksa lagi.
+- Pemeriksaan PC pengembangan hanya membaca keberadaan environment variables tanpa nilainya: `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, dan `STUDIO_AUDIT_DB` semuanya tidak tersedia. Ini bukan bukti tidak adanya GitHub Secrets atau secret manager lain.
+- Pengujian SIGKILL yang ditambahkan memerlukan runner Linux. Tidak ada klaim telah dijalankan lokal pada PC Windows.
