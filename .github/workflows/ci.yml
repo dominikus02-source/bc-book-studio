@@ -6,6 +6,9 @@ on:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+env:
+  npm_config_cache: ${{ runner.temp }}/bc-book-studio-ci-npm
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -16,14 +19,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
+      - name: Restore CI npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/bc-book-studio-ci-npm
+          key: bc-book-studio-ci-${{ runner.os }}-node22-npm-${{ hashFiles('package-lock.json') }}
+
       - name: Restore Next compiler cache
         uses: actions/cache@v4
         with:
-          path: .next/cache
-          key: ${{ runner.os }}-node22-next-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          path: |
+            .next/cache/webpack
+            .next/cache/turbopack
+            .next/cache/swc
+          key: bc-book-studio-ci-${{ runner.os }}-node22-compiler-v2-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-node22-next-${{ hashFiles('package-lock.json') }}-
+            bc-book-studio-ci-${{ runner.os }}-node22-compiler-v2-${{ hashFiles('package-lock.json') }}-
 
       - run: npm ci --prefer-offline --no-audit --no-fund
       - run: npm run db:generate
