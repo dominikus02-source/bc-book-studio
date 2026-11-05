@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const { apiKey, ...values } = parsed.data;
     const id = crypto.randomUUID();
     const created = await db.$transaction(async tx => {
-      if (values.isDefault) await tx.aiProviderCredential.updateMany({ data: { isDefault: false } });
+      if (values.isDefault && values.enabled) await tx.aiProviderCredential.updateMany({ data: { isDefault: false } });
       return tx.aiProviderCredential.create({
         data: { id, ...values, isDefault: values.enabled && values.isDefault, secretCiphertext: encryptSecret(id, apiKey) }
       });
