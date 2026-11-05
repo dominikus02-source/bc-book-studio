@@ -43,7 +43,11 @@ enum BookStatus {
   APPROVED
 }
 
-enum StudioRole { EDITOR REVIEWER ADMIN }
+enum StudioRole {
+  EDITOR
+  REVIEWER
+  ADMIN
+}
 model StudioUser {
   id String @id @default(cuid())
   email String @unique
