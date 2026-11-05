@@ -60,7 +60,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{action:stri
   const updated=await db.studioAuthToken.updateMany({where:{id:item.id,usedAt:null,expiresAt:{gt:now}},data:{usedAt:now}});
   if(updated.count!==1)return response({error:"Tautan sudah digunakan."},400);
   await db.$transaction([
-   db.studioUser.update({where:{id:item.userId},data:{passwordHash:passwordHash(data.password),active:true}}),
+   db.studioUser.update({where:{id:item.userId},data:{passwordHash:passwordHash(data.password as string),active:true}}),
    db.studioSession.deleteMany({where:{userId:item.userId}}),
    db.studioAuthToken.deleteMany({where:{userId:item.userId,id:{not:item.id}}})
   ]);
