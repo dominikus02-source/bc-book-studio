@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../../../../../lib/db";
 import { identity, deny } from "../../../../../lib/auth";
 import { canGenerate, quotaDenied } from "../../../../../lib/usage";
+import { activeProvider } from "../../../../../lib/providers";
 export const runtime = "nodejs";
 const schema = z.object({ topic: z.string().trim().min(4).max(250), learningGoals: z.string().trim().min(10).max(2000) });
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,18 +15,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (book.status !== "DRAFT") return NextResponse.json({ error: "Book must be a draft" }, { status: 409 });
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid generation request" }, { status: 400 });
-  const apiKey = process.env.AI_API_KEY;
-  // Default provider is DeepSeek; other OpenAI-compatible providers are configurable.
-  const model = process.env.AI_MODEL || "deepseek-flash";
-  if (!apiKey) return NextResponse.json({ error: "Layanan AI belum diaktifkan oleh pengelola. Penulisan dan penyimpanan manual tetap tersedia." }, { status: 503 });
-  const endpoint = process.env.AI_API_URL || "https://api.deepseek.com/chat/completions";
-  if (!endpoint.startsWith("https://")) return NextResponse.json({ error: "AI endpoint must use HTTPS" }, { status: 503 });
+  let provider;
+  try { provider = await activeProvider(); }
+  catch { return NextResponse.json({error:"Konfigurasi AI tidak dapat dibaca. Hubungi pengelola."},{status:503}); }
+  if (!provider) return NextResponse.json({error:"Layanan AI belum diaktifkan pengelola. Penulisan manual tetap tersedia."},{status:503});
+  const {apiKey,model,endpoint}=provider;
   const maxTokens = Math.min(3000, Math.max(300, Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1800));
   if (!await canGenerate(ownerId)) return quotaDenied();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45000);
   try {
-    const response = await fetch(endpoint, { method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey }, body: JSON.stringify({
+    const response = await fetch(endpoint, { method: "POST", signal: controller.signal, redirect:"error", headers: { "Content-Type": "application/json", Authorization: "Bearer " + apiKey }, body: JSON.stringify({
       model, max_tokens: maxTokens, temperature: 0.4,
       messages: [
         { role: "system", content: "Anda asisten penulis buku pendidikan Indonesia. Tulis satu bab draf faktual, inklusif, sesuai tingkat kelas, dengan tujuan pembelajaran, penjelasan, contoh, latihan, dan referensi yang harus diperiksa editor. Jangan mengarang sumber. Jangan mengklaim naskah sudah tervalidasi." },

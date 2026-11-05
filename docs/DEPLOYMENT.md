@@ -9,3 +9,5 @@
 8. Only after a verified staging deployment, configure GitHub Actions SSH deploy with protected environment approval and rollback. Never commit private keys or server secrets.
 
 **Important:** The supplied Compose file is a deployment starting point, not a tested production configuration. API token grants full editor+approver privileges. Separate identities and audit logging are required before a public multi-user rollout. PDF uses built-in WinAnsi fonts and replaces unsupported Unicode characters. EPUB exports XHTML text without illustrations.
+
+For database-backed provider credentials and public email enrollment, follow docs/PUBLIC_RELEASE.md. Configure STUDIO_SECRET_ENCRYPTION_KEY on the server before deployment; administrators add provider keys in Settings after release. AI_API_KEY/AI_MODEL environment values no longer select the generation provider.

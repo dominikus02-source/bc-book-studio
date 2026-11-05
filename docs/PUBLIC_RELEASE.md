@@ -11,10 +11,24 @@ user/day, 50 AI attempts globally/day. Periods use UTC. Provider failures count.
 Apply the additive UsageCounter migration before this version; old web remains
 compatible with the database. Existing backup and restore procedure still applies.
 
-The runtime currently has no AI_API_KEY. Do not claim AI generation PASS.
-Configure the server-only provider key, matching HTTPS endpoint and model,
-then verify a real authenticated generate/save/export workflow before AI release.
+Provider API keys may be added through the administrator UI after public release.
+Do not claim real provider generation PASS before a key is configured and tested.
 The 11 roles remain a catalog; this release does not activate an agent orchestrator.
 
 Rollback: disable public signup and restore the four-email Access policy before
 rolling back the web image. Do not remove Access/JWT authentication.
+
+## Database provider credential management
+Administrators use Settings to create, list masked metadata, edit/rotate and delete
+OpenAI, DeepSeek and Qwen (Singapore) credentials. Any signed-in public user is not
+automatically an administrator. CF_ACCESS_ADMIN_EMAILS configures administrators;
+when absent, the existing approved editor list retains management access.
+API responses never return plaintext, ciphertext or encryption tags. AES-256-GCM
+uses a random nonce and binds each secret to its record ID. A server-only 32-byte
+master key is separate from PostgreSQL and must be backed up privately.
+Changes are audited without recording secrets. A partial unique database index
+and a transaction lock enforce at most one active provider. Provider URLs are
+fixed on the server; redirects are rejected. Mutations require JSON and reject
+foreign browser origins. Deleting/disabling the active provider disables AI;
+manual editing and exports remain available. No real key is required to release.
+Live AI-provider success remains unverified until an administrator supplies a key.

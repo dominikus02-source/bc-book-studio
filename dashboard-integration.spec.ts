@@ -51,3 +51,38 @@ await expect(page.getByRole("heading",{name:"Arsitektur multi-agen hibrida"})).t
 expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
 await page.screenshot({path:"test-results/dashboard-mobile.png",fullPage:true});
 });
+
+test("admin provider settings create edit rotate and delete",async({page})=>{
+ let providers:any[]=[];
+ await page.route("**/api/books",route=>route.fulfill({json:{books:[]}}));
+ await page.route("**/api/studio/status",route=>route.fulfill({json:{database:"connected",ai:{configured:false,model:null}}}));
+ await page.route("**/api/settings/providers**",route=>{
+  const method=route.request().method(),body=route.request().postDataJSON();
+  if(method==="POST")providers=[{id:"provider-1",...body,lastFour:body.apiKey.slice(-4)}];
+  if(method==="PATCH")providers=[{...providers[0],...body,lastFour:body.apiKey?body.apiKey.slice(-4):providers[0].lastFour}];
+  if(method==="DELETE")providers=[];
+  const safe=providers.map(({apiKey,...item})=>item);
+  return route.fulfill({json:method==="GET"?{providers:safe,encryptionReady:true}:{provider:safe[0],deleted:true}});
+ });
+ await page.goto("http://127.0.0.1:3183");
+ await page.getByRole("button",{name:"Pengaturan",exact:true}).click();
+ await page.getByLabel("Nama konfigurasi").fill("Penulis utama");
+ await page.getByLabel("ID model").fill("test-model");
+ await page.getByLabel("API key provider").fill("fixture-private-secret-1234567890");
+ await page.getByLabel("Gunakan sebagai provider aktif").check();
+ await page.getByRole("button",{name:"Simpan provider",exact:true}).click();
+ await expect(page.getByRole("status")).toContainText("Konfigurasi provider tersimpan");
+ await expect(page.getByLabel("API key provider")).toHaveValue("");
+ await expect(page.getByText("••••7890")).toBeVisible();
+ await page.getByRole("button",{name:"Ubah Penulis utama",exact:true}).click();
+ await page.getByLabel("API key provider").fill("fixture-rotated-secret-9876543210");
+ await page.getByRole("button",{name:"Simpan provider",exact:true}).click();
+ await expect(page.getByText("••••3210")).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
+ await page.screenshot({path:"test-results/provider-settings-mobile.png",fullPage:true});
+ page.once("dialog",d=>d.accept());
+ await page.getByRole("button",{name:"Hapus Penulis utama",exact:true}).click();
+ await expect(page.getByRole("status")).toContainText("API key dihapus");
+ await expect(page.getByText("Belum ada API key.",{exact:false})).toBeVisible();
+});
