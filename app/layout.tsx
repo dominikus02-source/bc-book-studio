@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
 import "./globals.css";
+import ThemeShell from "./theme-shell";
 export const metadata = { title: "BC Book Studio | Dari Inspirasi Menjadi Karya", description: "Studio kreatif Bahasa Cerdas untuk menyusun, mengembangkan, meninjau, dan menerbitkan buku pembelajaran." };
-export default function RootLayout({children}:{children:ReactNode}) {return <html lang="id"><body>{children}</body></html>}
+export default function RootLayout({children}:{children:ReactNode}) {return <html lang="id" suppressHydrationWarning><body><ThemeShell>{children}</ThemeShell></body></html>}
