@@ -98,7 +98,14 @@ export async function askProvider(
     };
   } else {
     headers.Authorization = "Bearer " + apiKey;
-    body = { model: row.model, max_tokens: maxTokens, messages, temperature: 0.4 };
+    if (row.provider === "openai" && /^(gpt-[56]|o[1-9])/i.test(row.model)) {
+      body = { model: row.model, max_completion_tokens: maxTokens, messages };
+    } else if (row.provider === "deepseek") {
+      // DeepSeek thinking mode may consume the entire short test budget without final text.
+      body = { model: row.model, max_tokens: maxTokens, messages, temperature: 0.4, thinking: { type: "disabled" } };
+    } else {
+      body = { model: row.model, max_tokens: maxTokens, messages, temperature: 0.4 };
+    }
   }
   // Endpoint is a fixed allowlist. No administrator-controlled host/URL (SSRF protection).
   const response = await fetch(url, {
