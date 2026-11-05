@@ -5,7 +5,7 @@ import { checkPassword,createOneTimeToken,hashToken,passwordHash,randomToken,sen
 export const runtime="nodejs";
 const generic={message:"Jika alamat email terdaftar, instruksi akan dikirim."};
 const response=(v:object,status=200)=>NextResponse.json(v,{status,headers:{"Cache-Control":"no-store"}});
-const validEmail=(v:unknown)=>typeof v==="string"&&v.length<=254&&/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v);
+const validEmail=(v:unknown)=>typeof v==="string"&&v.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const validPass=(v:unknown)=>typeof v==="string"&&v.length>=12&&v.length<=128;
 const origin=()=>{const url=new URL(process.env.APP_ORIGIN||"https://bcbookstudio.bahasacerdas.com");if(url.protocol!=="https:"&&url.hostname!=="localhost")throw new Error("APP_ORIGIN must use HTTPS");return url.origin;};
 export async function GET(req:NextRequest,{params}:{params:Promise<{action:string}>}){
