@@ -17,6 +17,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run build
       - run: npm run typecheck
+      - run: npm run test:ai-providers
       - run: npm audit --audit-level=high
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --reporter=line

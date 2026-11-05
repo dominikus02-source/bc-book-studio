@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:ai-providers": "node --test tests/provider-compat.test.cjs",
     "db:migrate": "prisma migrate deploy",
     "db:dev": "prisma migrate dev",
     "db:generate": "prisma generate"
