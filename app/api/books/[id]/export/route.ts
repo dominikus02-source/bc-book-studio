@@ -20,7 +20,7 @@ function wrap(text: string, font: { widthOfTextAtSize: (text: string, size: numb
   return result;
 }
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  if (!(await authorized(req))) return deny();
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format");
   if (format !== "pdf" && format !== "epub") return NextResponse.json({ error: "Choose pdf or epub" }, { status: 400 });

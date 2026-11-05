@@ -42,3 +42,41 @@ enum BookStatus {
   REVIEW
   APPROVED
 }
+
+enum StudioRole {
+  EDITOR
+  REVIEWER
+  ADMIN
+}
+model StudioUser {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  role StudioRole @default(EDITOR)
+  passwordHash String?
+  active Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions StudioSession[]
+  tokens StudioAuthToken[]
+}
+model StudioSession {
+  id String @id @default(cuid())
+  userId String
+  user StudioUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId, expiresAt])
+}
+model StudioAuthToken {
+  id String @id @default(cuid())
+  userId String
+  user StudioUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  purpose String
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, purpose, createdAt])
+}
