@@ -19,7 +19,8 @@ export async function identity(req: NextRequest): Promise<string | null> {
     if (payload.type !== "app" || typeof payload.sub !== "string" || !payload.sub.trim()
       || typeof payload.email !== "string") return null;
     const allowed = (process.env.CF_ACCESS_EDITOR_EMAILS || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
-    if (!allowed.length || !allowed.includes(payload.email.toLowerCase())) return null;
+    if (!payload.email.trim() || !payload.email.includes("@")) return null;
+    if (process.env.CF_ACCESS_PUBLIC_SIGNUP !== "true" && !allowed.includes(payload.email.toLowerCase())) return null;
     return payload.sub;
   } catch { return null; }
 }

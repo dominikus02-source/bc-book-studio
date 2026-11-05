@@ -44,3 +44,11 @@ enum BookStatus {
   REVIEW
   APPROVED
 }
+
+model UsageCounter {
+  scope String
+  subject String
+  period String
+  count Int @default(0)
+  @@id([scope, subject, period])
+}

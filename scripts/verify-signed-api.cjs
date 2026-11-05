@@ -3,6 +3,7 @@
 const {generateKeyPairSync,sign}=require("node:crypto");
 const {execFileSync}=require("node:child_process");
 const fs=require("node:fs"),os=require("node:os"),path=require("node:path"),assert=require("node:assert/strict");
+const publicMode=process.env.TEST_PUBLIC_MODE==="true";
 const image=process.env.WEB_IMAGE,db=process.env.TEST_DATABASE_URL;
 if(!image||!db||!db.includes("bookstudio_release_ci"))throw Error("Isolated CI image/database required");
 const {privateKey,publicKey}=generateKeyPairSync("rsa",{modulusLength:2048});
@@ -17,18 +18,19 @@ function token(sub,email,overrides={},omit=[]){
  const input=Buffer.from(JSON.stringify({alg:"RS256",kid:"release-test"})).toString("base64url")+"."+Buffer.from(JSON.stringify(payload)).toString("base64url");
  return input+"."+sign("RSA-SHA256",Buffer.from(input),privateKey).toString("base64url");
 }
-const a=token("release-owner-a","a@example.invalid"),b=token("release-owner-b","b@example.invalid");
+const a=token("release-owner-a"+publicMode,"a@example.invalid"),b=token("release-owner-b"+publicMode,"b@example.invalid");
 async function call(method,p,who=a,body,expected=200,extra={}){
  const r=await fetch(root+p,{method,headers:{"cf-access-jwt-assertion":who,...(body?{"Content-Type":"application/json"}:{}),...extra},body:body?JSON.stringify(body):undefined});
- assert.equal(r.status,expected,method+" "+p+" unexpected HTTP "+r.status);return r;
+ if(expected!==null)assert.equal(r.status,expected,method+" "+p+" unexpected HTTP "+r.status);return r;
 }
 (async()=>{
-execFileSync("docker",["run","-d","--name",name,"--network","host","-v",folder+":/test:ro","-e","NODE_OPTIONS=--import=/test/jwks.mjs","-e","PORT=3185","-e","DATABASE_URL="+db,"-e","CF_ACCESS_TEAM_DOMAIN="+issuer,"-e","CF_ACCESS_AUD="+audience,"-e","CF_ACCESS_EDITOR_EMAILS=a@example.invalid,b@example.invalid","-e","STUDIO_REVIEWER_API_KEY="+reviewer,image],{stdio:"pipe"});
+execFileSync("docker",["run","-d","--name",name,"--network","host","-v",folder+":/test:ro","-e","NODE_OPTIONS=--import=/test/jwks.mjs","-e","PORT=3185","-e","DATABASE_URL="+db,"-e","CF_ACCESS_TEAM_DOMAIN="+issuer,"-e","CF_ACCESS_AUD="+audience,"-e","CF_ACCESS_EDITOR_EMAILS=a@example.invalid,b@example.invalid","-e","STUDIO_REVIEWER_API_KEY="+reviewer,"-e","CF_ACCESS_PUBLIC_SIGNUP="+publicMode,"-e","AI_API_KEY=isolated-test-key","-e","AI_API_URL=https://127.0.0.1:9/chat/completions",image],{stdio:"pipe"});
 let ready=false;for(let i=0;i<30;i++){try{if((await fetch(root+"/api/health")).ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,1000))}assert(ready,"Signed test runtime failed");
-for(const bad of [token("release-owner-a","a@example.invalid",{aud:"wrong"}),token("release-owner-a","a@example.invalid",{iss:"https://wrong.cloudflareaccess.com"}),token("release-owner-a","a@example.invalid",{exp:1}),token("release-owner-a","outsider@example.invalid"),token("release-owner-a","a@example.invalid",{},["exp"]),token("release-owner-a","a@example.invalid",{type:"service"})]){
+for(const bad of [token("release-owner-a","a@example.invalid",{aud:"wrong"}),token("release-owner-a","a@example.invalid",{iss:"https://wrong.cloudflareaccess.com"}),token("release-owner-a","a@example.invalid",{exp:1}),...(!publicMode?[token("release-owner-a","outsider@example.invalid")]:[]),token("release-owner-a","a@example.invalid",{},["exp"]),token("release-owner-a","a@example.invalid",{type:"service"})]){
  await call("GET","/api/books",bad,undefined,401);
 }
-console.log("PASS signed JWT: accepted A/B; wrong issuer/audience, expired/missing exp, unapproved email and wrong type rejected");
+console.log("PASS signed JWT validation; public mode="+publicMode);
+await call("GET","/api/books",token("new-public-user","new@example.invalid"),undefined,publicMode?200:401);
 const book=(await (await call("POST","/api/books",a,{title:"Release API Isolation Test",grade:"7",subject:"Bahasa Indonesia",description:"CI only"},201)).json()).book,id=book.id;
 assert((await (await call("GET","/api/books",a)).json()).books.some(x=>x.id===id));
 assert(!(await (await call("GET","/api/books",b)).json()).books.some(x=>x.id===id));
@@ -51,6 +53,15 @@ for(const [format,type,magic] of [["pdf","application/pdf","%PDF"],["epub","appl
  const r=await call("GET","/api/books/"+id+"/export?format="+format);
  assert(r.headers.get("content-type").startsWith(type));
  const bytes=Buffer.from(await r.arrayBuffer());assert(bytes.subarray(0,magic.length).toString()===magic);assert(bytes.length>200);
+}
+if(publicMode){
+ const c=token("quota-user","quota@example.invalid");
+ const created=await Promise.all(Array.from({length:25},()=>call("POST","/api/books",c,{title:"Quota concurrency",grade:"7",subject:"Test"},null).catch(e=>{throw e})));
+ const codes=created.map(r=>r.status);assert.equal(codes.filter(x=>x===201).length,20);assert.equal(codes.filter(x=>x===429).length,5);
+ const qb=(await created.find(r=>r.status===201).json()).book;
+ for(let i=0;i<5;i++)await call("POST","/api/books/"+qb.id+"/generate",c,{topic:"Uji limit",learningGoals:"Memastikan pembatasan permintaan AI."},502);
+ await call("POST","/api/books/"+qb.id+"/generate",c,{topic:"Uji limit",learningGoals:"Memastikan pembatasan permintaan AI."},429);
+ console.log("PASS atomic concurrent book quota and AI failed-attempt quota");
 }
 const status=await (await call("GET","/api/studio/status")).json();assert.equal(status.database,"connected");assert.deepEqual(status.exports,["pdf","epub","docx"]);
 console.log("PASS real HTTP + database: A/B CRUD isolation, chapters/generation/review/export isolation, reviewer gate, locked book and three export formats");

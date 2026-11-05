@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "../../../../../lib/db";
 import { identity, deny } from "../../../../../lib/auth";
+import { canGenerate, quotaDenied } from "../../../../../lib/usage";
 export const runtime = "nodejs";
 const schema = z.object({ topic: z.string().trim().min(4).max(250), learningGoals: z.string().trim().min(10).max(2000) });
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -16,10 +17,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const apiKey = process.env.AI_API_KEY;
   // Default provider is DeepSeek; other OpenAI-compatible providers are configurable.
   const model = process.env.AI_MODEL || "deepseek-flash";
-  if (!apiKey) return NextResponse.json({ error: "AI provider key is not configured" }, { status: 503 });
+  if (!apiKey) return NextResponse.json({ error: "Layanan AI belum diaktifkan oleh pengelola. Penulisan dan penyimpanan manual tetap tersedia." }, { status: 503 });
   const endpoint = process.env.AI_API_URL || "https://api.deepseek.com/chat/completions";
   if (!endpoint.startsWith("https://")) return NextResponse.json({ error: "AI endpoint must use HTTPS" }, { status: 503 });
   const maxTokens = Math.min(3000, Math.max(300, Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1800));
+  if (!await canGenerate(ownerId)) return quotaDenied();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45000);
   try {
