@@ -6,7 +6,7 @@ const db=new PrismaClient();
  const email=(process.env.STUDIO_INVITE_EMAIL||"").trim().toLowerCase();
  const name=(process.env.STUDIO_INVITE_NAME||"").trim();
  const role=process.env.STUDIO_INVITE_ROLE||"EDITOR";
- if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||!name||!["EDITOR","REVIEWER","ADMIN"].includes(role))throw new Error("Set valid STUDIO_INVITE_EMAIL, STUDIO_INVITE_NAME and STUDIO_INVITE_ROLE");
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!name||!["EDITOR","REVIEWER","ADMIN"].includes(role))throw new Error("Set valid STUDIO_INVITE_EMAIL, STUDIO_INVITE_NAME and STUDIO_INVITE_ROLE");
  const existing=await db.studioUser.findUnique({where:{email}});
  if(existing&&existing.active)throw new Error("Active user already exists; do not silently modify roles");
  const user=await db.studioUser.upsert({where:{email},create:{email,name,role},update:{name,role}});
