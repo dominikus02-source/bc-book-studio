@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function LoginPage(){return <main className="auth-page"><section className="auth-card"><span className="eyebrow">Akses terverifikasi</span><h1>Masuk ke BC Book Studio</h1><p>Gunakan akun yang telah diizinkan untuk mengakses studio. Autentikasi pengguna dijalankan oleh Cloudflare Access; halaman ini tidak meminta ataupun menyimpan kata sandi.</p><div className="actions"><Link className="action-primary" href="/studio">Lanjutkan ke studio →</Link><Link className="action-secondary" href="/">Kembali</Link></div></section></main>;}
