@@ -13,7 +13,7 @@ export const credentialInput = z.object({
  model:z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9._:/-]+$/),
  apiKey, active:z.boolean().default(false)
 }).strict();
-export const credentialUpdate = credentialInput.omit({provider:true}).partial().refine(x=>Object.keys(x).length>0);
+export const credentialUpdate = credentialInput.omit({provider:true,active:true}).partial().extend({active:z.boolean().optional()}).refine(x=>Object.keys(x).length>0);
 export const safeCredential = {id:true,provider:true,label:true,model:true,lastFour:true,active:true,createdAt:true,updatedAt:true} as const;
 function encryptionKey() {
  const encoded=process.env.STUDIO_SECRET_ENCRYPTION_KEY || "";

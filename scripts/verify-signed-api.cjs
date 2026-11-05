@@ -67,7 +67,7 @@ if(publicMode){
  await call("DELETE",endpoint+"/"+cid,b,undefined,403);
  await call("PATCH",endpoint+"/"+cid,a,{apiKey:rotatedKey,model:"updated-model"});
  configuration=(await (await call("GET",endpoint,a)).json()).providers[0];
- assert.equal(configuration.model,"updated-model");assert.equal(configuration.lastFour,"3210");
+ assert.equal(configuration.active,true);assert.equal(configuration.model,"updated-model");assert.equal(configuration.lastFour,"3210");
  assert(!JSON.stringify(configuration).includes(rotatedKey));assert(!("encryptedKey" in configuration));
  execFileSync("docker",["exec",name,"node","-e",`const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.providerCredential.findUnique({where:{id:'${cid}'}}).then(row=>{if(!row.encryptedKey.startsWith('v1.')||row.encryptedKey.includes('${rotatedKey}'))throw Error('Credential stored without encryption')}).finally(()=>p.$disconnect()).catch(()=>process.exitCode=1)`],{stdio:"pipe"});
  console.log("PASS provider admin CRUD permissions, foreign-origin rejection, key rotation, masking and database encryption");
