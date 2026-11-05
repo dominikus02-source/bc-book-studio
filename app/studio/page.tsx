@@ -8,9 +8,9 @@ const buttonStyle={padding:"11px 16px",background:"#2644bd",color:"white",border
 export default function Home(){
  const [token,setToken]=useState(""),[sessionReady,setSessionReady]=useState(false),[reviewerToken,setReviewerToken]=useState(""),[connected,setConnected]=useState(false),[books,setBooks]=useState<Book[]>([]),[selected,setSelected]=useState(""),[title,setTitle]=useState(""),[grade,setGrade]=useState("1"),[subject,setSubject]=useState("Bahasa Indonesia"),[chapterTitle,setChapterTitle]=useState(""),[chapterText,setChapterText]=useState(""),[topic,setTopic]=useState(""),[goals,setGoals]=useState(""),[note,setNote]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const book=books.find(b=>b.id===selected);
- useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.authenticated)setSessionReady(true)}).catch(()=>{})},[]);
+ useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.authenticated){setSessionReady(true);fetch("/api/books",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{setBooks(data.books);setConnected(true)}).catch(()=>{})}}).catch(()=>{})},[]);
  const call=useCallback(async(path:string,init?:RequestInit)=>{
-  const response=await fetch("/api"+path,{...init,headers: ...(token?{"Authorization":"Bearer "+token}:{}),...(init?.body?{"Content-Type":"application/json"}:{}),...init?.headers},cache:"no-store"});
+  const response=await fetch("/api"+path,{...init,headers: { ...(token?{"Authorization":"Bearer "+token}:{}),...(init?.body?{"Content-Type":"application/json"}:{}),...init?.headers}},cache:"no-store"});
   if(!response.ok){const data=await response.json().catch(()=>({error:"Request failed"}));throw new Error(data.error||"HTTP "+response.status)}
   return response;
  },[token]);
