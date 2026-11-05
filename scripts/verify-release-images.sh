@@ -28,3 +28,5 @@ docker image inspect "$WEB_IMAGE" --format 'Runtime image bytes: {{.Size}}'
 echo 'PASS: migrations, non-root runtime, homepage, database engine and unauthorized API checks'
 
 TEST_DATABASE_URL="$db" node scripts/verify-signed-api.cjs
+
+TEST_PUBLIC_MODE=true TEST_DATABASE_URL="$db" node scripts/verify-signed-api.cjs

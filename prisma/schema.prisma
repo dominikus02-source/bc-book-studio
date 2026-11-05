@@ -44,3 +44,30 @@ enum BookStatus {
   REVIEW
   APPROVED
 }
+
+model UsageCounter {
+  scope String
+  subject String
+  period String
+  count Int @default(0)
+  @@id([scope, subject, period])
+}
+
+model ProviderCredential {
+  id String @id
+  provider String @unique
+  label String
+  model String
+  encryptedKey String @db.Text
+  lastFour String
+  active Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model CredentialAudit {
+  id String @id @default(cuid())
+  actorId String
+  credentialId String
+  action String
+  createdAt DateTime @default(now())
+}
