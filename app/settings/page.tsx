@@ -20,7 +20,7 @@ export default function AiSettings() {
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
   const [notice,setNotice] = useState("");
-  const auth = useCallback(() => token.trim() ? {Authorization:"Bearer "+token.trim()} : {},[token]);
+  const auth = useCallback((): Record<string,string> => token.trim() ? {Authorization:"Bearer "+token.trim()} : {},[token]);
   const load = useCallback(async() => {
     setLoading(true);
     try {
