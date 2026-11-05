@@ -10,7 +10,7 @@ export default function Home(){
  const book=books.find(b=>b.id===selected);
  useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d.authenticated){setSessionReady(true);setReviewerSession(d.user?.role==="REVIEWER"||d.user?.role==="ADMIN");fetch("/api/books",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(data=>{setBooks(data.books);setConnected(true)}).catch(()=>{})}}).catch(()=>{})},[]);
  const call=useCallback(async(path:string,init?:RequestInit)=>{
-  const response=await fetch("/api"+path,{...init,headers: { ...(token?{"Authorization":"Bearer "+token}:{}),...(init?.body?{"Content-Type":"application/json"}:{}),...init?.headers}},cache:"no-store"});
+  const response=await fetch("/api"+path,{...init,headers: { ...(token?{"Authorization":"Bearer "+token}:{}),...(init?.body?{"Content-Type":"application/json"}:{}),...init?.headers},cache:"no-store"});
   if(!response.ok){const data=await response.json().catch(()=>({error:"Request failed"}));throw new Error(data.error||"HTTP "+response.status)}
   return response;
  },[token]);
