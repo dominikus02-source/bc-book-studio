@@ -1,5 +1,5 @@
 DROP INDEX IF EXISTS "ProviderCredential_one_active";
-DROP INDEX IF EXISTS "ProviderCredential_provider_key";
+ALTER TABLE "ProviderCredential" DROP CONSTRAINT IF EXISTS "ProviderCredential_provider_key";
 ALTER TABLE "ProviderCredential" ADD COLUMN "maxTokens" INTEGER NOT NULL DEFAULT 1800;
 ALTER TABLE "ProviderCredential" ADD COLUMN "temperature" DOUBLE PRECISION NOT NULL DEFAULT 0.4;
 CREATE INDEX "ProviderCredential_active_provider_idx" ON "ProviderCredential" ("active", "provider");
