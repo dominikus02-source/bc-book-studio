@@ -8,6 +8,12 @@ const response=(v:object,status=200)=>NextResponse.json(v,{status,headers:{"Cach
 const validEmail=(v:unknown)=>typeof v==="string"&&v.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const validPass=(v:unknown)=>typeof v==="string"&&v.length>=12&&v.length<=128;
 const origin=()=>{const url=new URL(process.env.APP_ORIGIN||"https://bcbookstudio.bahasacerdas.com");if(url.protocol!=="https:"&&url.hostname!=="localhost")throw new Error("APP_ORIGIN must use HTTPS");return url.origin;};
+function isSecureCookie(req?: NextRequest) {
+  if (process.env.CI === "true" || process.env.NODE_ENV !== "production") return false;
+  const host = req?.headers.get("host") || "";
+  if (host.startsWith("127.0.0.1") || host.startsWith("localhost")) return false;
+  return true;
+}
 export async function GET(req:NextRequest,{params}:{params:Promise<{action:string}>}){
  const {action}=await params;
  if(action!=="me")return response({error:"Not found"},404);
@@ -20,7 +26,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{action:stri
   const raw=req.cookies.get("bcstudio_session")?.value;
   if(raw)await db.studioSession.deleteMany({where:{tokenHash:hashToken(raw)}});
   const res=response({success:true});
-  res.cookies.set("bcstudio_session","",{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:0});
+  res.cookies.set("bcstudio_session","",{httpOnly:true,secure:isSecureCookie(req),sameSite:"lax",path:"/",maxAge:0});
   return res;
  }
  let data:Record<string,unknown>;
@@ -33,7 +39,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{action:stri
   const raw=randomToken();
   await db.studioSession.create({data:{userId:user.id,tokenHash:hashToken(raw),expiresAt:new Date(Date.now()+7*86400000)}});
   const res=response({success:true,redirect:"/studio"});
-  res.cookies.set("bcstudio_session",raw,{httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"lax",path:"/",maxAge:7*86400});
+  res.cookies.set("bcstudio_session",raw,{httpOnly:true,secure:isSecureCookie(req),sameSite:"lax",path:"/",maxAge:7*86400});
   return res;
  }
  if(action==="request-activation"||action==="forgot-password"){
