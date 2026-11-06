@@ -118,3 +118,31 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 :root[data-theme=dark] .nav-items a,:root[data-theme=dark] .nav-login,:root[data-theme=dark] .site footer a{color:#edf3ff}
 @media(max-width:640px){.public-theme-switch{top:78px;right:8px;padding:9px 12px}.public-theme-switch span:last-child{display:none}}
 @media(prefers-reduced-motion:reduce){.hero-art,.hero-art .book-cover,.feature-card{transform:none!important;transition:none!important}}
+
+/* WCAG AA: accessible public typography and links, scoped away from studio dashboard. */
+.site .brand small,.site .hero-copy>p,.site .hero-stats small,.site .partners,.site .partners>span,.site .section-heading p,.site .steps>div>p,.site .step-list p,.site footer p,.site footer>small,.site footer>div,.site .feature-card p,.site .feature-num,.site .art-note small{color:#40516b}
+.auth-screen .auth-card>p,.auth-screen .auth-bottom{color:#40516b}
+:root[data-theme=dark] .site .brand small,
+:root[data-theme=dark] .site .hero-copy>p,
+:root[data-theme=dark] .site .hero-stats small,
+:root[data-theme=dark] .site .partners,
+:root[data-theme=dark] .site .partners>span,
+:root[data-theme=dark] .site .section-heading p,
+:root[data-theme=dark] .site .steps>div>p,
+:root[data-theme=dark] .site .step-list p,
+:root[data-theme=dark] .site footer p,
+:root[data-theme=dark] .site footer>small,
+:root[data-theme=dark] .site footer>div,
+:root[data-theme=dark] .site .feature-card p,
+:root[data-theme=dark] .site .feature-num,
+:root[data-theme=dark] .site .art-note small{color:#dce6f6}
+:root[data-theme=dark] .site .hero h1 em,
+:root[data-theme=dark] .site .section h2 i,
+:root[data-theme=dark] .site .hero-stats strong,
+:root[data-theme=dark] .site .step-list>div>span,
+:root[data-theme=dark] .site .eyebrow{color:#b7cbff}
+:root[data-theme=dark] .site .btn.secondary{color:#f5f7ff;background:#263856;border-color:#96aadb}
+:root[data-theme=dark] .auth-screen .auth-card .eyebrow,
+:root[data-theme=dark] .auth-screen .auth-links a{color:#b8c9ff}
+:root[data-theme=dark] .auth-screen .auth-card>p,
+:root[data-theme=dark] .auth-screen .auth-bottom{color:#dce6f6}
