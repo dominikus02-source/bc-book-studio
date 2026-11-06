@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import JSZip from "jszip";
+import {quartoExport} from "../../../../../lib/quarto";
 import { db } from "../../../../../lib/db";
-import { authorized, deny } from "../../../../../lib/auth";
+import { identity, deny } from "../../../../../lib/auth";
 export const runtime = "nodejs";
 function xml(s: string) { return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c] ?? c)); }
 function slug(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0,60) || "buku"; }
@@ -20,14 +21,30 @@ function wrap(text: string, font: { widthOfTextAtSize: (text: string, size: numb
   return result;
 }
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!authorized(req)) return deny();
+  const ownerId = await identity(req);
+  if (!ownerId) return deny();
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format");
-  if (format !== "pdf" && format !== "epub") return NextResponse.json({ error: "Choose pdf or epub" }, { status: 400 });
-  const book = await db.book.findUnique({ where: { id }, include: { chapters: { orderBy: { position: "asc" } } } });
+  if (format !== "pdf" && format !== "epub" && format !== "docx") return NextResponse.json({ error: "Choose pdf, epub or docx" }, { status: 400 });
+  const book = await db.book.findFirst({ where: { id, ownerId }, include: { chapters: { orderBy: { position: "asc" } } } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   if (book.status !== "APPROVED" || book.chapters.length === 0) return NextResponse.json({ error: "Only approved books can be exported" }, { status: 409 });
   const filename = slug(book.title) + "." + format;
+  if(process.env.QUARTO_WORKER_URL||process.env.QUARTO_BIN){
+   try{
+    const manuscript=book.chapters.map(ch=>ch.content).join("\n");
+    const refs=[...new Set([...manuscript.matchAll(/!\[[^\]]{1,200}\]\(asset:([a-z0-9]{6,100})\)/g)].map(m=>m[1]))];
+    if(refs.length>20)return NextResponse.json({error:"Too many embedded images"},{status:409});
+    const files=refs.length?await db.bookAsset.findMany({where:{bookId:id,id:{in:refs}}}):[];
+    if(files.length!==refs.length)return NextResponse.json({error:"Missing licensed image asset"},{status:409});
+    const assets=files.map(f=>({id:f.id,mime:f.mime,data:Buffer.from(f.bytes).toString("base64"),altText:f.altText}));
+    const output=await quartoExport({...book,assets},format);
+    return new NextResponse(Buffer.from(output),{headers:{"Content-Type":format==="pdf"?"application/pdf":format==="epub"?"application/epub+zip":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","Content-Disposition":'attachment; filename="'+filename+'"',"Cache-Control":"no-store","X-Renderer":"Quarto"}});
+   }catch(e){
+    console.error("Quarto export unavailable",e instanceof Error?e.message:"unknown");
+    return NextResponse.json({error:"Quarto rendering failed; publication export held"},{status:503});
+   }
+  }
   if (format === "pdf") {
     const pdf = await PDFDocument.create();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -47,6 +64,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     for (const chapter of book.chapters) { line(chapter.position + ". " + chapter.title, 16, true); y -= 10; line(chapter.content); y -= 25; }
     const bytes = await pdf.save();
     return new NextResponse(Buffer.from(bytes), { headers: { "Content-Type": "application/pdf", "Content-Disposition": 'attachment; filename="' + filename + '"', "Cache-Control": "no-store" } });
+  }
+  if (format === "docx") {
+    const zip = new JSZip();
+    const paragraph = (text: string) => '<w:p><w:r><w:t xml:space="preserve">' + xml(text) + '</w:t></w:r></w:p>';
+    const sections = [book.title, 'Kelas ' + book.grade + ' | ' + book.subject];
+    for (const chapter of book.chapters) {
+      sections.push(chapter.position + '. ' + chapter.title);
+      sections.push(...chapter.content.split(/\r?\n/));
+    }
+    const documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+      + sections.map(paragraph).join('')
+      + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/></w:sectPr></w:body></w:document>';
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      + '<Default Extension="xml" ContentType="application/xml"/>'
+      + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+      + '</Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+      + '</Relationships>');
+    zip.file('word/document.xml', documentXml);
+    const bytes = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    return new NextResponse(new Uint8Array(bytes), { headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": 'attachment; filename="' + filename + '"',
+      "Cache-Control": "no-store"
+    } });
   }
   const zip = new JSZip();
   zip.file("mimetype", "application/epub+zip", { compression: "STORE" });

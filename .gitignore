@@ -3,3 +3,14 @@ node_modules
 .env*
 !.env.example
 *.tsbuildinfo
+secrets/
+postgres-data/
+backups/
+postgres-startup.log
+setup-postgres-local.ps1
+tools/
+*.log
+apply-ownership.cjs
+update-ui.cjs
+test-results/
+playwright-report/
