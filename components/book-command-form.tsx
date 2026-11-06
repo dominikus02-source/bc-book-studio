@@ -99,7 +99,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   setGenerating(true);setGenerationError("");setGeneratedChapter("");
   try{
    const response=await fetch("/api/books/"+savedBookId+"/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-    providerCredentialId,bookType,genre:category,targetAudience:audience+(grade?(" kelas "+grade):""),
+    providerCredentialId,bookType,genre:category,targetAudience:audience+(["SD","SMP","SMA"].includes(audience)?(" kelas "+grade):""),
     topic:topics.trim().slice(0,180),learningGoals:[purpose,problem,topics].filter(Boolean).join("\n\n").slice(0,2000)
    })});
    const result=await response.json();if(!response.ok)throw Error(result.error||"Draf bab gagal dibuat.");
