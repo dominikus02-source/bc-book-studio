@@ -21,7 +21,7 @@ function token(sub,email,overrides={},omit=[]){
 const a=token("release-owner-a"+publicMode,"a@example.invalid"),b=token("release-owner-b"+publicMode,"b@example.invalid");
 async function call(method,p,who=a,body,expected=200,extra={}){
  const r=await fetch(root+p,{method,headers:{"cf-access-jwt-assertion":who,...(body?{"Content-Type":"application/json"}:{}),...extra},body:body?JSON.stringify(body):undefined});
- if(expected!==null)assert.equal(r.status,expected,method+" "+p+" unexpected HTTP "+r.status);return r;
+ if(expected!==null&&r.status!==expected){const detail=await r.clone().text();assert.equal(r.status,expected,method+" "+p+" unexpected HTTP "+r.status+": "+detail)}return r;
 }
 (async()=>{
 execFileSync("docker",["run","-d","--name",name,"--network","host","-v",folder+":/test:ro","-e","NODE_OPTIONS=--import=/test/jwks.mjs","-e","PORT=3185","-e","DATABASE_URL="+db,"-e","CF_ACCESS_TEAM_DOMAIN="+issuer,"-e","CF_ACCESS_AUD="+audience,"-e","CF_ACCESS_EDITOR_EMAILS=a@example.invalid,b@example.invalid","-e","STUDIO_REVIEWER_API_KEY="+reviewer,"-e","CF_ACCESS_PUBLIC_SIGNUP="+publicMode,"-e","CF_ACCESS_ADMIN_EMAILS=a@example.invalid","-e","STUDIO_SECRET_ENCRYPTION_KEY="+Buffer.alloc(32,7).toString("base64"),image],{stdio:"pipe"});
