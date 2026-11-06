@@ -1,9 +1,9 @@
 import { NextRequest,NextResponse } from "next/server";
 import { z } from "zod";
-import { identity,deny } from "../../../lib/auth";
-import { db } from "../../../lib/db";
-import { activeProvider,invokeProvider,safeMutation } from "../../../lib/providers";
-import { canGenerate,quotaDenied } from "../../../lib/usage";
+import { identity,deny } from "../../../../lib/auth";
+import { db } from "../../../../lib/db";
+import { activeProvider,invokeProvider,safeMutation } from "../../../../lib/providers";
+import { canGenerate,quotaDenied } from "../../../../lib/usage";
 export const runtime="nodejs";
 const schema=z.object({
  providerCredentialId:z.string().trim().min(1).max(80),
