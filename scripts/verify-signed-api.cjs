@@ -67,7 +67,7 @@ if(publicMode){
  await call("DELETE",endpoint+"/"+cid,b,undefined,403);
  await call("PATCH",endpoint+"/"+cid,a,{apiKey:rotatedKey,model:"updated-model"});
  configuration=(await (await call("GET",endpoint,a)).json()).providers[0];
- assert.equal(configuration.active,true);assert.equal(configuration.model,"updated-model");assert.equal(configuration.lastFour,"3210");
+ console.log("Provider smoke state after rotation:",JSON.stringify({active:configuration.active,model:configuration.model,lastFour:configuration.lastFour}));assert.equal(configuration.active,true);assert.equal(configuration.model,"updated-model");assert.equal(configuration.lastFour,"3210");
  assert(!JSON.stringify(configuration).includes(rotatedKey));assert(!("encryptedKey" in configuration));
  execFileSync("docker",["exec",name,"node","-e",`const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.providerCredential.findUnique({where:{id:'${cid}'}}).then(row=>{if(!row.encryptedKey.startsWith('v1.')||row.encryptedKey.includes('${rotatedKey}'))throw Error('Credential stored without encryption')}).finally(()=>p.$disconnect()).catch(()=>process.exitCode=1)`],{stdio:"pipe"});
  console.log("PASS provider admin CRUD permissions, foreign-origin rejection, key rotation, masking and database encryption");
@@ -87,4 +87,4 @@ if(publicMode){
 }
 const status=await (await call("GET","/api/studio/status")).json();assert.equal(status.database,"connected");assert.deepEqual(status.exports,["pdf","epub","docx"]);
 console.log("PASS real HTTP + database: A/B CRUD isolation, chapters/generation/review/export isolation, reviewer gate, locked book and three export formats");
-})().catch(e=>{console.error(e.message);process.exitCode=1}).finally(()=>{try{execFileSync("docker",["rm","-f",name],{stdio:"pipe"})}catch{}fs.rmSync(folder,{recursive:true,force:true})});
+})().catch(e=>{console.error(e.stack||e.message);process.exitCode=1}).finally(()=>{try{execFileSync("docker",["rm","-f",name],{stdio:"pipe"})}catch{}fs.rmSync(folder,{recursive:true,force:true})});
