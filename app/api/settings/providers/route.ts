@@ -1,19 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest,NextResponse } from "next/server";
-import { administrator,identity } from "../../../../lib/auth";
+import { administrator } from "../../../../lib/auth";
 import { db } from "../../../../lib/db";
 import { credentialInput,encryptCredential,encryptionReady,safeCredential,safeMutation } from "../../../../lib/providers";
 export const runtime="nodejs";
 const headers={"Cache-Control":"no-store"};
 export async function GET(req:NextRequest){
- const canManage=Boolean(await administrator(req));
- const actorId=(await identity(req))||(canManage?"administrator":null);
- if(!actorId)return NextResponse.json({error:"Sesi studio tidak valid."},{status:401,headers});
- const providers=await db.providerCredential.findMany({
-  where:canManage?{}:{active:true},select:safeCredential,
-  orderBy:[{active:"desc"},{provider:"asc"},{label:"asc"}]
- });
- return NextResponse.json({providers,canManage,encryptionReady:canManage?encryptionReady():undefined},{headers});
+ if(!await administrator(req))return NextResponse.json({error:"Hanya pengelola yang dapat mengatur API key."},{status:403,headers});
+ const providers=await db.providerCredential.findMany({select:safeCredential,orderBy:[{active:"desc"},{provider:"asc"},{label:"asc"}]});
+ return NextResponse.json({providers,canManage:true,encryptionReady:encryptionReady()},{headers});
 }
 export async function POST(req:NextRequest){
  const actorId=await administrator(req);
