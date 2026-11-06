@@ -58,7 +58,8 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   "",
   "TUJUAN DAN IDENTITAS",
   `Judul sementara: ${title||"Usulkan judul berdasarkan tujuan"}`,
-  `Jenis naskah: ${bookType==="FICTION"?"Fiksi":"Nonfiksi"}`,\n  `Kategori: ${category}`,
+  `Jenis naskah: ${bookType==="FICTION"?"Fiksi":"Nonfiksi"}`,
+  `Kategori: ${category}`,
   `Tujuan buku: ${purpose||"[Belum diisi]"}`,
   `Masalah/kebutuhan pembaca: ${problem||"[Belum diisi]"}`,
   "",
@@ -89,7 +90,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   "",
   "URUTAN KERJA YANG DIMINTA",
   "Validasi brief → estimasi → riset → kerangka → persetujuan struktur → penulisan bab → latihan/visual → penyuntingan → telaah pedagogis → QA → layout → ekspor dokumen → persetujuan final."
- ].join("\n"),[title,category,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
+ ].join("\n"),[title,category,bookType,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
 
  async function generateFirstChapter(){
   if(!savedBookId){setGenerationError("Simpan proyek buku terlebih dahulu.");return}
