@@ -1,7 +1,7 @@
 import { NextRequest,NextResponse } from "next/server";
 import { administrator } from "../../../../../lib/auth";
 import { db } from "../../../../../lib/db";
-import { credentialUpdate,encryptCredential,safeCredential,safeMutation } from "../../../../../lib/providers";
+import { credentialUpdate,encryptCredential,encryptionReady,safeCredential,safeMutation } from "../../../../../lib/providers";
 export const runtime="nodejs";
 const headers={"Cache-Control":"no-store"};
 export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -11,6 +11,7 @@ export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}
  const input=credentialUpdate.safeParse(await req.json().catch(()=>null));
  if(!input.success)return NextResponse.json({error:"Perubahan tidak valid."},{status:400,headers});
  const {id}=await params,{apiKey,...data}=input.data;
+ if(apiKey&&!encryptionReady())return NextResponse.json({error:"Penyimpanan rahasia belum siap."},{status:503,headers});
  try{
   const provider=await db.$transaction(async tx=>{
    const result=await tx.providerCredential.update({where:{id},data:{...data,...(apiKey?{encryptedKey:encryptCredential(apiKey,id),lastFour:apiKey.slice(-4)}:{})},select:safeCredential});
