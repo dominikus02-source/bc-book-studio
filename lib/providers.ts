@@ -36,7 +36,7 @@ export const credentialInput = z.object({provider:providerSchema,apiKey,...model
 export const credentialUpdate = z.object({
  apiKey:apiKey.optional(),label:modelSettings.label.optional(),model:modelSettings.model.optional(),
  maxTokens:modelSettings.maxTokens.optional(),temperature:modelSettings.temperature.optional(),
- active:modelSettings.active.optional()
+ active:z.boolean().optional()
 }).strict().refine(x=>Object.keys(x).length>0);
 export const safeCredential = {id:true,provider:true,label:true,model:true,lastFour:true,active:true,maxTokens:true,temperature:true,createdAt:true,updatedAt:true} as const;
 function encryptionKey() {
