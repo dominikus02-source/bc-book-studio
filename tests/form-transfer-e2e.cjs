@@ -133,11 +133,15 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   ]){
     await page.getByRole("button",{name:"Buka menu"}).click();
     await page.getByRole("button",{name:module,exact:true}).click();
+    assert.equal(new URL(page.url()).searchParams.get("module"),module,"Page URL must reflect selected module");
     const panel=page.locator(".form-draft-manager");
     await panel.getByRole("heading",{name:new RegExp("Impor, ekspor & CRUD draf")}).waitFor({timeout:10000});
     assert(await panel.getByRole("button",{name:/Unduh XLSX/}).isVisible(),module+" missing XLSX");
     assert(await panel.getByRole("button",{name:/Unduh Markdown/}).isVisible(),module+" missing MD");
     assert(await panel.locator('input[type="file"]').count()===1,module+" missing file input");
+    await page.reload();
+    assert.equal(new URL(page.url()).searchParams.get("module"),module,"Module deep link not persisted after reload");
+    assert(await page.locator(".form-draft-manager").isVisible(),"Module form missing after reload: "+module);
   }
   await page.getByRole("button",{name:"Buka menu"}).click();
   await page.getByRole("button",{name:"Buat Buku",exact:true}).click();
