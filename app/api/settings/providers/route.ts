@@ -6,9 +6,9 @@ import { credentialInput,encryptCredential,encryptionReady,safeCredential,safeMu
 export const runtime="nodejs";
 const headers={"Cache-Control":"no-store"};
 export async function GET(req:NextRequest){
- const actorId=await identity(req);
- if(!actorId)return NextResponse.json({error:"Sesi studio tidak valid."},{status:401,headers});
  const canManage=Boolean(await administrator(req));
+ const actorId=(await identity(req))||(canManage?"administrator":null);
+ if(!actorId)return NextResponse.json({error:"Sesi studio tidak valid."},{status:401,headers});
  const providers=await db.providerCredential.findMany({
   where:canManage?{}:{active:true},select:safeCredential,
   orderBy:[{active:"desc"},{provider:"asc"},{label:"asc"}]
