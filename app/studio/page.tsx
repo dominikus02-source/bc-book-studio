@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState, memo } from "react";
 
 type Chapter = { id: string; title: string; content: string; position: number };
 type Review = { id: string; decision: string; note: string; createdAt: string };
@@ -51,6 +51,33 @@ const Icon = {
   ),
 };
 
+const BookCard = memo(function BookCard({
+  book,
+  selected,
+  onSelect,
+}: {
+  book: Book;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(book.id)}
+      style={{
+        ...card,
+        textAlign: "left",
+        cursor: "pointer",
+        border: selected ? "1px solid #bfdbfe" : "1px solid transparent",
+      }}
+    >
+      <div style={{ fontWeight: 600 }}>{book.title}</div>
+      <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+        Kelas {book.grade} · {book.subject} · {book.status} · {book.chapters.length} bab
+      </div>
+    </button>
+  );
+});
+
 export default function StudioPage() {
   const [token, setToken] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
@@ -72,7 +99,7 @@ export default function StudioPage() {
   const [chapterText, setChapterText] = useState("");
   const [note, setNote] = useState("");
 
-  const book = books.find((b) => b.id === selected);
+  const book = useMemo(() => books.find((b) => b.id === selected), [books, selected]);
 
   const call = useCallback(
     async (path: string, init?: RequestInit) => {
@@ -100,7 +127,7 @@ export default function StudioPage() {
     setBooks(data.books);
   }, [call]);
 
-  async function login() {
+  const login = useCallback(async () => {
     setBusy(true);
     setError("");
     try {
@@ -114,9 +141,9 @@ export default function StudioPage() {
     } finally {
       setBusy(false);
     }
-  }
+  }, [token, refresh]);
 
-  async function run(task: () => Promise<void>) {
+  const run = useCallback(async (task: () => Promise<void>) => {
     setBusy(true);
     setError("");
     setNotice("");
@@ -127,116 +154,19 @@ export default function StudioPage() {
     } finally {
       setBusy(false);
     }
-  }
+  }, []);
 
-  async function saveBook() {
-    await run(async () => {
-      if (editingBook && selected) {
-        await call("/books/" + selected, { method: "PUT", body: JSON.stringify({ title, grade, subject }) });
-        setNotice("Buku diperbarui.");
-      } else {
-        const res = await call("/books", { method: "POST", body: JSON.stringify({ title, grade, subject }) });
-        const data = await res.json();
-        setSelected(data.book.id);
-        setNotice("Buku dibuat.");
-      }
-      setTitle("");
-      setEditingBook(false);
-      setView("books");
-      await refresh();
-    });
-  }
+  const selectBook = useCallback((id: string) => setSelected(id), []);
 
-  async function deleteBook(id: string) {
-    if (!confirm("Hapus buku ini?")) return;
-    await run(async () => {
-      await call("/books/" + id, { method: "DELETE" });
-      if (selected === id) setSelected("");
-      await refresh();
-      setNotice("Buku dihapus.");
-    });
-  }
-
-  async function saveChapter() {
-    if (!book) return;
-    await run(async () => {
-      if (editingChapter) {
-        await call(`/books/${book.id}/chapters/${editingChapter}`, {
-          method: "PUT",
-          body: JSON.stringify({ title: chapterTitle, content: chapterText }),
-        });
-        setNotice("Bab diperbarui.");
-      } else {
-        await call(`/books/${book.id}/chapters`, {
-          method: "POST",
-          body: JSON.stringify({ title: chapterTitle, content: chapterText }),
-        });
-        setNotice("Bab ditambahkan.");
-      }
-      setChapterTitle("");
-      setChapterText("");
-      setEditingChapter(null);
-      await refresh();
-    });
-  }
-
-  async function deleteChapter(chapterId: string) {
-    if (!book || !confirm("Hapus bab ini?")) return;
-    await run(async () => {
-      await call(`/books/${book.id}/chapters/${chapterId}`, { method: "DELETE" });
-      await refresh();
-      setNotice("Bab dihapus.");
-    });
-  }
-
-  async function review(action: "submit" | "approve" | "reject") {
-    if (!book) return;
-    await run(async () => {
-      await call(`/books/${book.id}/review`, {
-        method: "POST",
-        body: JSON.stringify({ action, note }),
-      });
-      setNote("");
-      await refresh();
-      setNotice("Status diperbarui.");
-    });
-  }
-
-  async function download(format: string) {
-    if (!book) return;
-    await run(async () => {
-      const response = await call(`/books/${book.id}/export?format=${format}`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `bc-${book.id}.${format === "flipbook" ? "html" : format}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
-  }
-
-  function startEditBook() {
-    if (!book) return;
-    setTitle(book.title);
-    setGrade(book.grade);
-    setSubject(book.subject);
-    setEditingBook(true);
-    setView("new");
-  }
-
-  function startEditChapter(ch: Chapter) {
-    setEditingChapter(ch.id);
-    setChapterTitle(ch.title);
-    setChapterText(ch.content);
-  }
-
-  const nav = [
-    { id: "books" as View, label: "Buku", icon: Icon.book },
-    { id: "new" as View, label: "Baru", icon: Icon.plus },
-    { id: "templates" as View, label: "Template", icon: Icon.layout },
-    { id: "settings" as View, label: "Setelan", icon: Icon.settings },
-  ];
+  const nav = useMemo(
+    () => [
+      { id: "books" as View, label: "Buku", icon: Icon.book },
+      { id: "new" as View, label: "Baru", icon: Icon.plus },
+      { id: "templates" as View, label: "Template", icon: Icon.layout },
+      { id: "settings" as View, label: "Setelan", icon: Icon.settings },
+    ],
+    []
+  );
 
   if (!loggedIn) {
     return (
@@ -266,7 +196,6 @@ export default function StudioPage() {
           .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; display: ${sidebarOpen ? "flex" : "none"}; }
           .main { padding: 16px; }
           .mobile-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: white; border-bottom: 1px solid #e2e8f0; }
-          .book-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -366,24 +295,10 @@ export default function StudioPage() {
               </div>
 
               {!selected && (
-                <div style={{ display: "grid", gap: 12 }} className="book-grid">
+                <div style={{ display: "grid", gap: 12 }}>
                   {books.length === 0 && <p style={{ color: "#64748b" }}>Belum ada buku. Buat buku baru untuk memulai.</p>}
                   {books.map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => setSelected(b.id)}
-                      style={{
-                        ...card,
-                        textAlign: "left",
-                        cursor: "pointer",
-                        border: b.id === selected ? "1px solid #bfdbfe" : "1px solid transparent",
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>{b.title}</div>
-                      <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
-                        Kelas {b.grade} · {b.subject} · {b.status} · {b.chapters.length} bab
-                      </div>
-                    </button>
+                    <BookCard key={b.id} book={b} selected={b.id === selected} onSelect={selectBook} />
                   ))}
                 </div>
               )}
@@ -402,11 +317,31 @@ export default function StudioPage() {
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       {book.status === "DRAFT" && (
-                        <button style={btn} onClick={startEditBook}>
+                        <button
+                          style={btn}
+                          onClick={() => {
+                            setTitle(book.title);
+                            setGrade(book.grade);
+                            setSubject(book.subject);
+                            setEditingBook(true);
+                            setView("new");
+                          }}
+                        >
                           Edit
                         </button>
                       )}
-                      <button style={{ ...btn, background: "#b91c1c" }} onClick={() => deleteBook(book.id)}>
+                      <button
+                        style={{ ...btn, background: "#b91c1c" }}
+                        onClick={() =>
+                          run(async () => {
+                            if (!confirm("Hapus buku ini?")) return;
+                            await call("/books/" + book.id, { method: "DELETE" });
+                            setSelected("");
+                            await refresh();
+                            setNotice("Buku dihapus.");
+                          })
+                        }
+                      >
                         Hapus
                       </button>
                     </div>
@@ -421,10 +356,27 @@ export default function StudioPage() {
                         </strong>
                         {book.status === "DRAFT" && (
                           <div style={{ display: "flex", gap: 6 }}>
-                            <button style={smallBtn} onClick={() => startEditChapter(ch)}>
+                            <button
+                              style={smallBtn}
+                              onClick={() => {
+                                setEditingChapter(ch.id);
+                                setChapterTitle(ch.title);
+                                setChapterText(ch.content);
+                              }}
+                            >
                               Edit
                             </button>
-                            <button style={{ ...smallBtn, color: "#b91c1c" }} onClick={() => deleteChapter(ch.id)}>
+                            <button
+                              style={{ ...smallBtn, color: "#b91c1c" }}
+                              onClick={() =>
+                                run(async () => {
+                                  if (!confirm("Hapus bab ini?")) return;
+                                  await call(`/books/${book.id}/chapters/${ch.id}`, { method: "DELETE" });
+                                  await refresh();
+                                  setNotice("Bab dihapus.");
+                                })
+                              }
+                            >
                               Hapus
                             </button>
                           </div>
@@ -440,7 +392,31 @@ export default function StudioPage() {
                       <input style={input} placeholder="Judul bab" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
                       <textarea style={input} rows={5} placeholder="Isi bab" value={chapterText} onChange={(e) => setChapterText(e.target.value)} />
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button style={btn} disabled={busy || chapterTitle.length < 2} onClick={saveChapter}>
+                        <button
+                          style={btn}
+                          disabled={busy || chapterTitle.length < 2}
+                          onClick={() =>
+                            run(async () => {
+                              if (editingChapter) {
+                                await call(`/books/${book.id}/chapters/${editingChapter}`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({ title: chapterTitle, content: chapterText }),
+                                });
+                                setNotice("Bab diperbarui.");
+                              } else {
+                                await call(`/books/${book.id}/chapters`, {
+                                  method: "POST",
+                                  body: JSON.stringify({ title: chapterTitle, content: chapterText }),
+                                });
+                                setNotice("Bab ditambahkan.");
+                              }
+                              setChapterTitle("");
+                              setChapterText("");
+                              setEditingChapter(null);
+                              await refresh();
+                            })
+                          }
+                        >
                           {editingChapter ? "Perbarui" : "Tambah"}
                         </button>
                         {editingChapter && (
@@ -463,26 +439,75 @@ export default function StudioPage() {
                     <h3>Fasilitas</h3>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {book.status === "DRAFT" && (
-                        <button style={btn} disabled={busy || !book.chapters.length} onClick={() => review("submit")}>
+                        <button
+                          style={btn}
+                          disabled={busy || !book.chapters.length}
+                          onClick={() =>
+                            run(async () => {
+                              await call(`/books/${book.id}/review`, { method: "POST", body: JSON.stringify({ action: "submit", note: "" }) });
+                              await refresh();
+                              setNotice("Status diperbarui.");
+                            })
+                          }
+                        >
                           Ajukan Review
                         </button>
                       )}
                       {book.status === "REVIEW" && (
                         <>
                           <textarea style={{ ...input, maxWidth: 300 }} placeholder="Catatan" value={note} onChange={(e) => setNote(e.target.value)} />
-                          <button style={btn} disabled={busy || !note.trim()} onClick={() => review("approve")}>
+                          <button
+                            style={btn}
+                            disabled={busy || !note.trim()}
+                            onClick={() =>
+                              run(async () => {
+                                await call(`/books/${book.id}/review`, { method: "POST", body: JSON.stringify({ action: "approve", note }) });
+                                setNote("");
+                                await refresh();
+                                setNotice("Status diperbarui.");
+                              })
+                            }
+                          >
                             Setujui
                           </button>
-                          <button style={{ ...btn, background: "#64748b" }} disabled={busy} onClick={() => review("reject")}>
+                          <button
+                            style={{ ...btn, background: "#64748b" }}
+                            disabled={busy}
+                            onClick={() =>
+                              run(async () => {
+                                await call(`/books/${book.id}/review`, { method: "POST", body: JSON.stringify({ action: "reject", note }) });
+                                setNote("");
+                                await refresh();
+                                setNotice("Status diperbarui.");
+                              })
+                            }
+                          >
                             Kembalikan
                           </button>
                         </>
                       )}
                       {book.status === "APPROVED" && (
                         <>
-                          <button style={btn} onClick={() => download("pdf")}>PDF</button>
-                          <button style={btn} onClick={() => download("epub")}>EPUB</button>
-                          <button style={btn} onClick={() => download("docx")}>DOCX</button>
+                          {(["pdf", "epub", "docx"] as const).map((fmt) => (
+                            <button
+                              key={fmt}
+                              style={btn}
+                              onClick={() =>
+                                run(async () => {
+                                  const response = await call(`/books/${book.id}/export?format=${fmt}`);
+                                  const blob = await response.blob();
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a");
+                                  a.href = url;
+                                  a.download = `bc-${book.id}.${fmt}`;
+                                  a.click();
+                                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                                })
+                              }
+                            >
+                              {fmt.toUpperCase()}
+                            </button>
+                          ))}
                           <button style={btn} onClick={() => window.open(`/books/${book.id}/flipbook`, "_blank")}>
                             Flipbook
                           </button>
@@ -507,7 +532,27 @@ export default function StudioPage() {
               </select>
               <input style={input} placeholder="Mata pelajaran" value={subject} onChange={(e) => setSubject(e.target.value)} />
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button style={btn} disabled={busy || title.length < 2} onClick={saveBook}>
+                <button
+                  style={btn}
+                  disabled={busy || title.length < 2}
+                  onClick={() =>
+                    run(async () => {
+                      if (editingBook && selected) {
+                        await call("/books/" + selected, { method: "PUT", body: JSON.stringify({ title, grade, subject }) });
+                        setNotice("Buku diperbarui.");
+                      } else {
+                        const res = await call("/books", { method: "POST", body: JSON.stringify({ title, grade, subject }) });
+                        const data = await res.json();
+                        setSelected(data.book.id);
+                        setNotice("Buku dibuat.");
+                      }
+                      setTitle("");
+                      setEditingBook(false);
+                      setView("books");
+                      await refresh();
+                    })
+                  }
+                >
                   Simpan
                 </button>
                 <button style={{ ...btn, background: "#64748b" }} onClick={() => setView("books")}>
