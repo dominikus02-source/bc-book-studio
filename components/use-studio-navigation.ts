@@ -19,7 +19,7 @@ export function useStudioNavigation(views:readonly string[]){
   const url=new URL(window.location.href);
   if(view===views[0])url.searchParams.delete("view");
   else url.searchParams.set("view",viewKey(view));
-  if(url.href!==window.location.href)window.history.pushState(window.history.state,"",url);
+  if(url.href!==window.location.href)window.history.pushState(null,"",url);
   setActive(view);
  },[views]);
  return [active,navigate] as const;
