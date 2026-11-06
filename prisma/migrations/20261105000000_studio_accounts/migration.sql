@@ -1,0 +1,11 @@
+CREATE TYPE "StudioRole" AS ENUM ('EDITOR', 'REVIEWER', 'ADMIN');
+CREATE TABLE "StudioUser" ("id" TEXT NOT NULL, "email" TEXT NOT NULL, "name" TEXT NOT NULL, "role" "StudioRole" NOT NULL DEFAULT 'EDITOR', "passwordHash" TEXT, "active" BOOLEAN NOT NULL DEFAULT false, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL, CONSTRAINT "StudioUser_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "StudioUser_email_key" ON "StudioUser"("email");
+CREATE TABLE "StudioSession" ("id" TEXT NOT NULL, "userId" TEXT NOT NULL, "tokenHash" TEXT NOT NULL, "expiresAt" TIMESTAMP(3) NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "StudioSession_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "StudioSession_tokenHash_key" ON "StudioSession"("tokenHash");
+CREATE INDEX "StudioSession_userId_expiresAt_idx" ON "StudioSession"("userId","expiresAt");
+ALTER TABLE "StudioSession" ADD CONSTRAINT "StudioSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "StudioUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE TABLE "StudioAuthToken" ("id" TEXT NOT NULL, "userId" TEXT NOT NULL, "tokenHash" TEXT NOT NULL, "purpose" TEXT NOT NULL, "expiresAt" TIMESTAMP(3) NOT NULL, "usedAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "StudioAuthToken_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "StudioAuthToken_tokenHash_key" ON "StudioAuthToken"("tokenHash");
+CREATE INDEX "StudioAuthToken_userId_purpose_createdAt_idx" ON "StudioAuthToken"("userId","purpose","createdAt");
+ALTER TABLE "StudioAuthToken" ADD CONSTRAINT "StudioAuthToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "StudioUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -3,42 +3,158 @@ generator client {
 }
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 model Book {
-  id          String    @id @default(cuid())
-  title       String
-  grade       String
-  subject     String
-  description String    @default("")
-  status      BookStatus @default(DRAFT)
-  chapters    Chapter[]
-  reviews     Review[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  approvedAt  DateTime?
-}
-model Chapter {
-  id        String   @id @default(cuid())
-  bookId    String
-  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  position  Int
-  title     String
-  content   String   @db.Text
+  id String @id @default(cuid())
+  ownerId String
+  title String
+  grade String
+  subject String
+  description String @default("")
+  status BookStatus @default(DRAFT)
+  chapters Chapter[]
+  reviews Review[]
+  assignedReviewers BookReviewer[]
+  assets BookAsset[]
+  bookType String @default("NONFICTION")
+  genre String @default("REFERENCE")
+  pageSize String @default("A4")
+  author String @default("BC Book Studio")
+  editorialStage String @default("BRIEF")
+  editorialChecks Json @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  approvedAt DateTime?
+  @@index([ownerId, updatedAt])
+}
+model Chapter {
+  id String @id @default(cuid())
+  bookId String
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  position Int
+  title String
+  content String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions ChapterRevision[]
   @@unique([bookId, position])
 }
+model ChapterRevision {
+  id String @id @default(cuid())
+  chapterId String
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title String
+  content String @db.Text
+  revision Int
+  createdAt DateTime @default(now())
+  @@unique([chapterId, revision])
+}
+model BookAsset {
+  id String @id @default(cuid())
+  bookId String
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  name String
+  mime String
+  bytes Bytes @db.ByteA
+  size Int
+  width Int
+  height Int
+  altText String
+  license String
+  sourceUrl String?
+  createdAt DateTime @default(now())
+  @@index([bookId, createdAt])
+}
+
+model BookReviewer {
+  id String @id @default(cuid())
+  bookId String
+  reviewerId String
+  assignedById String
+  assignedAt DateTime @default(now())
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  reviewer StudioUser @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  @@unique([bookId, reviewerId])
+  @@index([reviewerId, assignedAt])
+}
+
 model Review {
-  id        String   @id @default(cuid())
-  bookId    String
-  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  decision  String
-  note      String   @default("") @db.Text
+  id String @id @default(cuid())
+  bookId String
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  decision String
+  note String @default("") @db.Text
   createdAt DateTime @default(now())
 }
 enum BookStatus {
   DRAFT
   REVIEW
   APPROVED
+}
+
+model UsageCounter {
+  scope String
+  subject String
+  period String
+  count Int @default(0)
+  @@id([scope, subject, period])
+}
+
+model ProviderCredential {
+  id String @id
+  provider String @unique
+  label String
+  model String
+  encryptedKey String @db.Text
+  lastFour String
+  active Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model CredentialAudit {
+  id String @id @default(cuid())
+  actorId String
+  credentialId String
+  action String
+  createdAt DateTime @default(now())
+}
+
+enum StudioRole {
+  EDITOR
+  REVIEWER
+  ADMIN
+}
+model StudioUser {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  role StudioRole @default(EDITOR)
+  passwordHash String?
+  active Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions StudioSession[]
+  tokens StudioAuthToken[]
+  assignedBooks BookReviewer[]
+}
+model StudioSession {
+  id String @id @default(cuid())
+  userId String
+  user StudioUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId, expiresAt])
+}
+model StudioAuthToken {
+  id String @id @default(cuid())
+  userId String
+  user StudioUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  purpose String
+  expiresAt DateTime
+  usedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([userId, purpose, createdAt])
 }
