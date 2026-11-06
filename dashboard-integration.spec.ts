@@ -73,11 +73,11 @@ test("admin provider settings create edit rotate and delete",async({page})=>{
  await page.getByLabel("Tersedia bagi editor untuk dipilih").check();
  await page.getByRole("button",{name:"Simpan API key",exact:true}).click();
  await expect(page.getByRole("status")).toContainText("Konfigurasi model tersimpan");
- await expect(page.getByLabel("API key provider")).toHaveValue("");
+ await expect(page.getByLabel("API key")).toHaveValue("");
  await expect(page.getByText("••••7890")).toBeVisible();
  await page.getByRole("button",{name:"Ubah Penulis utama",exact:true}).click();
- await page.getByLabel("API key provider").fill("fixture-rotated-secret-9876543210");
- await page.getByRole("button",{name:"Simpan provider",exact:true}).click();
+ await page.getByLabel("API key").fill("fixture-rotated-secret-9876543210");
+ await page.getByRole("button",{name:"Simpan perubahan",exact:true}).click();
  await expect(page.getByText("••••3210")).toBeVisible();
  await page.setViewportSize({width:390,height:844});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();
