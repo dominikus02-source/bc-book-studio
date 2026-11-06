@@ -18,32 +18,32 @@ type View = "books" | "new" | "templates" | "settings";
 
 const Icon = {
   book: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
     </svg>
   ),
   plus: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   ),
   layout: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="18" height="18" rx="2" />
       <line x1="3" y1="9" x2="21" y2="9" />
       <line x1="9" y1="21" x2="9" y2="9" />
     </svg>
   ),
   settings: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
   logout: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
@@ -232,9 +232,9 @@ export default function StudioPage() {
 
   const nav = [
     { id: "books" as View, label: "Buku", icon: Icon.book },
-    { id: "new" as View, label: "Buku Baru", icon: Icon.plus },
+    { id: "new" as View, label: "Baru", icon: Icon.plus },
     { id: "templates" as View, label: "Template", icon: Icon.layout },
-    { id: "settings" as View, label: "Pengaturan", icon: Icon.settings },
+    { id: "settings" as View, label: "Setelan", icon: Icon.settings },
   ];
 
   if (!loggedIn) {
@@ -255,29 +255,29 @@ export default function StudioPage() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui,sans-serif" }}>
-      {/* Sidebar */}
+      {/* Sidebar ramping */}
       <aside
         style={{
-          width: 240,
+          width: 200,
           background: "white",
           borderRight: "1px solid #e2e8f0",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        <div style={{ padding: "20px 16px", borderBottom: "1px solid #e2e8f0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 32, height: 32, background: "#1e40af", borderRadius: 8, display: "grid", placeItems: "center", color: "white", fontWeight: 700 }}>
+        <div style={{ padding: "16px 12px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 28, height: 28, background: "#1e40af", borderRadius: 6, display: "grid", placeItems: "center", color: "white", fontWeight: 700, fontSize: 13 }}>
               B
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>BC Studio</div>
-              <div style={{ fontSize: 12, color: "#64748b" }}>Editor</div>
+              <div style={{ fontWeight: 650, fontSize: 13 }}>BC Studio</div>
+              <div style={{ fontSize: 11, color: "#64748b" }}>Editor</div>
             </div>
           </div>
         </div>
 
-        <nav style={{ padding: 12, flex: 1 }}>
+        <nav style={{ padding: 8, flex: 1 }}>
           {nav.map((item) => (
             <button
               key={item.id}
@@ -292,17 +292,17 @@ export default function StudioPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 8,
                 width: "100%",
-                padding: "10px 12px",
-                marginBottom: 4,
+                padding: "8px 10px",
+                marginBottom: 2,
                 border: 0,
-                borderRadius: 8,
+                borderRadius: 6,
                 background: view === item.id ? "#eff6ff" : "transparent",
                 color: view === item.id ? "#1e40af" : "#334155",
                 cursor: "pointer",
                 textAlign: "left",
-                fontSize: 14,
+                fontSize: 13,
               }}
             >
               {item.icon}
@@ -311,7 +311,7 @@ export default function StudioPage() {
           ))}
         </nav>
 
-        <div style={{ padding: 12, borderTop: "1px solid #e2e8f0" }}>
+        <div style={{ padding: 8, borderTop: "1px solid #e2e8f0" }}>
           <button
             onClick={() => {
               setLoggedIn(false);
@@ -322,16 +322,16 @@ export default function StudioPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
+              gap: 8,
               width: "100%",
-              padding: "10px 12px",
+              padding: "8px 10px",
               border: 0,
-              borderRadius: 8,
+              borderRadius: 6,
               background: "transparent",
               color: "#64748b",
               cursor: "pointer",
               textAlign: "left",
-              fontSize: 14,
+              fontSize: 13,
             }}
           >
             {Icon.logout}
@@ -341,7 +341,7 @@ export default function StudioPage() {
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, padding: 28, overflow: "auto" }}>
+      <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
         {view === "books" && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
