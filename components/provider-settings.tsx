@@ -18,13 +18,20 @@ export default function ProviderSettings(){
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
  const enabled=useMemo(()=>items.filter(x=>x.active),[items]);
  async function refresh(){
-  const [response,usageResponse]=await Promise.all([
+  const [availableResponse,adminResponse,usageResponse]=await Promise.all([
+   fetch("/api/ai/providers",{cache:"no-store"}),
    fetch("/api/settings/providers",{cache:"no-store"}),
    fetch("/api/usage",{cache:"no-store"})
   ]);
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(data.error||"Konfigurasi belum dapat dimuat.");
-  setItems(data.providers||[]);setCanManage(Boolean(data.canManage));setReady(Boolean(data.encryptionReady));
+  const availableData=await availableResponse.json().catch(()=>({}));
+  if(!availableResponse.ok)throw Error(availableData.error||"Model AI belum dapat dimuat.");
+  let data=availableData,manage=false;
+  if(adminResponse.status!==403){
+   const adminData=await adminResponse.json().catch(()=>({}));
+   if(!adminResponse.ok)throw Error(adminData.error||"Konfigurasi belum dapat dimuat.");
+   data=adminData;manage=Boolean(adminData.canManage);
+  }
+  setItems(data.providers||[]);setCanManage(manage);setReady(manage&&Boolean(data.encryptionReady));
   if(usageResponse.ok)setUsage(await usageResponse.json());
   const stored=window.localStorage.getItem("bc-selected-provider")||"";
   const available=(data.providers||[]).filter((x:Provider)=>x.active);
