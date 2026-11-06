@@ -12,5 +12,5 @@ export default function ThemeShell({children}:{children:ReactNode}){
   setReady(true);
  },[]);
  function change(){const next=theme==="light"?"dark":"light";setTheme(next);document.documentElement.dataset.theme=next;document.documentElement.style.colorScheme=next;window.localStorage.setItem("bc-theme",next);}
- return <><button type="button" className="global-theme-toggle" onClick={change} aria-label={theme==="dark"?"Aktifkan tema terang":"Aktifkan tema gelap"} aria-pressed={theme==="dark"} title={theme==="dark"?"Mode terang":"Mode gelap"} suppressHydrationWarning>{ready&&theme==="dark"?"☀":"☾"} <span>{ready&&theme==="dark"?"Light":"Dark"}</span></button>{children}</>;
+ return <><button type="button" className="global-theme-toggle" onClick={change} aria-label={theme==="dark"?"Light: aktifkan tema terang":"Dark: aktifkan tema gelap"} aria-pressed={theme==="dark"} title={theme==="dark"?"Mode terang":"Mode gelap"} suppressHydrationWarning>{ready&&theme==="dark"?"☀":"☾"} <span>{ready&&theme==="dark"?"Light":"Dark"}</span></button>{children}</>;
 }
