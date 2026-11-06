@@ -8,6 +8,19 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bookstudio_browser_ci
+          POSTGRES_USER: bookstudio
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bookstudio -d bookstudio_browser_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://bookstudio:ci-only-password@127.0.0.1:5432/bookstudio_browser_ci?schema=public
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,9 +28,13 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Initialize isolated browser test schema
+        run: npx prisma db push --skip-generate
       - run: npm run build
       - run: npm run typecheck
       - run: npm run test:ai-providers
+      - name: Breadcrumb hierarchy regressions
+        run: node --test tests/breadcrumb-navigation.test.cjs
       - run: npm audit --audit-level=high
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --reporter=line
