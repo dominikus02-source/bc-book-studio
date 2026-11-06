@@ -33,59 +33,117 @@ export default function FlipbookPage() {
   if (error) return <p style={{ padding: 40, color: "#b91c1c" }}>{error}</p>;
   if (!book) return <p style={{ padding: 40 }}>Memuat flipbook...</p>;
 
+  const pageStyle: React.CSSProperties = {
+    background: "#fefefe",
+    backgroundImage: "linear-gradient(to right, rgba(0,0,0,.03) 0%, transparent 8%, transparent 92%, rgba(0,0,0,.03) 100%)",
+    color: "#1a1a1a",
+    padding: "40px 36px",
+    overflow: "auto",
+    boxShadow: "inset 0 0 20px rgba(0,0,0,.04)",
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: "#0f172a", color: "white", padding: "20px 0" }}>
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h1 style={{ margin: 0 }}>{book.title}</h1>
-        <p style={{ opacity: 0.7 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "radial-gradient(ellipse at center, #1e293b 0%, #0f172a 70%)",
+        color: "white",
+        padding: "30px 0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}
+    >
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <h1 style={{ margin: 0, fontWeight: 600 }}>{book.title}</h1>
+        <p style={{ opacity: 0.65, marginTop: 4 }}>
           Kelas {book.grade} · {book.subject}
         </p>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          filter: "drop-shadow(0 25px 40px rgba(0,0,0,.55))",
+          borderRadius: 4,
+        }}
+      >
         <HTMLFlipBook
-          width={500}
-          height={650}
+          width={520}
+          height={680}
           size="stretch"
-          minWidth={300}
-          maxWidth={600}
-          minHeight={400}
-          maxHeight={800}
+          minWidth={320}
+          maxWidth={640}
+          minHeight={440}
+          maxHeight={860}
           showCover={true}
           mobileScrollSupport={true}
           className="flipbook"
           style={{}}
           startPage={0}
           drawShadow={true}
-          flippingTime={800}
+          flippingTime={900}
           usePortrait={true}
           startZIndex={0}
           autoSize={true}
-          maxShadowOpacity={0.5}
+          maxShadowOpacity={0.7}
           showPageCorners={true}
           disableFlipByClick={false}
         >
-          <div className="page cover" style={{ background: "linear-gradient(135deg,#1e40af,#3b82f6)", color: "white", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: 40, textAlign: "center" }}>
-            <h2 style={{ fontSize: 32, marginBottom: 10 }}>{book.title}</h2>
-            <p>Kelas {book.grade}</p>
-            <p>{book.subject}</p>
+          {/* Cover */}
+          <div
+            className="page cover"
+            style={{
+              background: "linear-gradient(160deg, #1e3a8a 0%, #1e40af 40%, #2563eb 100%)",
+              color: "white",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 48,
+              textAlign: "center",
+              boxShadow: "inset 0 0 60px rgba(0,0,0,.25)",
+              borderRight: "1px solid rgba(255,255,255,.1)",
+            }}
+          >
+            <div style={{ fontSize: 13, letterSpacing: 2, opacity: 0.7, marginBottom: 12 }}>BC BOOK STUDIO</div>
+            <h2 style={{ fontSize: 34, margin: "8px 0 16px", lineHeight: 1.2, fontWeight: 700 }}>{book.title}</h2>
+            <div style={{ width: 60, height: 2, background: "rgba(255,255,255,.4)", margin: "12px 0" }} />
+            <p style={{ margin: "6px 0", fontSize: 18 }}>Kelas {book.grade}</p>
+            <p style={{ margin: "4px 0", opacity: 0.85 }}>{book.subject}</p>
           </div>
 
+          {/* Chapters */}
           {book.chapters.map((ch) => (
-            <div key={ch.id} className="page" style={{ background: "white", color: "#1e293b", padding: 30, overflow: "auto" }}>
-              <h2 style={{ color: "#1e40af", marginTop: 0 }}>{ch.position}. {ch.title}</h2>
-              <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{ch.content}</div>
+            <div key={ch.id} className="page" style={pageStyle}>
+              <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>Bab {ch.position}</div>
+              <h2 style={{ color: "#1e3a8a", marginTop: 0, marginBottom: 16, fontSize: 22 }}>{ch.title}</h2>
+              <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.7, fontSize: 15 }}>{ch.content}</div>
             </div>
           ))}
 
-          <div className="page" style={{ background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
-            <p>Selesai</p>
+          {/* Back cover */}
+          <div
+            className="page"
+            style={{
+              background: "linear-gradient(160deg, #1e3a8a 0%, #1e40af 100%)",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              padding: 40,
+            }}
+          >
+            <div>
+              <p style={{ fontSize: 18, marginBottom: 8 }}>Selesai</p>
+              <p style={{ opacity: 0.7, fontSize: 14 }}>BC Book Studio</p>
+            </div>
           </div>
         </HTMLFlipBook>
       </div>
 
-      <p style={{ textAlign: "center", marginTop: 20, opacity: 0.6, fontSize: 14 }}>
-        Klik sudut halaman atau geser untuk membalik
+      <p style={{ textAlign: "center", marginTop: 28, opacity: 0.55, fontSize: 13 }}>
+        Klik sudut halaman atau geser untuk membalik · Bayangan mengikuti gerakan halaman
       </p>
     </div>
   );
