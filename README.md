@@ -1,36 +1,69 @@
 # BC Book Studio
 
-Independent book publishing studio for BahasaCerdas.
+Independent educational book publishing studio for [BahasaCerdas](https://bahasacerdas.com).
 
-## Current implementation
+Create, review, and publish books for grades 1–12 with a built-in quality gate.
 
-- Next.js 15 + React 19 + TypeScript.
-- PostgreSQL via Prisma: books, ordered chapters, review decisions and approval status.
-- Bearer-token protected editorial API and dashboard, with a separate reviewer token for approval/rejection.
-- Draft → review → approval; exports are blocked until approval.
-- Optional AI-assisted chapter drafts using an OpenAI-compatible chat-completions provider; generated text must be reviewed before saving.
-- PDF and EPUB export of approved books.
-- Docker/Compose, GitHub CI, health endpoint and initial database migration.
+## Features
 
-## Local setup
+- **Editorial workflow**: Draft → Review → Approval (exports blocked until approved)
+- **AI-assisted drafting**: Optional chapter generation (human review required)
+- **Export**: PDF and EPUB for approved books
+- **Role separation**: Distinct tokens for editor and reviewer
+- **Stack**: Next.js 15 + React 19 + TypeScript + Prisma + PostgreSQL
 
-Node.js 22, PostgreSQL 16. Copy `.env.example` to `.env`, fill `DATABASE_URL`, `STUDIO_API_KEY`, and a distinct `STUDIO_REVIEWER_API_KEY` (each token at least 24 characters). Optionally set AI credentials.
+## Quick Start
+
+**Requirements**: Node.js 22, PostgreSQL 16
 
 ```sh
+cp .env.example .env
+# Fill DATABASE_URL, STUDIO_API_KEY, and a different STUDIO_REVIEWER_API_KEY
+# (each token ≥ 24 characters). Optionally add AI credentials.
+
 npm install
 npm run db:generate
 npm run db:migrate
 npm run dev
 ```
 
-Visit http://localhost:3000, enter your studio token and create a book. Run `npm run typecheck` and `npm run build` before release.
+Open http://localhost:3000, enter your studio token, and create a book.
 
-## Limitations and security
+Before releasing:
 
-This is an **early functional MVP**, not a completed AI publishing factory. AI currently produces chapter drafts, not a full agent orchestration engine. Separate editor/reviewer tokens enforce different approval permissions, but this is not per-user identity; proper user accounts, audit identity, and independent approvals are still needed. PDF's built-in font lacks full Indonesian and Unicode glyph support; embed a licensed Unicode font before production. No images, exercises pipeline, EPUB accessibility validation, automated curriculum verification, job queue, integration API, or scheduled backups yet. Deployment to VPS has not been performed or verified.
+```sh
+npm run typecheck
+npm run build
+```
 
-Never reuse the BahasaCerdas production database or commit secrets. See [deployment runbook](docs/DEPLOYMENT.md).
+## Project Structure
 
-## Product direction
+- `app/` — Next.js app and API routes
+- `prisma/` — Schema and migrations
+- `docs/` — Deployment and vision documents
+- `AGENTS.md` — Guidance for AI coding agents
 
-See [docs/VISION.md](docs/VISION.md) for the planned evolution toward a modern studio that produces high-quality print and digital educational books while preserving the existing quality gate.
+## Documentation
+
+- [Product vision](docs/VISION.md) — Direction for print + digital publishing
+- [Deployment runbook](docs/DEPLOYMENT.md)
+- [AGENTS.md](AGENTS.md) — Conventions for coding agents
+
+## Current Limitations
+
+This is an early functional MVP.
+
+- AI produces chapter drafts only (not a full agent system)
+- Tokens are not per-user identity
+- PDF uses limited fonts (Unicode/Indonesian support needs a licensed font)
+- No images, exercises pipeline, or automated curriculum checks yet
+- Deployment to production VPS not yet verified
+
+**Security notes**
+
+- Never reuse the BahasaCerdas production database
+- Never commit secrets
+
+## License
+
+Private / internal use for BahasaCerdas. Contact the maintainer for questions.
