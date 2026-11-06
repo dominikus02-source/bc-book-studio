@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState, memo } from "react";
+import { PerfMonitor } from "./PerfMonitor";
 
 type Chapter = { id: string; title: string; content: string; position: number };
 type Review = { id: string; decision: string; note: string; createdAt: string };
@@ -580,6 +581,8 @@ export default function StudioPage() {
           {notice && <p style={{ color: "#166534", marginTop: 16 }}>{notice}</p>}
         </main>
       </div>
+
+      <PerfMonitor />
     </>
   );
 }
