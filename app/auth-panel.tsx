@@ -13,7 +13,12 @@ export default function AuthPanel({mode}:{mode:"login"|"activate"|"forgot-passwo
   try{const payload=mode==="login"?{email,password}:mode==="forgot-password"||(mode==="activate"&&!token)?{email}:{token,password};
    const r=await fetch("/api/auth/"+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
    const d=await r.json();if(!r.ok)throw Error(d.error||"Terjadi kesalahan.");
-   if(mode==="login"){window.location.assign("/studio");return;}
+   if(mode==="login"){
+    const requested=params.get("module");
+    const allowed=["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan"];
+    window.location.assign(requested&&allowed.includes(requested)?"/studio?module="+encodeURIComponent(requested):"/studio");
+    return;
+   }
    setMessage(d.message||"Jika email terdaftar, instruksi akan dikirim.");
   }catch(err){setError(err instanceof Error?err.message:"Gagal memproses permintaan.");}finally{setBusy(false);}
  }
