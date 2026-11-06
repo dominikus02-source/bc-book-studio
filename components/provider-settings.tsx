@@ -13,6 +13,7 @@ const number=(n:number)=>new Intl.NumberFormat("id-ID").format(n);
 export default function ProviderSettings(){
  const [items,setItems]=useState<Provider[]>([]),[loading,setLoading]=useState(true),[canManage,setCanManage]=useState(false),[ready,setReady]=useState(false);
  const [usage,setUsage]=useState<Usage|null>(null),[selected,setSelected]=useState("");
+ const [bookType,setBookType]=useState<"FICTION"|"NONFICTION">("NONFICTION"),[testTitle,setTestTitle]=useState("Petualangan di Hutan Hujan"),[genre,setGenre]=useState("Petualangan"),[audience,setAudience]=useState("Pembaca remaja"),[topic,setTopic]=useState("Pertemuan tokoh utama dengan konflik pertama"),[goals,setGoals]=useState("Membuat bab pembuka yang menarik, runtut, dan sesuai pembaca."),[draft,setDraft]=useState(""),[testing,setTesting]=useState(false);
  const [editing,setEditing]=useState<string|null>(null),[provider,setProvider]=useState("openai"),[label,setLabel]=useState(""),[model,setModel]=useState(""),[secret,setSecret]=useState(""),[active,setActive]=useState(true),[maxTokens,setMaxTokens]=useState("1800"),[temperature,setTemperature]=useState("0.4");
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
  const enabled=useMemo(()=>items.filter(x=>x.active),[items]);
@@ -71,7 +72,7 @@ export default function ProviderSettings(){
   }catch(e){setError(e instanceof Error?e.message:"Status model gagal diubah.")}
   finally{setBusy(false)}
  }
- async function remove(item:Provider){
+ async function runDraft(event:FormEvent){\n  event.preventDefault();if(!selected){setError("Pilih model yang aktif terlebih dahulu.");return}\n  setTesting(true);setError("");setMessage("");setDraft("");\n  try{const response=await fetch("/api/ai/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({providerCredentialId:selected,bookType,title:testTitle,genre,targetAudience:audience,topic,learningGoals:goals})});const data=await response.json();if(!response.ok)throw Error(data.error||"Draf uji gagal dibuat.");setDraft(data.draft);setUsage(current=>current?{...current,used:current.limit-data.usage.remainingTokens,remaining:data.usage.remainingTokens,inputTokens:current.inputTokens+data.usage.inputTokens,outputTokens:current.outputTokens+data.usage.outputTokens,requests:current.requests+1,estimatedEvents:current.estimatedEvents+(data.usage.estimated?1:0)}:current);setMessage("Draf uji selesai menggunakan "+data.provider.name+" · "+data.provider.model+".");}\n  catch(e){setError(e instanceof Error?e.message:"Draf uji gagal dibuat.")}finally{setTesting(false)}\n }\n async function remove(item:Provider){
   if(!window.confirm("Hapus konfigurasi "+item.label+" dan kunci ••••"+item.lastFour+"?"))return;
   setBusy(true);setError("");setMessage("");
   try{
@@ -95,6 +96,17 @@ export default function ProviderSettings(){
       <span style={{minWidth:0,flex:1,overflowWrap:"anywhere"}}><strong>{item.label}</strong><p>{item.provider} · {item.model} · maksimum {number(item.maxTokens)} token</p></span>
     </label>)}
    </fieldset>}
+  </section>
+  <section className="panel"><h3 className="panel-title">Template uji penulisan</h3><p className="panel-desc">Jalankan satu bab contoh dengan model pilihan. Respons menggunakan kuota provider dan dicatat di meter token.</p>
+   <form onSubmit={runDraft}><div className="form-grid two">
+    <label className="studio-field"><span>Jenis buku</span><select value={bookType} onChange={e=>setBookType(e.target.value as "FICTION"|"NONFICTION")}><option value="NONFICTION">Nonfiksi</option><option value="FICTION">Fiksi</option></select></label>
+    <label className="studio-field"><span>Judul uji</span><input value={testTitle} maxLength={160} onChange={e=>setTestTitle(e.target.value)} required/></label>
+    <label className="studio-field"><span>Genre atau bidang</span><input value={genre} maxLength={80} onChange={e=>setGenre(e.target.value)} placeholder="Fantasi / IPA SMP"/></label>
+    <label className="studio-field"><span>Pembaca sasaran</span><input value={audience} maxLength={120} onChange={e=>setAudience(e.target.value)} required/></label>
+    <label className="studio-field"><span>Topik bab</span><textarea rows={3} value={topic} maxLength={250} onChange={e=>setTopic(e.target.value)} required/></label>
+    <label className="studio-field"><span>Tujuan bab</span><textarea rows={3} value={goals} maxLength={2000} onChange={e=>setGoals(e.target.value)} required/></label>
+   </div><button className="primary-button" type="submit" disabled={testing||!selected}>{testing?"Membuat draf...":"Uji model pilihan"}</button></form>
+   {draft&&<div className="draft-preview" aria-live="polite"><h4>Hasil draf uji</h4><pre style={{whiteSpace:"pre-wrap",font:"inherit"}}>{draft}</pre></div>}
   </section>
   <section className="panel"><div className="panel-toolbar"><div><h3 className="panel-title">Token Studio hari ini</h3><p className="panel-desc">Pemakaian aktual dari respons provider; perkiraan diberi penanda bila provider tidak mengirim data token.</p></div><span className="status">{usage?number(usage.remaining)+" tersisa":"Memuat"}</span></div>
    {usage?<><div className="usage-meter-copy"><strong>{number(usage.used)} / {number(usage.limit)} token</strong><span>{pct}% terpakai · {number(usage.requests)} permintaan</span></div><progress aria-label="Pemakaian token hari ini" max={usage.limit} value={Math.min(usage.used,usage.limit)} style={{width:"100%",height:14}}/><div className="workspace-stats"><div><strong>{number(usage.inputTokens)}</strong><span>Token masukan</span></div><div><strong>{number(usage.outputTokens)}</strong><span>Token keluaran</span></div><div><strong>{number(usage.remaining)}</strong><span>Token tersisa</span></div><div><strong>{number(usage.estimatedEvents)}</strong><span>Perkiraan</span></div></div>
