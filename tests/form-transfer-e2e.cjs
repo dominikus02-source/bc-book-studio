@@ -16,6 +16,17 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
  try{
   for(const u of users)await db.studioUser.create({data:{...u,active:true,passwordHash:hashed}});
   browser=await chromium.launch({...(process.platform==="win32"?{executablePath:"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"}:{}),headless:true});
+  // Follow a bookmarked module through the login page.
+  const redirectContext=await browser.newContext();
+  const redirectPage=await redirectContext.newPage();
+  await redirectPage.goto(origin+"/studio?module=Kurikulum",{waitUntil:"domcontentloaded"});
+  await redirectPage.waitForURL(url=>url.pathname==="/login"&&url.searchParams.get("module")==="Kurikulum",{timeout:15000});
+  await redirectPage.getByLabel("Alamat email").fill(users[0].email);
+  await redirectPage.getByLabel("Kata sandi").fill(password);
+  await redirectPage.getByRole("button",{name:/Masuk ke Studio/}).click();
+  await redirectPage.waitForURL(url=>url.pathname==="/studio"&&url.searchParams.get("module")==="Kurikulum",{timeout:15000});
+  assert(await redirectPage.locator(".form-draft-manager").isVisible(),"Module not restored after login");
+  await redirectContext.close();
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:390,height:844}});
   await login(context,users[0].email);
   const page=await context.newPage();await page.goto(origin+"/studio");
