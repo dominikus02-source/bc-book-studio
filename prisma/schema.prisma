@@ -37,6 +37,23 @@ model Review {
   note      String   @default("") @db.Text
   createdAt DateTime @default(now())
 }
+model AiConfig {
+  id        String   @id @default("default")
+  apiKey    String?
+  model     String?
+  apiUrl    String?
+  updatedAt DateTime @updatedAt
+}
+model AiUsageLog {
+  id               String   @id @default(cuid())
+  bookId           String?
+  model            String
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int
+  estimatedCostUsd Float?
+  createdAt        DateTime @default(now())
+}
 enum BookStatus {
   DRAFT
   REVIEW
