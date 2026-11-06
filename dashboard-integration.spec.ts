@@ -64,6 +64,7 @@ test("admin provider settings create edit rotate and delete",async({page})=>{
   const safe=providers.map(({apiKey,...item})=>item);
   return route.fulfill({json:method==="GET"?{providers:safe,canManage:true,encryptionReady:true}:{provider:safe[0],deleted:true}});
  });
+ await page.route("**/api/ai/providers",route=>route.fulfill({json:{providers:providers.filter(item=>item.active).map(({apiKey,...item})=>item)}}));
  await page.route("**/api/usage",route=>route.fulfill({json:{limit:50000,used:0,remaining:50000,inputTokens:0,outputTokens:0,requests:0,estimatedEvents:0,byProvider:[]}}));
  await page.goto("http://127.0.0.1:3183");
  await page.getByRole("button",{name:"Pengaturan",exact:true}).click();
