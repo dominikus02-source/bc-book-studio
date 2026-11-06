@@ -30,3 +30,7 @@ Visit http://localhost:3000, enter your studio token and create a book. Run `npm
 This is an **early functional MVP**, not a completed AI publishing factory. AI currently produces chapter drafts, not a full agent orchestration engine. Separate editor/reviewer tokens enforce different approval permissions, but this is not per-user identity; proper user accounts, audit identity, and independent approvals are still needed. PDF's built-in font lacks full Indonesian and Unicode glyph support; embed a licensed Unicode font before production. No images, exercises pipeline, EPUB accessibility validation, automated curriculum verification, job queue, integration API, or scheduled backups yet. Deployment to VPS has not been performed or verified.
 
 Never reuse the BahasaCerdas production database or commit secrets. See [deployment runbook](docs/DEPLOYMENT.md).
+
+## Product direction
+
+See [docs/VISION.md](docs/VISION.md) for the planned evolution toward a modern studio that produces high-quality print and digital educational books while preserving the existing quality gate.
