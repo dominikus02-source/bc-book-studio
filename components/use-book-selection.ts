@@ -8,12 +8,12 @@ export function useBookSelection(){
   const url=new URL(window.location.href);
   if(value)url.searchParams.set("book",value);else url.searchParams.delete("book");
   url.searchParams.delete("chapter");
-  if(url.href!==window.location.href)window.history.pushState(window.history.state,"",url);
+  if(url.href!==window.location.href)window.history.pushState(null,"",url);
  };
  const selectChapter=(value:string)=>{
   const url=new URL(window.location.href);
   if(value)url.searchParams.set("chapter",value);else url.searchParams.delete("chapter");
-  if(url.href!==window.location.href)window.history.pushState(window.history.state,"",url);
+  if(url.href!==window.location.href)window.history.pushState(null,"",url);
  };
  return [id,selectBook,chapter,selectChapter] as const;
 }

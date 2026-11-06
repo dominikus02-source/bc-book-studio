@@ -109,8 +109,12 @@ test("breadcrumbs restore selected book and chapter on refresh and browser histo
  const book={id:"crumb-book",title:"Buku breadcrumb",grade:"7",subject:"Bahasa Indonesia",status:"DRAFT",description:"Contoh buku",chapters:[{id:"crumb-chapter",title:"Bab pertama navigasi",content:"Contoh isi bab untuk menguji navigasi detail."}],reviews:[]};
  await page.route("**/api/books",route=>route.fulfill({json:{books:[book]}}));
  await signIn(page);
- await page.goto("/studio?view=proyek-buku&book=crumb-book&chapter=crumb-chapter");
  const trail=page.getByRole("navigation",{name:"Jejak navigasi"});
+ await page.getByRole("navigation",{name:"Menu studio"}).getByRole("button",{name:"Proyek Buku",exact:true}).click();
+ await expect(trail.locator('[aria-current="page"]')).toHaveText("Proyek Buku");
+ await page.getByRole("button",{name:/Buku breadcrumb/}).click();
+ await expect(trail.locator('[aria-current="page"]')).toHaveText("Buku breadcrumb");
+ await page.locator("summary").filter({hasText:"Bab pertama navigasi"}).click();
  await expect(trail.locator('[aria-current="page"]')).toHaveText("Bab pertama navigasi");
  await page.reload();
  await expect(trail.locator('[aria-current="page"]')).toHaveText("Bab pertama navigasi");
