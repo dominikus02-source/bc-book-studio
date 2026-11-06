@@ -87,7 +87,8 @@ export default function ProviderSettings(){
    setMessage("Draf uji selesai menggunakan "+data.provider.name+" · "+data.provider.model+".");
   }catch(e){setError(e instanceof Error?e.message:"Draf uji gagal dibuat.")}
   finally{setTesting(false)}
- }\n async function remove(item:Provider){
+ }
+ async function remove(item:Provider){
   if(!window.confirm("Hapus konfigurasi "+item.label+" dan kunci ••••"+item.lastFour+"?"))return;
   setBusy(true);setError("");setMessage("");
   try{
