@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useStudioNavigation } from "@/components/use-studio-navigation";
+import SessionHistoryGuard from "@/components/session-history-guard";
 import BetaWorkspace, { useBooks } from "@/components/beta-workspace";
 import StudioWorkspace from "@/components/studio-workspace";
 import BookCommandForm from "@/components/book-command-form";
@@ -27,6 +29,8 @@ const navigation = [
   { label: "Pengaturan", icon: Settings2, group: "PENGELOLAAN" },
 ];
 
+const studioViews = navigation.map(item=>item.label);
+
 const modules = [
   { title: "Laboratorium Ide", desc: "Temukan peluang dan rancang gagasan buku.", icon: Lightbulb, target: "Idea Lab" },
   { title: "Laboratorium Kurikulum", desc: "Petakan capaian, tujuan, dan urutan belajar.", icon: GraduationCap, target: "Kurikulum" },
@@ -40,13 +44,13 @@ const modules = [
 
 export default function Home() {
   const { books, error: booksError, loading, refresh } = useBooks();
-  const [active, setActive] = useState("Dasbor");
+  const [active, setActive] = useStudioNavigation(studioViews);
   const [dark,setDark]=useState(false);
   useEffect(()=>{setDark(localStorage.getItem("bcstudio-theme")==="dark");},[]);
   useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light";localStorage.setItem("bcstudio-theme",dark?"dark":"light");window.dispatchEvent(new Event("bc-theme-change"));},[dark]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutBusy,setLogoutBusy]=useState(false);
-  async function logout(){setLogoutBusy(true);try{const r=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!r.ok)throw Error("Logout gagal");window.location.assign("/login");}catch{alert("Gagal keluar. Coba lagi.");setLogoutBusy(false);}}
+  async function logout(){setLogoutBusy(true);try{const r=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!r.ok)throw Error("Logout gagal");window.location.replace("/login");}catch{alert("Gagal keluar. Coba lagi.");setLogoutBusy(false);}}
 
   useEffect(() => {
     const navigate = (event: Event) => setActive((event as CustomEvent<string>).detail);
@@ -64,6 +68,7 @@ export default function Home() {
   }, [mobileOpen]);
 
   return <div className="shell min-h-dvh">
+    <SessionHistoryGuard authenticatedPage/>
     <a className="skip-link" href="#main-content">Lewati navigasi</a>
     {mobileOpen && <button type="button" className="sidebar-backdrop" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
     <nav id="studio-sidebar" aria-label="Menu studio" className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>

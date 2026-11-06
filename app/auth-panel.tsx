@@ -36,7 +36,7 @@ export default function AuthPanel({mode}:{mode:"login"|"activate"|"forgot-passwo
      if(rememberEmail)localStorage.setItem(REMEMBERED_EMAIL,submittedEmail);
      else localStorage.removeItem(REMEMBERED_EMAIL);
     }catch{/* Passwords are saved only by the browser password manager. */}
-    window.location.assign("/studio");return;
+    window.location.replace("/studio");return;
    }
    setPassword("");setShowPassword(false);
    setMessage(d.message||"Jika email terdaftar, instruksi akan dikirim.");
