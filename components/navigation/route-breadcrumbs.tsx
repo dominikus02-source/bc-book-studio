@@ -19,6 +19,6 @@ export default function RouteBreadcrumbs(){
   return ()=>window.removeEventListener("bc-breadcrumb-book",update);
  },[]);
  const items=studioBreadcrumbs(pathname,params,details);
- if(items.length<2)return null;
+ if(pathname!=="/studio" || items.length<2)return null;
  return <div className={styles.host} data-breadcrumb-host="true"><BreadcrumbTrail items={items}/></div>;
 }
