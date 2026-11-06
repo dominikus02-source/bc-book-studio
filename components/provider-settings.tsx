@@ -72,7 +72,22 @@ export default function ProviderSettings(){
   }catch(e){setError(e instanceof Error?e.message:"Status model gagal diubah.")}
   finally{setBusy(false)}
  }
- async function runDraft(event:FormEvent){\n  event.preventDefault();if(!selected){setError("Pilih model yang aktif terlebih dahulu.");return}\n  setTesting(true);setError("");setMessage("");setDraft("");\n  try{const response=await fetch("/api/ai/draft",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({providerCredentialId:selected,bookType,title:testTitle,genre,targetAudience:audience,topic,learningGoals:goals})});const data=await response.json();if(!response.ok)throw Error(data.error||"Draf uji gagal dibuat.");setDraft(data.draft);setUsage(current=>current?{...current,used:current.limit-data.usage.remainingTokens,remaining:data.usage.remainingTokens,inputTokens:current.inputTokens+data.usage.inputTokens,outputTokens:current.outputTokens+data.usage.outputTokens,requests:current.requests+1,estimatedEvents:current.estimatedEvents+(data.usage.estimated?1:0)}:current);setMessage("Draf uji selesai menggunakan "+data.provider.name+" · "+data.provider.model+".");}\n  catch(e){setError(e instanceof Error?e.message:"Draf uji gagal dibuat.")}finally{setTesting(false)}\n }\n async function remove(item:Provider){
+ async function runDraft(event:FormEvent){
+  event.preventDefault();
+  if(!selected){setError("Pilih model yang aktif terlebih dahulu.");return}
+  setTesting(true);setError("");setMessage("");setDraft("");
+  try{
+   const response=await fetch("/api/ai/draft",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({providerCredentialId:selected,bookType,title:testTitle,genre,targetAudience:audience,topic,learningGoals:goals})});
+   const data=await response.json();if(!response.ok)throw Error(data.error||"Draf uji gagal dibuat.");
+   setDraft(data.draft);
+   setUsage(current=>current?{...current,used:current.limit-data.usage.remainingTokens,remaining:data.usage.remainingTokens,
+    inputTokens:current.inputTokens+data.usage.inputTokens,outputTokens:current.outputTokens+data.usage.outputTokens,
+    requests:current.requests+1,estimatedEvents:current.estimatedEvents+(data.usage.estimated?1:0)}:current);
+   setMessage("Draf uji selesai menggunakan "+data.provider.name+" · "+data.provider.model+".");
+  }catch(e){setError(e instanceof Error?e.message:"Draf uji gagal dibuat.")}
+  finally{setTesting(false)}
+ }\n async function remove(item:Provider){
   if(!window.confirm("Hapus konfigurasi "+item.label+" dan kunci ••••"+item.lastFour+"?"))return;
   setBusy(true);setError("");setMessage("");
   try{
