@@ -55,14 +55,17 @@ model UsageCounter {
 
 model ProviderCredential {
   id String @id
-  provider String @unique
+  provider String
   label String
   model String
   encryptedKey String @db.Text
   lastFour String
   active Boolean @default(false)
+  maxTokens Int @default(1800)
+  temperature Float @default(0.4)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  @@index([active, provider])
 }
 model CredentialAudit {
   id String @id @default(cuid())
@@ -70,4 +73,18 @@ model CredentialAudit {
   credentialId String
   action String
   createdAt DateTime @default(now())
+}
+model UsageEvent {
+  id String @id @default(cuid())
+  userId String
+  credentialId String
+  provider String
+  model String
+  inputTokens Int
+  outputTokens Int
+  totalTokens Int
+  estimated Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([credentialId, createdAt])
 }
