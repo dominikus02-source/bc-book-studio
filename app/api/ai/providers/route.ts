@@ -1,7 +1,6 @@
 import { NextRequest,NextResponse } from "next/server";
 import { identity,deny } from "../../../../lib/auth";
 import { db } from "../../../../lib/db";
-import { safeCredential } from "../../../../lib/providers";
 export const runtime="nodejs";
 export async function GET(req:NextRequest){
  const userId=await identity(req);
