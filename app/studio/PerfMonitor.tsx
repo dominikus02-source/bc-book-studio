@@ -12,8 +12,17 @@ export function PerfMonitor() {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [visible, setVisible] = useState(false);
   const [fps, setFps] = useState(0);
+  const [renderCount, setRenderCount] = useState(0);
+  const [flash, setFlash] = useState(false);
   const frameRef = useRef<number>(0);
-  const lastRef = useRef(performance.now());
+
+  // Increment render counter and flash indicator
+  useEffect(() => {
+    setRenderCount((c) => c + 1);
+    setFlash(true);
+    const t = setTimeout(() => setFlash(false), 300);
+    return () => clearTimeout(t);
+  });
 
   useEffect(() => {
     let frames = 0;
@@ -69,15 +78,16 @@ export function PerfMonitor() {
           right: 16,
           zIndex: 50,
           padding: "6px 10px",
-          background: "#0f172a",
+          background: flash ? "#f59e0b" : "#0f172a",
           color: "white",
           border: 0,
           borderRadius: 8,
           fontSize: 12,
           cursor: "pointer",
+          transition: "background 0.15s",
         }}
       >
-        Perf {fps} fps
+        Perf {fps} fps · R{renderCount}
       </button>
     );
   }
@@ -97,6 +107,7 @@ export function PerfMonitor() {
         fontSize: 12,
         fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
         boxShadow: "0 8px 24px rgba(0,0,0,.3)",
+        border: flash ? "1px solid #f59e0b" : "1px solid transparent",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
@@ -105,8 +116,11 @@ export function PerfMonitor() {
           ✕
         </button>
       </div>
-      <div style={{ marginBottom: 8 }}>
-        FPS: <span style={{ color: fps >= 50 ? "#4ade80" : fps >= 30 ? "#facc15" : "#f87171" }}>{fps}</span>
+      <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+        <span>
+          FPS: <span style={{ color: fps >= 50 ? "#4ade80" : fps >= 30 ? "#facc15" : "#f87171" }}>{fps}</span>
+        </span>
+        <span style={{ color: flash ? "#f59e0b" : "#94a3b8" }}>Renders: {renderCount}</span>
       </div>
       <div style={{ maxHeight: 160, overflow: "auto" }}>
         {metrics.length === 0 && <div style={{ color: "#64748b" }}>Belum ada long task</div>}
