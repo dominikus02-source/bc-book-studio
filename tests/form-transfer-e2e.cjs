@@ -118,7 +118,32 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await page.getByRole("button",{name:"Proyek Buku",exact:true}).click();
   page.once("dialog",dialog=>dialog.accept());
   await page.getByRole("button",{name:"Hapus draf"}).click();
-  assert.equal((await context.request.get(origin+"/api/books/"+book.id)).status(),404);
+  await page.getByText("Buku dihapus.").waitFor({timeout:10000});
+  await assert.rejects(async()=>{
+    const response=await context.request.get(origin+"/api/books/"+book.id);
+    if(response.status()===404)throw Error("Deletion confirmed");
+  },/Deletion confirmed/);
+  // Verify transfer controls are accessible after login from their relevant sidebar pages.
+  for(const [module,title] of [
+    ["Idea Lab","Idea Lab"],
+    ["Kurikulum","Kurikulum"],
+    ["Studio Latihan","Studio Latihan"],
+    ["Studio Visual","Studio Visual"],
+    ["Pusat Agen","Pusat Agen"]
+  ]){
+    await page.getByRole("button",{name:"Buka menu"}).click();
+    await page.getByRole("button",{name:module,exact:true}).click();
+    const panel=page.locator(".form-draft-manager");
+    await panel.getByRole("heading",{name:new RegExp("Impor, ekspor & CRUD draf")}).waitFor({timeout:10000});
+    assert(await panel.getByRole("button",{name:/Unduh XLSX/}).isVisible(),module+" missing XLSX");
+    assert(await panel.getByRole("button",{name:/Unduh Markdown/}).isVisible(),module+" missing MD");
+    assert(await panel.locator('input[type="file"]').count()===1,module+" missing file input");
+  }
+  await page.getByRole("button",{name:"Buka menu"}).click();
+  await page.getByRole("button",{name:"Buat Buku",exact:true}).click();
+  assert(await page.locator('.form-transfer[aria-label="Impor dan ekspor Brief Buku"]').isVisible());
+  await page.reload();
+  assert(await page.getByRole("button",{name:"Buka menu"}).isVisible());
 
   console.log("FORM_TRANSFER_E2E_PASS",JSON.stringify({xlsx:true,markdown:true,bookCrud:true,chapterCrud:true,create:true,read:true,update:true,delete:true,rbac:true,secretBlock:true,sourceFilesPersistedOnServer:"no multipart request used"}));
   await contextB.close();await context.close();
