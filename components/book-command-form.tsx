@@ -149,8 +149,21 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   <section className="panel prompt-panel"><div className="panel-toolbar"><div><div className="eyebrow-dark">PROMPT INDUK DINAMIS</div><h3 className="panel-title">Instruksi produksi yang akan diterima agen</h3><p className="panel-desc">Dibentuk dari tujuan, pembaca, cakupan, sumber, dan templat yang kamu pilih.</p></div><WandSparkles size={22} color="#667bc1"/></div>
    <div className="prompt-preview">{generatedPrompt}</div>
    <div className="prompt-actions"><span className={complete?"complete-label":"incomplete-label"}>{complete?"Brief minimum terpenuhi":"Lengkapi tujuan, masalah, dan cakupan isi"}</span><button type="button" className="primary-button" disabled={!complete} onClick={()=>{setPrompt(generatedPrompt);setConfirmed(false)}}><Sparkles size={15}/> Susun prompt induk</button></div>
-   {prompt&&<div className="prompt-confirm"><strong>Prompt induk siap ditinjau.</strong><p>Periksa instruksi di atas. Simpan brief sebagai proyek buku. Penyimpanan ini belum menjalankan agen atau menerbitkan buku.</p><button type="button" className="secondary-button" disabled={saving || generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>{saveError&&<p role="alert">{saveError}</p>}{generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}{confirmed&&<span className="complete-label">Proyek tersimpan. Belum ada agen yang dijalankan.</span>
-   {savedBookId&&<div className="prompt-confirm"><strong>Buat draf bab dengan model pilihan</strong><p>Memakai kuota provider. Draf akan disimpan sebagai bab pertama pada proyek ini dan dapat disunting.</p><button type="button" className="primary-button" disabled={generating} onClick={generateFirstChapter}>{generating?"Membuat draf...":"Buat dan simpan draf bab"}</button>{generationError&&<p role="alert">{generationError}</p>}{generatedChapter&&<details><summary>Pratinjau bab yang tersimpan</summary><pre className="draft-preview">{generatedChapter}</pre></details>}</div>}}</div>}
+   {prompt&&<div className="prompt-confirm">
+    <strong>Prompt induk siap ditinjau.</strong>
+    <p>Periksa instruksi di atas. Simpan brief sebagai proyek buku. Penyimpanan ini belum menjalankan agen atau menerbitkan buku.</p>
+    <button type="button" className="secondary-button" disabled={saving||generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>
+    {saveError&&<p role="alert">{saveError}</p>}
+    {generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}
+    {confirmed&&<span className="complete-label">Proyek tersimpan sebagai draf.</span>}
+    {confirmed&&savedBookId&&<div className="prompt-confirm">
+     <strong>Buat draf bab dengan model pilihan</strong>
+     <p>Memakai kuota provider. Draf akan disimpan sebagai bab pertama pada proyek ini dan dapat disunting.</p>
+     <button type="button" className="primary-button" disabled={generating} onClick={generateFirstChapter}>{generating?"Membuat draf...":"Buat dan simpan draf bab"}</button>
+     {generationError&&<p role="alert">{generationError}</p>}
+     {generatedChapter&&<details><summary>Pratinjau bab yang tersimpan</summary><pre className="draft-preview">{generatedChapter}</pre></details>}
+    </div>}
+   </div>}
   </section>
  </div>;
 }
