@@ -14,11 +14,49 @@ type Book = {
   reviews: Review[];
 };
 
+type View = "books" | "new" | "templates" | "settings";
+
+const Icon = {
+  book: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  plus: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  layout: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="21" x2="9" y2="9" />
+    </svg>
+  ),
+  settings: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  ),
+  logout: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
+};
+
 export default function StudioPage() {
   const [token, setToken] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [books, setBooks] = useState<Book[]>([]);
   const [selected, setSelected] = useState("");
+  const [view, setView] = useState<View>("books");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -103,6 +141,7 @@ export default function StudioPage() {
       }
       setTitle("");
       setEditingBook(false);
+      setView("books");
       await refresh();
     });
   }
@@ -182,6 +221,7 @@ export default function StudioPage() {
     setGrade(book.grade);
     setSubject(book.subject);
     setEditingBook(true);
+    setView("new");
   }
 
   function startEditChapter(ch: Chapter) {
@@ -190,6 +230,13 @@ export default function StudioPage() {
     setChapterText(ch.content);
   }
 
+  const nav = [
+    { id: "books" as View, label: "Buku", icon: Icon.book },
+    { id: "new" as View, label: "Buku Baru", icon: Icon.plus },
+    { id: "templates" as View, label: "Template", icon: Icon.layout },
+    { id: "settings" as View, label: "Pengaturan", icon: Icon.settings },
+  ];
+
   if (!loggedIn) {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#f8fafc" }}>
@@ -197,7 +244,9 @@ export default function StudioPage() {
           <h1 style={{ marginTop: 0 }}>BC Book Studio</h1>
           <p style={{ color: "#64748b" }}>Masuk dengan token Editor atau Reviewer.</p>
           <input type="password" placeholder="Token" value={token} onChange={(e) => setToken(e.target.value)} style={input} />
-          <button style={btn} disabled={busy || !token} onClick={login}>Masuk</button>
+          <button style={btn} disabled={busy || !token} onClick={login}>
+            Masuk
+          </button>
           {error && <p style={{ color: "#b91c1c", marginTop: 12 }}>{error}</p>}
         </div>
       </div>
@@ -207,38 +256,85 @@ export default function StudioPage() {
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui,sans-serif" }}>
       {/* Sidebar */}
-      <aside style={{ width: 280, background: "white", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: 20, borderBottom: "1px solid #e2e8f0" }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>Studio</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748b" }}>Editor</p>
-        </div>
-
-        <div style={{ padding: 16, flex: 1, overflow: "auto" }}>
-          <button style={{ ...btn, width: "100%", marginBottom: 16 }} onClick={() => { setEditingBook(false); setTitle(""); setSelected(""); }}>
-            + Buku Baru
-          </button>
-
-          {books.map((b) => (
-            <div key={b.id} style={{ marginBottom: 6 }}>
-              <button
-                onClick={() => setSelected(b.id)}
-                style={{
-                  ...listBtn,
-                  background: b.id === selected ? "#eff6ff" : "transparent",
-                  borderColor: b.id === selected ? "#bfdbfe" : "transparent",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{b.title}</div>
-                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                  {b.status} · {b.chapters.length} bab
-                </div>
-              </button>
+      <aside
+        style={{
+          width: 240,
+          background: "white",
+          borderRight: "1px solid #e2e8f0",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ padding: "20px 16px", borderBottom: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 32, height: 32, background: "#1e40af", borderRadius: 8, display: "grid", placeItems: "center", color: "white", fontWeight: 700 }}>
+              B
             </div>
-          ))}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>BC Studio</div>
+              <div style={{ fontSize: 12, color: "#64748b" }}>Editor</div>
+            </div>
+          </div>
         </div>
 
-        <div style={{ padding: 16, borderTop: "1px solid #e2e8f0" }}>
-          <button style={{ ...btn, background: "#64748b", width: "100%" }} onClick={() => { setLoggedIn(false); setToken(""); setBooks([]); sessionStorage.removeItem("bc-token"); }}>
+        <nav style={{ padding: 12, flex: 1 }}>
+          {nav.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setView(item.id);
+                if (item.id === "new") {
+                  setEditingBook(false);
+                  setTitle("");
+                  setSelected("");
+                }
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                width: "100%",
+                padding: "10px 12px",
+                marginBottom: 4,
+                border: 0,
+                borderRadius: 8,
+                background: view === item.id ? "#eff6ff" : "transparent",
+                color: view === item.id ? "#1e40af" : "#334155",
+                cursor: "pointer",
+                textAlign: "left",
+                fontSize: 14,
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div style={{ padding: 12, borderTop: "1px solid #e2e8f0" }}>
+          <button
+            onClick={() => {
+              setLoggedIn(false);
+              setToken("");
+              setBooks([]);
+              sessionStorage.removeItem("bc-token");
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              width: "100%",
+              padding: "10px 12px",
+              border: 0,
+              borderRadius: 8,
+              background: "transparent",
+              color: "#64748b",
+              cursor: "pointer",
+              textAlign: "left",
+              fontSize: 14,
+            }}
+          >
+            {Icon.logout}
             Keluar
           </button>
         </div>
@@ -246,104 +342,178 @@ export default function StudioPage() {
 
       {/* Main */}
       <main style={{ flex: 1, padding: 28, overflow: "auto" }}>
-        {!selected && !editingBook && (
-          <div style={{ color: "#64748b", marginTop: 40 }}>
-            <p>Pilih buku di sidebar atau buat buku baru.</p>
-          </div>
+        {view === "books" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h2 style={{ margin: 0 }}>Daftar Buku</h2>
+              <button style={btn} onClick={() => setView("new")}>
+                + Buku Baru
+              </button>
+            </div>
+
+            {!selected && (
+              <div style={{ display: "grid", gap: 12 }}>
+                {books.length === 0 && <p style={{ color: "#64748b" }}>Belum ada buku. Buat buku baru untuk memulai.</p>}
+                {books.map((b) => (
+                  <button
+                    key={b.id}
+                    onClick={() => setSelected(b.id)}
+                    style={{
+                      ...card,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      border: b.id === selected ? "1px solid #bfdbfe" : "1px solid transparent",
+                    }}
+                  >
+                    <div style={{ fontWeight: 600 }}>{b.title}</div>
+                    <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+                      Kelas {b.grade} · {b.subject} · {b.status} · {b.chapters.length} bab
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {book && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+                  <div>
+                    <button onClick={() => setSelected("")} style={{ background: "none", border: 0, color: "#64748b", cursor: "pointer", marginBottom: 8 }}>
+                      ← Kembali
+                    </button>
+                    <h2 style={{ margin: 0 }}>{book.title}</h2>
+                    <p style={{ color: "#64748b", margin: "6px 0 0" }}>
+                      Kelas {book.grade} · {book.subject} · <strong>{book.status}</strong>
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {book.status === "DRAFT" && (
+                      <button style={btn} onClick={startEditBook}>
+                        Edit
+                      </button>
+                    )}
+                    <button style={{ ...btn, background: "#b91c1c" }} onClick={() => deleteBook(book.id)}>
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+
+                <h3>Bab</h3>
+                {book.chapters.map((ch) => (
+                  <div key={ch.id} style={{ ...card, marginBottom: 12, padding: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <strong>
+                        {ch.position}. {ch.title}
+                      </strong>
+                      {book.status === "DRAFT" && (
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button style={smallBtn} onClick={() => startEditChapter(ch)}>
+                            Edit
+                          </button>
+                          <button style={{ ...smallBtn, color: "#b91c1c" }} onClick={() => deleteChapter(ch.id)}>
+                            Hapus
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ whiteSpace: "pre-wrap", margin: "8px 0 0", maxHeight: 120, overflow: "auto", color: "#334155" }}>{ch.content}</p>
+                  </div>
+                ))}
+
+                {book.status === "DRAFT" && (
+                  <div style={card}>
+                    <h4>{editingChapter ? "Edit Bab" : "Tambah Bab"}</h4>
+                    <input style={input} placeholder="Judul bab" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
+                    <textarea style={input} rows={5} placeholder="Isi bab" value={chapterText} onChange={(e) => setChapterText(e.target.value)} />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button style={btn} disabled={busy || chapterTitle.length < 2} onClick={saveChapter}>
+                        {editingChapter ? "Perbarui" : "Tambah"}
+                      </button>
+                      {editingChapter && (
+                        <button
+                          style={{ ...btn, background: "#64748b" }}
+                          onClick={() => {
+                            setEditingChapter(null);
+                            setChapterTitle("");
+                            setChapterText("");
+                          }}
+                        >
+                          Batal
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ marginTop: 24 }}>
+                  <h3>Fasilitas</h3>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {book.status === "DRAFT" && (
+                      <button style={btn} disabled={busy || !book.chapters.length} onClick={() => review("submit")}>
+                        Ajukan Review
+                      </button>
+                    )}
+                    {book.status === "REVIEW" && (
+                      <>
+                        <textarea style={{ ...input, maxWidth: 300 }} placeholder="Catatan" value={note} onChange={(e) => setNote(e.target.value)} />
+                        <button style={btn} disabled={busy || !note.trim()} onClick={() => review("approve")}>
+                          Setujui
+                        </button>
+                        <button style={{ ...btn, background: "#64748b" }} disabled={busy} onClick={() => review("reject")}>
+                          Kembalikan
+                        </button>
+                      </>
+                    )}
+                    {book.status === "APPROVED" && (
+                      <>
+                        <button style={btn} onClick={() => download("pdf")}>PDF</button>
+                        <button style={btn} onClick={() => download("epub")}>EPUB</button>
+                        <button style={btn} onClick={() => download("docx")}>DOCX</button>
+                        <button style={btn} onClick={() => window.open(`/books/${book.id}/flipbook`, "_blank")}>
+                          Flipbook
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {(editingBook || (!selected && title !== undefined)) && (
+        {view === "new" && (
           <div style={card}>
             <h3>{editingBook ? "Edit Buku" : "Buku Baru"}</h3>
             <input style={input} placeholder="Judul" value={title} onChange={(e) => setTitle(e.target.value)} />
             <select style={input} value={grade} onChange={(e) => setGrade(e.target.value)}>
-              {Array.from({ length: 12 }, (_, i) => <option key={i}>{i + 1}</option>)}
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i}>{i + 1}</option>
+              ))}
               <option>Referensi</option>
             </select>
             <input style={input} placeholder="Mata pelajaran" value={subject} onChange={(e) => setSubject(e.target.value)} />
             <div style={{ display: "flex", gap: 8 }}>
-              <button style={btn} disabled={busy || title.length < 2} onClick={saveBook}>Simpan</button>
-              <button style={{ ...btn, background: "#64748b" }} onClick={() => { setEditingBook(false); setTitle(""); }}>Batal</button>
+              <button style={btn} disabled={busy || title.length < 2} onClick={saveBook}>
+                Simpan
+              </button>
+              <button style={{ ...btn, background: "#64748b" }} onClick={() => setView("books")}>
+                Batal
+              </button>
             </div>
           </div>
         )}
 
-        {book && !editingBook && (
+        {view === "templates" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <h2 style={{ margin: 0 }}>{book.title}</h2>
-                <p style={{ color: "#64748b", margin: "6px 0 0" }}>
-                  Kelas {book.grade} · {book.subject} · <strong>{book.status}</strong>
-                </p>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {book.status === "DRAFT" && (
-                  <button style={btn} onClick={startEditBook}>Edit</button>
-                )}
-                <button style={{ ...btn, background: "#b91c1c" }} onClick={() => deleteBook(book.id)}>Hapus</button>
-              </div>
-            </div>
+            <h2>Template</h2>
+            <p style={{ color: "#64748b" }}>Template pendidikan akan tersedia di fase berikutnya (Modul, LKS, Buku Cerita, Ringkasan).</p>
+          </div>
+        )}
 
-            <div style={{ marginTop: 24 }}>
-              <h3>Bab</h3>
-              {book.chapters.map((ch) => (
-                <div key={ch.id} style={{ ...card, marginBottom: 12, padding: 16 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <strong>{ch.position}. {ch.title}</strong>
-                    {book.status === "DRAFT" && (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button style={smallBtn} onClick={() => startEditChapter(ch)}>Edit</button>
-                        <button style={{ ...smallBtn, color: "#b91c1c" }} onClick={() => deleteChapter(ch.id)}>Hapus</button>
-                      </div>
-                    )}
-                  </div>
-                  <p style={{ whiteSpace: "pre-wrap", margin: "8px 0 0", maxHeight: 120, overflow: "auto", color: "#334155" }}>{ch.content}</p>
-                </div>
-              ))}
-
-              {book.status === "DRAFT" && (
-                <div style={card}>
-                  <h4>{editingChapter ? "Edit Bab" : "Tambah Bab"}</h4>
-                  <input style={input} placeholder="Judul bab" value={chapterTitle} onChange={(e) => setChapterTitle(e.target.value)} />
-                  <textarea style={input} rows={5} placeholder="Isi bab" value={chapterText} onChange={(e) => setChapterText(e.target.value)} />
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button style={btn} disabled={busy || chapterTitle.length < 2} onClick={saveChapter}>
-                      {editingChapter ? "Perbarui" : "Tambah"}
-                    </button>
-                    {editingChapter && (
-                      <button style={{ ...btn, background: "#64748b" }} onClick={() => { setEditingChapter(null); setChapterTitle(""); setChapterText(""); }}>
-                        Batal
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginTop: 24 }}>
-              <h3>Fasilitas</h3>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {book.status === "DRAFT" && (
-                  <button style={btn} disabled={busy || !book.chapters.length} onClick={() => review("submit")}>Ajukan Review</button>
-                )}
-                {book.status === "REVIEW" && (
-                  <>
-                    <textarea style={{ ...input, maxWidth: 300 }} placeholder="Catatan" value={note} onChange={(e) => setNote(e.target.value)} />
-                    <button style={btn} disabled={busy || !note.trim()} onClick={() => review("approve")}>Setujui</button>
-                    <button style={{ ...btn, background: "#64748b" }} disabled={busy} onClick={() => review("reject")}>Kembalikan</button>
-                  </>
-                )}
-                {book.status === "APPROVED" && (
-                  <>
-                    <button style={btn} onClick={() => download("pdf")}>PDF</button>
-                    <button style={btn} onClick={() => download("epub")}>EPUB</button>
-                    <button style={btn} onClick={() => download("docx")}>DOCX</button>
-                    <button style={btn} onClick={() => window.open(`/books/${book.id}/flipbook`, "_blank")}>Flipbook</button>
-                  </>
-                )}
-              </div>
-            </div>
+        {view === "settings" && (
+          <div>
+            <h2>Pengaturan</h2>
+            <p style={{ color: "#64748b" }}>Token aktif tersimpan di sesi browser ini.</p>
           </div>
         )}
 
@@ -354,8 +524,34 @@ export default function StudioPage() {
   );
 }
 
-const card: React.CSSProperties = { background: "white", padding: 20, borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,.06)", marginBottom: 16 };
-const input: React.CSSProperties = { width: "100%", padding: 10, marginBottom: 10, border: "1px solid #cbd5e1", borderRadius: 8, boxSizing: "border-box" };
-const btn: React.CSSProperties = { padding: "8px 14px", background: "#1e40af", color: "white", border: 0, borderRadius: 8, cursor: "pointer" };
-const smallBtn: React.CSSProperties = { padding: "4px 10px", background: "transparent", border: "1px solid #cbd5e1", borderRadius: 6, cursor: "pointer", fontSize: 13 };
-const listBtn: React.CSSProperties = { display: "block", width: "100%", textAlign: "left", padding: 10, border: "1px solid", borderRadius: 8, cursor: "pointer", background: "transparent" };
+const card: React.CSSProperties = {
+  background: "white",
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 1px 3px rgba(0,0,0,.06)",
+  marginBottom: 16,
+};
+const input: React.CSSProperties = {
+  width: "100%",
+  padding: 10,
+  marginBottom: 10,
+  border: "1px solid #cbd5e1",
+  borderRadius: 8,
+  boxSizing: "border-box",
+};
+const btn: React.CSSProperties = {
+  padding: "8px 14px",
+  background: "#1e40af",
+  color: "white",
+  border: 0,
+  borderRadius: 8,
+  cursor: "pointer",
+};
+const smallBtn: React.CSSProperties = {
+  padding: "4px 10px",
+  background: "transparent",
+  border: "1px solid #cbd5e1",
+  borderRadius: 6,
+  cursor: "pointer",
+  fontSize: 13,
+};
