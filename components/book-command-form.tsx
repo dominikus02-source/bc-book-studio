@@ -25,7 +25,9 @@ function Field({label,children,hint}:{label:string;children:React.ReactNode;hint
 
 export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
  const [saving,setSaving]=useState(false); const [saveError,setSaveError]=useState("");
- async function saveBrief(){setSaving(true);setSaveError("");try{const r=await fetch("/api/books",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:title.trim()||topics.trim().slice(0,180),grade:["SD","SMP","SMA"].includes(audience)?grade:"Referensi",subject:category,description:generatedPrompt})});const d=await r.json();if(!r.ok)throw Error(d.error||"Gagal menyimpan");setConfirmed(true);onCreated();}catch(e){setSaveError(e instanceof Error?e.message:"Gagal menyimpan")}finally{setSaving(false)}}
+ const [savedBookId,setSavedBookId]=useState<string|null>(null),[bookType,setBookType]=useState<"FICTION"|"NONFICTION">("NONFICTION");
+ const [generating,setGenerating]=useState(false),[generationError,setGenerationError]=useState(""),[generatedChapter,setGeneratedChapter]=useState("");
+ async function saveBrief(){setSaving(true);setSaveError("");try{const r=await fetch("/api/books",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:title.trim()||topics.trim().slice(0,180),grade:["SD","SMP","SMA"].includes(audience)?grade:"Referensi",subject:category,description:generatedPrompt})});const d=await r.json();if(!r.ok)throw Error(d.error||"Gagal menyimpan");setSavedBookId(d.book?.id||null);setConfirmed(true);onCreated();}catch(e){setSaveError(e instanceof Error?e.message:"Gagal menyimpan")}finally{setSaving(false)}}
  const [title,setTitle]=useState("");
  const [category,setCategory]=useState("Buku pelajaran");
  const [purpose,setPurpose]=useState("");
@@ -56,6 +58,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   "",
   "TUJUAN DAN IDENTITAS",
   `Judul sementara: ${title||"Usulkan judul berdasarkan tujuan"}`,
+  `Jenis naskah: ${bookType==="FICTION"?"Fiksi":"Nonfiksi"}`,
   `Kategori: ${category}`,
   `Tujuan buku: ${purpose||"[Belum diisi]"}`,
   `Masalah/kebutuhan pembaca: ${problem||"[Belum diisi]"}`,
@@ -87,8 +90,26 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   "",
   "URUTAN KERJA YANG DIMINTA",
   "Validasi brief → estimasi → riset → kerangka → persetujuan struktur → penulisan bab → latihan/visual → penyuntingan → telaah pedagogis → QA → layout → ekspor dokumen → persetujuan final."
- ].join("\n"),[title,category,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
+ ].join("\n"),[title,category,bookType,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
 
+ async function generateFirstChapter(){
+  if(!savedBookId){setGenerationError("Simpan proyek buku terlebih dahulu.");return}
+  const providerCredentialId=window.localStorage.getItem("bc-selected-provider");
+  if(!providerCredentialId){setGenerationError("Pilih model AI di Pengaturan terlebih dahulu.");return}
+  setGenerating(true);setGenerationError("");setGeneratedChapter("");
+  try{
+   const response=await fetch("/api/books/"+savedBookId+"/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    providerCredentialId,bookType,genre:category,targetAudience:audience+(["SD","SMP","SMA"].includes(audience)?(" kelas "+grade):""),
+    topic:topics.trim().slice(0,180),learningGoals:[purpose,problem,topics].filter(Boolean).join("\n\n").slice(0,2000)
+   })});
+   const result=await response.json();if(!response.ok)throw Error(result.error||"Draf bab gagal dibuat.");
+   setGeneratedChapter(result.draft.content);
+   const saved=await fetch("/api/books/"+savedBookId+"/chapters",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:result.draft.title,content:result.draft.content})});
+   const savedResult=await saved.json();if(!saved.ok)throw Error(savedResult.error||"Draf dibuat tetapi belum tersimpan sebagai bab.");
+   onCreated();
+  }catch(e){setGenerationError(e instanceof Error?e.message:"Draf bab gagal dibuat.")}
+  finally{setGenerating(false)}
+ }
  return <div className="workspace-stack">
   <div className="local-notice"><ShieldCheck size={16}/><span>Formulir ini adalah pintu masuk utama produksi buku. Saat ini brief disimpan sebagai deskripsi proyek di server. Eksekusi 11 agen menunggu orkestrator.</span></div>
   <div className="workspace-heading"><div><div className="eyebrow-dark">PERINTAH PRODUKSI TERPADU</div><h2>Satu brief, satu alur produksi buku</h2><p>Jelaskan hasil yang kamu inginkan. Sistem akan menyusun prompt induk dan menentukan alur agen yang tepat.</p></div><span className="status">Formulir utama</span></div>
@@ -96,6 +117,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
    <div className="form-grid two">
     <Field label="Judul sementara"><input value={title} onChange={e=>{setTitle(e.target.value);setConfirmed(false)}} placeholder="Boleh dikosongkan, agen dapat mengusulkan judul"/></Field>
     <Field label="Kategori buku"><select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(x=><option key={x}>{x}</option>)}</select></Field>
+    <Field label="Jenis naskah"><select value={bookType} onChange={e=>setBookType(e.target.value as "FICTION"|"NONFICTION")}><option value="NONFICTION">Nonfiksi</option><option value="FICTION">Fiksi</option></select></Field>
     <Field label="Apa tujuan utama buku ini?" hint="Jelaskan hasil yang ingin dicapai pembaca."><textarea rows={4} value={purpose} onChange={e=>{setPurpose(e.target.value);setConfirmed(false)}} placeholder="Contoh: Membantu siswa memahami teks argumentasi dan mampu menulis argumen yang didukung bukti..."/></Field>
     <Field label="Masalah apa yang ingin diselesaikan?" hint="Semakin spesifik, semakin tepat rancangan isi dan prompt."><textarea rows={4} value={problem} onChange={e=>{setProblem(e.target.value);setConfirmed(false)}} placeholder="Contoh: Siswa sering menyampaikan pendapat tanpa alasan dan bukti yang relevan..."/></Field>
    </div>
@@ -127,7 +149,21 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   <section className="panel prompt-panel"><div className="panel-toolbar"><div><div className="eyebrow-dark">PROMPT INDUK DINAMIS</div><h3 className="panel-title">Instruksi produksi yang akan diterima agen</h3><p className="panel-desc">Dibentuk dari tujuan, pembaca, cakupan, sumber, dan templat yang kamu pilih.</p></div><WandSparkles size={22} color="#667bc1"/></div>
    <div className="prompt-preview">{generatedPrompt}</div>
    <div className="prompt-actions"><span className={complete?"complete-label":"incomplete-label"}>{complete?"Brief minimum terpenuhi":"Lengkapi tujuan, masalah, dan cakupan isi"}</span><button type="button" className="primary-button" disabled={!complete} onClick={()=>{setPrompt(generatedPrompt);setConfirmed(false)}}><Sparkles size={15}/> Susun prompt induk</button></div>
-   {prompt&&<div className="prompt-confirm"><strong>Prompt induk siap ditinjau.</strong><p>Periksa instruksi di atas. Simpan brief sebagai proyek buku. Penyimpanan ini belum menjalankan agen atau menerbitkan buku.</p><button type="button" className="secondary-button" disabled={saving || generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>{saveError&&<p role="alert">{saveError}</p>}{generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}{confirmed&&<span className="complete-label">Proyek tersimpan. Belum ada agen yang dijalankan.</span>}</div>}
+   {prompt&&<div className="prompt-confirm">
+    <strong>Prompt induk siap ditinjau.</strong>
+    <p>Periksa instruksi di atas. Simpan brief sebagai proyek buku. Penyimpanan ini belum menjalankan agen atau menerbitkan buku.</p>
+    <button type="button" className="secondary-button" disabled={saving||generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>
+    {saveError&&<p role="alert">{saveError}</p>}
+    {generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}
+    {confirmed&&<span className="complete-label">Proyek tersimpan sebagai draf.</span>}
+    {confirmed&&savedBookId&&<div className="prompt-confirm">
+     <strong>Buat draf bab dengan model pilihan</strong>
+     <p>Memakai kuota provider. Draf akan disimpan sebagai bab pertama pada proyek ini dan dapat disunting.</p>
+     <button type="button" className="primary-button" disabled={generating} onClick={generateFirstChapter}>{generating?"Membuat draf...":"Buat dan simpan draf bab"}</button>
+     {generationError&&<p role="alert">{generationError}</p>}
+     {generatedChapter&&<details><summary>Pratinjau bab yang tersimpan</summary><pre className="draft-preview">{generatedChapter}</pre></details>}
+    </div>}
+   </div>}
   </section>
  </div>;
 }

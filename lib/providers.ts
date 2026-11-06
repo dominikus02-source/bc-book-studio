@@ -12,7 +12,6 @@ export const providerEndpoints = {
  mistral:"https://api.mistral.ai/v1/chat/completions",
  xai:"https://api.x.ai/v1/chat/completions"
 } as const;
-// Model IDs can vary by project and region: the admin chooses an allowed model.
 export const providerExamples = {
  openai:"gpt-4.1-mini",deepseek:"deepseek-flash",qwen:"qwen-plus",
  groq:"openai/gpt-oss-120b",gemini:"gemini-2.5-flash",
@@ -26,13 +25,20 @@ export const providerLabels = {
 } as const;
 export const providerSchema = z.enum(["openai","deepseek","qwen","groq","gemini","anthropic","openrouter","mistral","xai"]);
 const apiKey = z.string().trim().min(16).max(4096).regex(/^[^\s]+$/);
-export const credentialInput = z.object({
- provider:providerSchema, label:z.string().trim().min(2).max(80),
+const modelSettings = {
+ label:z.string().trim().min(2).max(80),
  model:z.string().trim().min(1).max(120).regex(/^[a-zA-Z0-9._:/-]+$/),
- apiKey, active:z.boolean().default(false)
-}).strict();
-export const credentialUpdate = credentialInput.omit({provider:true,active:true}).partial().extend({active:z.boolean().optional()}).refine(x=>Object.keys(x).length>0);
-export const safeCredential = {id:true,provider:true,label:true,model:true,lastFour:true,active:true,createdAt:true,updatedAt:true} as const;
+ maxTokens:z.number().int().min(16).max(3000).default(1800),
+ temperature:z.number().min(0).max(2).default(0.4),
+ active:z.boolean().default(false)
+};
+export const credentialInput = z.object({provider:providerSchema,apiKey,...modelSettings}).strict();
+export const credentialUpdate = z.object({
+ apiKey:apiKey.optional(),label:modelSettings.label.optional(),model:modelSettings.model.optional(),
+ maxTokens:modelSettings.maxTokens.optional(),temperature:modelSettings.temperature.optional(),
+ active:z.boolean().optional()
+}).strict().refine(x=>Object.keys(x).length>0);
+export const safeCredential = {id:true,provider:true,label:true,model:true,lastFour:true,active:true,maxTokens:true,temperature:true,createdAt:true,updatedAt:true} as const;
 function encryptionKey() {
  const encoded=process.env.STUDIO_SECRET_ENCRYPTION_KEY || "";
  if(!/^[A-Za-z0-9+/]{43}=$/.test(encoded))throw Error("Credential encryption unavailable");
@@ -54,27 +60,34 @@ export function decryptCredential(value:string,id:string) {
  cipher.setAAD(Buffer.from(id));cipher.setAuthTag(Buffer.from(tag,"base64"));
  return Buffer.concat([cipher.update(Buffer.from(payload,"base64")),cipher.final()]).toString("utf8");
 }
-export async function activeProvider() {
- const record=await db.providerCredential.findFirst({where:{active:true}});
+export async function activeProvider(credentialId?:string) {
+ const record=credentialId
+   ? await db.providerCredential.findFirst({where:{id:credentialId,active:true}})
+   : await db.providerCredential.findFirst({where:{active:true},orderBy:{createdAt:"asc"}});
  if(!record)return null;
  const provider=providerSchema.parse(record.provider);
- return {provider,apiKey:decryptCredential(record.encryptedKey,record.id),model:record.model,endpoint:providerEndpoints[provider]};
+ return {id:record.id,provider,apiKey:decryptCredential(record.encryptedKey,record.id),model:record.model,
+   maxTokens:record.maxTokens,temperature:record.temperature,endpoint:providerEndpoints[provider]};
 }
 export function safeMutation(req:Request) {
  const origin=req.headers.get("origin");
  if(origin&&origin!==new URL(req.url).origin&&origin!==process.env.STUDIO_PUBLIC_ORIGIN)return false;
  return req.headers.get("content-type")?.split(";")[0]==="application/json";
 }
-
 type Message = {role:"system"|"user";content:string};
+type TokenUsage={inputTokens:number;outputTokens:number;totalTokens:number;estimated:boolean};
+function nonNegativeInt(value:unknown):number|undefined {
+ return typeof value==="number"&&Number.isFinite(value)&&value>=0?Math.floor(value):undefined;
+}
 export async function invokeProvider(
   provider: z.infer<typeof providerSchema>,
   model: string, apiKey: string, messages: Message[],
-  options: { maxTokens?: number; timeoutMs?: number } = {}
-) {
+  options: { maxTokens?: number; temperature?:number; timeoutMs?: number } = {}
+):Promise<{content:string;usage:TokenUsage}> {
   const endpoint = providerEndpoints[provider];
   const headers:Record<string,string> = {"Content-Type":"application/json"};
   const maxTokens = Math.min(3000,Math.max(16,options.maxTokens ?? 1800));
+  const temperature = Math.min(2,Math.max(0,options.temperature ?? 0.4));
   let url:string = endpoint;
   let body:unknown;
   if(provider==="gemini"){
@@ -83,27 +96,24 @@ export async function invokeProvider(
     body={
       systemInstruction:{parts:[{text:messages.filter(m=>m.role==="system").map(m=>m.content).join("\n")}]},
       contents:messages.filter(m=>m.role!=="system").map(m=>({role:"user",parts:[{text:m.content}]})),
-      generationConfig:{maxOutputTokens:maxTokens,temperature:0.4}
+      generationConfig:{maxOutputTokens:maxTokens,temperature}
     };
   }else if(provider==="anthropic"){
     headers["x-api-key"]=apiKey;
     headers["anthropic-version"]="2026-10-21";
-    body={model,max_tokens:maxTokens,
+    body={model,max_tokens:maxTokens,temperature,
       system:messages.filter(m=>m.role==="system").map(m=>m.content).join("\n"),
       messages:messages.filter(m=>m.role!=="system")};
   }else{
     headers.Authorization="Bearer "+apiKey;
-    // Recent OpenAI reasoning models use max_completion_tokens; some reject temperature.
     if(provider==="openai" && /^(gpt-[56]|o[1-9])/i.test(model)){
       body={model,max_completion_tokens:maxTokens,messages};
     }else if(provider==="deepseek"){
-      // DeepSeek defaults to thinking; disable for short test prompts and draft responses.
-      body={model,max_tokens:maxTokens,messages,temperature:0.4,thinking:{type:"disabled"}};
+      body={model,max_tokens:maxTokens,messages,temperature,thinking:{type:"disabled"}};
     }else{
-      body={model,max_tokens:maxTokens,messages,temperature:0.4};
+      body={model,max_tokens:maxTokens,messages,temperature};
     }
   }
-  // Only fixed provider endpoints can be called (prevents SSRF via settings).
   const result=await fetch(url,{method:"POST",headers,body:JSON.stringify(body),cache:"no-store",
     redirect:"error",signal:AbortSignal.timeout(Math.min(45000,options.timeoutMs ?? 45000))});
   if(!result.ok)throw Error("PROVIDER_HTTP_"+result.status);
@@ -111,6 +121,8 @@ export async function invokeProvider(
     choices?:{message?:{content?:string}}[];
     candidates?:{content?:{parts?:{text?:string}[]}}[];
     content?:{type?:string;text?:string}[];
+    usage?:{prompt_tokens?:number;completion_tokens?:number;total_tokens?:number;input_tokens?:number;output_tokens?:number};
+    usageMetadata?:{promptTokenCount?:number;candidatesTokenCount?:number;totalTokenCount?:number};
   };
   const content=provider==="gemini"
     ? data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")
@@ -118,5 +130,15 @@ export async function invokeProvider(
       ? data.content?.filter(p=>p.type==="text").map(p=>p.text||"").join("")
       : data.choices?.[0]?.message?.content;
   if(!content?.trim())throw Error("PROVIDER_EMPTY_RESPONSE");
-  return content.trim();
+  const rawInput=provider==="gemini"?data.usageMetadata?.promptTokenCount:
+    provider==="anthropic"?data.usage?.input_tokens:data.usage?.prompt_tokens;
+  const rawOutput=provider==="gemini"?data.usageMetadata?.candidatesTokenCount:
+    provider==="anthropic"?data.usage?.output_tokens:data.usage?.completion_tokens;
+  const input=nonNegativeInt(rawInput),output=nonNegativeInt(rawOutput);
+  const estimated=input===undefined||output===undefined;
+  const inputTokens=input??Math.ceil(messages.reduce((sum,m)=>sum+m.content.length,0)/4);
+  const outputTokens=output??Math.ceil(content.length/4);
+  const reportedTotal=provider==="gemini"?data.usageMetadata?.totalTokenCount:data.usage?.total_tokens;
+  return {content:content.trim(),usage:{inputTokens,outputTokens,
+    totalTokens:nonNegativeInt(reportedTotal)??inputTokens+outputTokens,estimated}};
 }

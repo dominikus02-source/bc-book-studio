@@ -74,9 +74,10 @@ test("provider adapter matches HTTP authentication and response formats", async 
       if(provider==="deepseek") assert.equal(body.thinking.type,"disabled");
       return {ok:true,json:async()=>({choices:[{message:{content:"OK"}}]})};
     };
-    const content=await api.invokeProvider(provider,model,"fake-test-key",
+    const result=await api.invokeProvider(provider,model,"fake-test-key",
       [{role:"system",content:"You are a test."},{role:"user",content:"Say OK"}],{maxTokens:32});
-    assert.equal(content,"OK",provider);
+    assert.equal(result.content,"OK",provider);
+    assert.ok(result.usage.totalTokens>0,provider);
     assert.equal(called,true,provider);
   }
 });
