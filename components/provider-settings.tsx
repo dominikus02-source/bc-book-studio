@@ -1,5 +1,7 @@
 "use client";
 import { FormEvent,useEffect,useState } from "react";
+import FormTransfer,{type TransferField} from "./form-transfer";
+const providerMetadataFields:TransferField[]=[{key:"provider",label:"Provider AI",maxLength:50},{key:"label",label:"Nama konfigurasi",maxLength:80},{key:"model",label:"ID model",maxLength:120},{key:"active",label:"Provider aktif",type:"boolean"}];
 const providerChoices=[
  ["openai","OpenAI","gpt-4.1-mini"],
  ["deepseek","DeepSeek","deepseek-flash"],
@@ -63,7 +65,7 @@ export default function ProviderSettings(){
  {message&&<p role="status">{message}</p>}{error&&<p role="alert">{error}</p>}
  {!ready&&<p role="alert">Penyimpanan rahasia belum siap. Hubungi pengelola server.</p>}
  <div>{items.length===0?<p>Belum ada API key. Studio tetap bisa digunakan untuk menulis dan menyimpan buku secara manual.</p>:items.map(item=><div className="provider-row" key={item.id}><div style={{minWidth:0,overflowWrap:"anywhere"}}><strong>{item.label}</strong><p>{item.provider} · {item.model} · ••••{item.lastFour}</p><span className="status">{item.active?"Aktif":"Nonaktif"}</span></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="secondary-button" disabled={busy} onClick={()=>edit(item)} aria-label={"Ubah "+item.label}>Ubah</button><button className="secondary-button" disabled={busy||!ready} onClick={()=>test(item)} aria-label={"Tes koneksi "+item.label}>Tes koneksi</button><button className="secondary-button" disabled={busy} onClick={()=>remove(item)} aria-label={"Hapus "+item.label}>Hapus</button></div></div>)}</div>
- <form onSubmit={save} style={{marginTop:24}}><h4>{editing?"Ubah konfigurasi provider":"Tambah provider"}</h4><div className="form-grid two">
+ <form onSubmit={save} style={{marginTop:24}}><h4>{editing?"Ubah konfigurasi provider":"Tambah provider"}</h4><FormTransfer name="Metadata provider AI (tanpa API key)" fields={providerMetadataFields} values={{provider,label,model,active}} onApply={r=>{if(!editing&&typeof r.provider==="string"&&providerChoices.some(x=>x[0]===r.provider))setProvider(r.provider);if(typeof r.label==="string")setLabel(r.label);if(typeof r.model==="string")setModel(r.model);if(typeof r.active==="boolean")setActive(r.active)}} disabled={busy} hint="File hanya memuat nama, model, dan status provider. API key wajib dimasukkan manual secara rahasia; tidak pernah disalin ke XLSX atau Markdown."/><div className="form-grid two">
  <label className="studio-field"><span>Provider AI</span><select value={provider} disabled={Boolean(editing)||busy} onChange={e=>{const next=e.target.value;setProvider(next);setModel(providerChoices.find(x=>x[0]===next)?.[2]||"")}}>{providerChoices.map(([id,name,example])=><option key={id} value={id}>{name} · {example}</option>)}</select></label>
  <label className="studio-field"><span>Nama konfigurasi</span><input required minLength={2} maxLength={80} value={label} onChange={e=>setLabel(e.target.value)} placeholder="Contoh: Penulis utama"/></label>
  <label className="studio-field"><span>ID model</span><input required maxLength={120} value={model} onChange={e=>setModel(e.target.value)} placeholder="ID model dari dashboard provider"/></label>

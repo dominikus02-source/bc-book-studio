@@ -2,6 +2,32 @@
 
 import { useMemo, useState } from "react";
 import { BookOpenCheck, FileText, Layers3, Sparkles, WandSparkles, ShieldCheck } from "lucide-react";
+import FormTransfer, {type TransferField,type TransferRecord} from "./form-transfer";
+const briefFields:TransferField[]=[
+ {key:"title",label:"Judul sementara",maxLength:180},
+ {key:"author",label:"Penulis / organisasi",maxLength:180},
+ {key:"bookType",label:"Jenis buku",options:["FICTION","NONFICTION"]},
+ {key:"genre",label:"Genre",options:["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY","TEXTBOOK","REFERENCE","GUIDE","WORKBOOK"]},
+ {key:"category",label:"Kategori buku",maxLength:120},
+ {key:"purpose",label:"Tujuan buku",maxLength:1600,example:"Membantu siswa memahami konsep dan menerapkannya melalui proyek sederhana yang terukur."},
+ {key:"problem",label:"Masalah pembaca",maxLength:1600,example:"Siswa masih kesulitan menghubungkan teori dengan masalah di sekitar mereka."},
+ {key:"audience",label:"Pembaca sasaran",options:["TK","SD","SMP","SMA","Mahasiswa","Guru","Profesional","Umum"]},
+ {key:"grade",label:"Kelas",options:Array.from({length:12},(_,i)=>String(i+1))},
+ {key:"level",label:"Kemampuan awal",options:["Pemula","Dasar","Menengah","Lanjut","Beragam"]},
+ {key:"curriculum",label:"Kurikulum / sumber",maxLength:1200},
+ {key:"topics",label:"Topik dan cakupan",maxLength:2500,example:"Pengamatan, pengukuran, eksperimen aman, tabel data, dan penarikan kesimpulan."},
+ {key:"chapters",label:"Jumlah bab",options:["Rekomendasikan otomatis","4 bab","6 bab","8 bab","10 bab","12 bab","16 bab"]},
+ {key:"style",label:"Gaya penyajian",maxLength:120},
+ {key:"exercises",label:"Latihan dan asesmen",type:"boolean"},
+ {key:"visuals",label:"Ilustrasi dan visual",type:"boolean"},
+ {key:"references",label:"Referensi",type:"boolean"},
+ {key:"template",label:"Template layout",options:["sd","smp-sma","teacher","workbook","reference","literature","enrichment","minimal"]},
+ {key:"pageSize",label:"Ukuran halaman",options:["A4","A5","B5"]},
+ {key:"outputs",label:"Format keluaran (pisahkan dengan titik koma)",maxLength:250},
+ {key:"mode",label:"Cara kerja agen",maxLength:120},
+ {key:"budget",label:"Batas anggaran",options:["Tentukan estimasi dahulu","Hemat","Standar","Mendalam"]}
+];
+
 
 const templates = [
   { id:"sd", name:"Buku Pelajaran SD", description:"Warna cerah, ilustrasi, aktivitas, kotak konsep, dan latihan bertahap.", formats:"A4 · berwarna" },
@@ -53,6 +79,34 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
  const [prompt,setPrompt]=useState("");
  const [confirmed,setConfirmed]=useState(false);
 
+ const transferValues:TransferRecord={title,author,bookType,genre,category,purpose,problem,audience,grade,level,curriculum,topics,chapters,style,exercises,visuals,references,template,pageSize,outputs:outputs.join("; "),mode,budget};
+ function applyTransfer(v:TransferRecord){
+  const str=(key:string)=>typeof v[key]==="string"?String(v[key]):undefined;
+  if(str("title")!==undefined)setTitle(str("title")!);
+  if(str("author")!==undefined)setAuthor(str("author")!);
+  if(str("bookType")!==undefined)setBookType(str("bookType") as "FICTION"|"NONFICTION");
+  if(str("genre")!==undefined)setGenre(str("genre")!);
+  if(str("category")!==undefined)setCategory(str("category")!);
+  if(str("purpose")!==undefined)setPurpose(str("purpose")!);
+  if(str("problem")!==undefined)setProblem(str("problem")!);
+  if(str("audience")!==undefined)setAudience(str("audience")!);
+  if(str("grade")!==undefined)setGrade(str("grade")!);
+  if(str("level")!==undefined)setLevel(str("level")!);
+  if(str("curriculum")!==undefined)setCurriculum(str("curriculum")!);
+  if(str("topics")!==undefined)setTopics(str("topics")!);
+  if(str("chapters")!==undefined)setChapters(str("chapters")!);
+  if(str("style")!==undefined)setStyle(str("style")!);
+  if(typeof v.exercises==="boolean")setExercises(v.exercises);
+  if(typeof v.visuals==="boolean")setVisuals(v.visuals);
+  if(typeof v.references==="boolean")setReferences(v.references);
+  if(str("template")!==undefined)setTemplate(str("template")!);
+  if(str("pageSize")!==undefined)setPageSize(str("pageSize")!);
+  if(str("outputs")!==undefined)setOutputs(str("outputs")!.split(";").map(x=>x.trim()).filter(x=>outputOptions.includes(x)));
+  if(str("mode")!==undefined)setMode(str("mode")!);
+  if(str("budget")!==undefined)setBudget(str("budget")!);
+  setPrompt("");setConfirmed(false);
+ }
+
  const selectedTemplate=templates.find(x=>x.id===template)!;
  const complete=purpose.trim().length>=20 && problem.trim().length>=10 && topics.trim().length>=5;
  const toggleOutput=(value:string)=>setOutputs(old=>old.includes(value)?old.filter(x=>x!==value):[...old,value]);
@@ -95,7 +149,8 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
  ].join("\n"),[title,category,bookType,genre,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
 
  return <div className="workspace-stack">
-  <div className="local-notice"><ShieldCheck size={16}/><span>Formulir ini adalah pintu masuk utama produksi buku. Saat ini brief disimpan sebagai deskripsi proyek di server. Eksekusi 11 agen menunggu orkestrator.</span></div>
+  <div className="local-notice"><ShieldCheck size={16}/><span>Formulir ini adalah pintu masuk utama produksi buku. Brief tersimpan sebagai deskripsi proyek di server setelah klik Simpan. Eksekusi agen tetap memerlukan orkestrator.</span></div>
+  <FormTransfer name="Brief Buku" fields={briefFields} values={transferValues} onApply={applyTransfer} disabled={saving} hint="Unduh format untuk semua isian brief, edit di Excel atau Markdown, lalu impor sebagai nilai form. Periksa kembali sebelum menyimpan proyek." />
   <div className="workspace-heading"><div><div className="eyebrow-dark">PERINTAH PRODUKSI TERPADU</div><h2>Satu brief, satu alur produksi buku</h2><p>Jelaskan hasil yang kamu inginkan. Sistem akan menyusun prompt induk dan menentukan alur agen yang tepat.</p></div><span className="status">Formulir utama</span></div>
   <section className="panel"><div className="panel-toolbar"><div><h3 className="panel-title">01 · Tujuan dan kebutuhan buku</h3><p className="panel-desc">Bagian ini menentukan arah seluruh prompt produksi.</p></div><BookOpenCheck size={20} color="#5670b6"/></div>
    <div className="form-grid two">
