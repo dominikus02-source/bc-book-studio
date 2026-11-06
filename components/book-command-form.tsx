@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BookOpenCheck, FileText, Layers3, Sparkles, WandSparkles, ShieldCheck } from "lucide-react";
+import { BookOpenCheck, FileText, Layers3, Sparkles, WandSparkles, ShieldCheck, Bot } from "lucide-react";
 
 const templates = [
   { id:"sd", name:"Buku Pelajaran SD", description:"Warna cerah, ilustrasi, aktivitas, kotak konsep, dan latihan bertahap.", formats:"A4 · berwarna" },
@@ -25,7 +25,9 @@ function Field({label,children,hint}:{label:string;children:React.ReactNode;hint
 
 export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
  const [saving,setSaving]=useState(false); const [saveError,setSaveError]=useState("");
- async function saveBrief(){setSaving(true);setSaveError("");try{const r=await fetch("/api/books",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:title.trim()||topics.trim().slice(0,180),grade:["SD","SMP","SMA"].includes(audience)?grade:"Referensi",subject:category,description:generatedPrompt,bookType,genre,pageSize,author:author.trim()||"BC Book Studio"})});const d=await r.json();if(!r.ok)throw Error(d.error||"Gagal menyimpan");setConfirmed(true);onCreated();}catch(e){setSaveError(e instanceof Error?e.message:"Gagal menyimpan")}finally{setSaving(false)}}
+ const [orchestrating,setOrchestrating]=useState(false);
+ const [orchResult,setOrchResult]=useState<string|null>(null);
+ async function saveBrief(){setSaving(true);setSaveError("");try{const r=await fetch("/api/books",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:title.trim()||topics.trim().slice(0,180),grade:["SD","SMP","SMA"].includes(audience)?grade:"Referensi",subject:category,description:generatedPrompt,bookType,genre,pageSize,author:author.trim()||"BC Book Studio"})});const d=await r.json();if(!r.ok)throw Error(d.error||"Gagal menyimpan");setConfirmed(true);setSavedBookId(d.book?.id||null);onCreated();}catch(e){setSaveError(e instanceof Error?e.message:"Gagal menyimpan")}finally{setSaving(false)}}
  const [title,setTitle]=useState("");
  const [category,setCategory]=useState("Buku pelajaran");
  const [bookType,setBookType]=useState<"FICTION"|"NONFICTION">("NONFICTION");
@@ -52,6 +54,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
  const [budget,setBudget]=useState("Tentukan estimasi dahulu");
  const [prompt,setPrompt]=useState("");
  const [confirmed,setConfirmed]=useState(false);
+ const [savedBookId,setSavedBookId]=useState<string|null>(null);
 
  const selectedTemplate=templates.find(x=>x.id===template)!;
  const complete=purpose.trim().length>=20 && problem.trim().length>=10 && topics.trim().length>=5;
@@ -94,9 +97,26 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   "Validasi brief → estimasi → riset → kerangka → persetujuan struktur → penulisan bab → latihan/visual → penyuntingan → telaah pedagogis → QA → layout → ekspor dokumen → persetujuan final."
  ].join("\n"),[title,category,bookType,genre,purpose,problem,audience,grade,level,topics,chapters,style,curriculum,exercises,visuals,references,selectedTemplate,pageSize,outputs,mode,budget]);
 
+ async function runOrchestrator() {
+  if (!savedBookId) return;
+  setOrchestrating(true);
+  setOrchResult(null);
+  try {
+    const r = await fetch(`/api/books/${savedBookId}/orchestrate`, { method: "POST" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Orkestrasi gagal");
+    setOrchResult(d.message || "Orkestrasi selesai.");
+    onCreated();
+  } catch (e) {
+    setOrchResult(e instanceof Error ? e.message : "Gagal menjalankan agen");
+  } finally {
+    setOrchestrating(false);
+  }
+ }
+
  return <div className="workspace-stack">
-  <div className="local-notice"><ShieldCheck size={16}/><span>Formulir ini adalah pintu masuk utama produksi buku. Saat ini brief disimpan sebagai deskripsi proyek di server. Eksekusi 11 agen menunggu orkestrator.</span></div>
-  <div className="workspace-heading"><div><div className="eyebrow-dark">PERINTAH PRODUKSI TERPADU</div><h2>Satu brief, satu alur produksi buku</h2><p>Jelaskan hasil yang kamu inginkan. Sistem akan menyusun prompt induk dan menentukan alur agen yang tepat.</p></div><span className="status">Formulir utama</span></div>
+  <div className="local-notice"><ShieldCheck size={16}/><span>Formulir ini adalah pintu masuk utama produksi buku. Brief disimpan sebagai deskripsi proyek. Setelah disimpan, Anda bisa menjalankan orkestrator agen untuk membuat kerangka dan draf bab secara otomatis.</span></div>
+  <div className="workspace-heading"><div><div className="eyebrow-dark">PERINTAH PRODUKSI TERPADU</div><h2>Satu brief, satu alur produksi buku</h2><p>Jelaskan hasil yang kamu inginkan. Sistem akan menyusun prompt induk dan dapat menjalankan agen yang sudah dipersiapkan.</p></div><span className="status">Formulir utama</span></div>
   <section className="panel"><div className="panel-toolbar"><div><h3 className="panel-title">01 · Tujuan dan kebutuhan buku</h3><p className="panel-desc">Bagian ini menentukan arah seluruh prompt produksi.</p></div><BookOpenCheck size={20} color="#5670b6"/></div>
    <div className="form-grid two">
     <Field label="Judul sementara"><input value={title} onChange={e=>{setTitle(e.target.value);setConfirmed(false)}} placeholder="Boleh dikosongkan, agen dapat mengusulkan judul"/></Field>
@@ -135,7 +155,7 @@ export default function BookCommandForm({onCreated}:{onCreated:()=>void}) {
   <section className="panel prompt-panel"><div className="panel-toolbar"><div><div className="eyebrow-dark">PROMPT INDUK DINAMIS</div><h3 className="panel-title">Instruksi produksi yang akan diterima agen</h3><p className="panel-desc">Dibentuk dari tujuan, pembaca, cakupan, sumber, dan templat yang kamu pilih.</p></div><WandSparkles size={22} color="#667bc1"/></div>
    <div className="prompt-preview" tabIndex={0} role="region" aria-label="Pratinjau prompt produksi buku">{generatedPrompt}</div>
    <div className="prompt-actions"><span className={complete?"complete-label":"incomplete-label"}>{complete?"Brief minimum terpenuhi":"Lengkapi tujuan, masalah, dan cakupan isi"}</span><button type="button" className="primary-button" disabled={!complete} onClick={()=>{setPrompt(generatedPrompt);setConfirmed(false)}}><Sparkles size={15}/> Susun prompt induk</button></div>
-   {prompt&&<div className="prompt-confirm"><strong>Prompt induk siap ditinjau.</strong><p>Periksa instruksi di atas. Simpan brief sebagai proyek buku. Penyimpanan ini belum menjalankan agen atau menerbitkan buku.</p><button type="button" className="secondary-button" disabled={saving || generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>{saveError&&<p role="alert">{saveError}</p>}{generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}{confirmed&&<span className="complete-label">Proyek tersimpan. Belum ada agen yang dijalankan.</span>}</div>}
+   {prompt&&<div className="prompt-confirm"><strong>Prompt induk siap ditinjau.</strong><p>Periksa instruksi di atas. Simpan brief sebagai proyek buku, lalu jalankan orkestrator agen untuk membuat kerangka dan draf bab.</p><button type="button" className="secondary-button" disabled={saving || generatedPrompt.length>12000} onClick={saveBrief}>{saving?"Menyimpan…":"Simpan proyek buku"}</button>{saveError&&<p role="alert">{saveError}</p>}{generatedPrompt.length>12000&&<p role="alert">Brief melebihi batas 12.000 karakter API beta. Ringkas isian sebelum menyimpan.</p>}{confirmed&&savedBookId&&<><span className="complete-label">Proyek tersimpan.</span><button type="button" className="primary-button" disabled={orchestrating} onClick={runOrchestrator} style={{marginLeft:8}}><Bot size={15}/> {orchestrating?"Agen sedang bekerja…":"Jalankan Agen (Buat Kerangka + Bab)"}</button>{orchResult&&<p style={{marginTop:8}}>{orchResult}</p>}</>}</div>}
   </section>
  </div>;
 }
