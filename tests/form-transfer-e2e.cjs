@@ -112,6 +112,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await meta.locator('input[type="file"]').setInputFiles(editPath);
   await meta.getByRole("button",{name:/Terapkan ke form/}).click();
   await page.getByRole("button",{name:"Simpan perubahan"}).click();
+  await page.getByText("Perpustakaan Anda").first().waitFor({timeout:10000});
   const updated=(await (await context.request.get(origin+"/api/books/"+book.id)).json()).book;
   assert.equal(updated.title,"Buku Pengujian Impor Revisi");
   await page.getByRole("button",{name:"Buka menu"}).click();
