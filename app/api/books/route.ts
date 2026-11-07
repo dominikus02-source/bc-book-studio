@@ -5,7 +5,7 @@ import { createBook, badInput } from "../../../lib/validation";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return deny();
-  const books = await db.book.findMany({ orderBy: { updatedAt: "desc" }, include: { chapters: { orderBy: { position: "asc" } }, reviews: { orderBy: { createdAt: "desc" } } } });
+  const books = await db.book.findMany({ orderBy: { updatedAt: "desc" }, include: { chapters: { orderBy: { position: "asc" }, include: { currentRevision: { select: { version: true } } } }, reviews: { orderBy: { createdAt: "desc" } } } });
   return NextResponse.json({ books }, { headers: { "Cache-Control": "no-store" } });
 }
 export async function POST(req: NextRequest) {

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
     "db:dev": "prisma migrate dev",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -28,6 +29,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.8.0",
-    "prisma": "^6.19.0"
+    "prisma": "^6.19.0",
+    "vitest": "^5.1.0"
   }
 }

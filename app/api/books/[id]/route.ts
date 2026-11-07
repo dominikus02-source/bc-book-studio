@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const book = await db.book.findUnique({
     where: { id },
-    include: { chapters: { orderBy: { position: "asc" } }, reviews: { orderBy: { createdAt: "desc" } } },
+    include: { chapters: { orderBy: { position: "asc" }, include: { currentRevision: { select: { version: true } } } }, reviews: { orderBy: { createdAt: "desc" } } },
   });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   return NextResponse.json({ book });

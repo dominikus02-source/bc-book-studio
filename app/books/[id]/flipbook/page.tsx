@@ -134,6 +134,9 @@ export default function FlipbookPage() {
           maxShadowOpacity={0.7}
           showPageCorners={true}
           disableFlipByClick={false}
+          clickEventForward={true}
+          useMouseEvents={true}
+          swipeDistance={30}
         >
           <div className="page cover" style={coverStyle}>
             <div style={{ fontSize: 13, letterSpacing: 2, opacity: 0.7 }}>BC BOOK STUDIO</div>

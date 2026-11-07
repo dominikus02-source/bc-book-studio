@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState, memo } from "react";
 import { PerfMonitor } from "./PerfMonitor";
 
-type Chapter = { id: string; title: string; content: string; position: number };
+type Chapter = { id: string; title: string; content: string; position: number; currentRevision?: { version: number } | null };
 type Review = { id: string; decision: string; note: string; createdAt: string };
 type Book = {
   id: string;
@@ -95,7 +95,7 @@ export default function StudioPage() {
   const [grade, setGrade] = useState("1");
   const [subject, setSubject] = useState("Bahasa Indonesia");
 
-  const [editingChapter, setEditingChapter] = useState<string | null>(null);
+  const [editingChapter, setEditingChapter] = useState<{ id: string; version: number } | null>(null);
   const [chapterTitle, setChapterTitle] = useState("");
   const [chapterText, setChapterText] = useState("");
   const [note, setNote] = useState("");
@@ -360,7 +360,7 @@ export default function StudioPage() {
                             <button
                               style={smallBtn}
                               onClick={() => {
-                                setEditingChapter(ch.id);
+                                setEditingChapter({ id: ch.id, version: ch.currentRevision?.version ?? 0 });
                                 setChapterTitle(ch.title);
                                 setChapterText(ch.content);
                               }}
@@ -399,9 +399,9 @@ export default function StudioPage() {
                           onClick={() =>
                             run(async () => {
                               if (editingChapter) {
-                                await call(`/books/${book.id}/chapters/${editingChapter}`, {
+                                await call(`/books/${book.id}/chapters/${editingChapter.id}`, {
                                   method: "PUT",
-                                  body: JSON.stringify({ title: chapterTitle, content: chapterText }),
+                                  body: JSON.stringify({ title: chapterTitle, content: chapterText, expectedVersion: editingChapter.version }),
                                 });
                                 setNotice("Bab diperbarui.");
                               } else {
