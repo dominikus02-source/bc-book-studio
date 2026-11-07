@@ -1,0 +1,36 @@
+{
+  "id": "grade_01",
+  "grade": 1,
+  "schoolLevel": "SD",
+  "fase": "A",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia (BSKAP, referensi 2022-2025; wajib diverifikasi ke dokumen resmi terbaru)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata konkret sehari-hari, benda di sekitar, kata kerja dasar, kata sifat sederhana",
+    "sentenceLengthBand": "kalimat sederhana (1 klausa), 4-8 kata",
+    "readingComplexityBand": "teks pendek 20-60 kata, cerita bergambar, instruksi 1-2 langkah",
+    "abstractionBand": "sangat konkret, pengalaman langsung, visual dominan"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "1-2 langkah jelas",
+    "visualSupport": "high",
+    "activityTypes": ["cerita bergambar", "menyimak cerita", "menulis kata/kalimat sederhana", "berbicara tentang pengalaman", "permainan kata"],
+    "assessmentTypes": ["observasi", "unjuk kerja sederhana", "portofolio gambar+tulisan", "tes lisan pendek"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Fokus pengenalan huruf, suku kata, kata bermakna, cerita pendek dengan ilustrasi.",
+    "writing": "Menulis nama, kata, kalimat sederhana dengan ejaan dasar.",
+    "listeningSpeaking": "Menyimak cerita, menjawab pertanyaan sederhana, menceritakan pengalaman.",
+    "inclusivity": "Dukungan visual tinggi, instruksi berulang, waktu lebih lama, alternatif non-tulis."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": [
+      "Keputusan Kepala BSKAP tentang Capaian Pembelajaran Kurikulum Merdeka (verifikasi ke dokumen resmi terbaru wajib)",
+      "Panduan Mata Pelajaran Bahasa Indonesia (referensi 2025 jika berlaku)"
+    ],
+    "reviewedAt": null,
+    "notes": "DRAFT. Nilai kuantitatif dan band adalah deskripsi kualitatif awal berdasarkan fase A. Wajib ditelaah ahli pendidikan dan dipetakan ke dokumen kurikulum resmi sebelum dipakai produksi. Jangan gunakan untuk klaim keselarasan kurikulum."
+  },
+  "note": "Parameter kuantitatif dan rubrik wajib ditetapkan melalui validasi ahli. File ini adalah struktur yang diperkaya, bukan nilai final."
+}

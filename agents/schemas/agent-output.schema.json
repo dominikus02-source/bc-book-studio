@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bcbookstudio.bahasacerdas.com/schemas/agent-output.schema.json",
+  "title": "BC Book Studio Agent Output Contract",
+  "description": "Kontrak keluaran standar untuk semua logical agent dan specialist. Status design_only. Harus divalidasi sebelum produksi.",
+  "type": "object",
+  "required": [
+    "status",
+    "summary",
+    "artifacts",
+    "evidence",
+    "issues",
+    "assumptions",
+    "handoff",
+    "human_decisions_required"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["completed", "needs_review", "blocked"],
+      "description": "Status akhir tugas agen"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Ringkasan singkat hasil (bukan prosa panjang)"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "name", "version"],
+        "properties": {
+          "type": { "type": "string" },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "contentRef": { "type": "string" },
+          "hash": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "claim"],
+        "properties": {
+          "source": { "type": "string" },
+          "claim": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low", "unknown"] }
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "location", "description", "recommendation"],
+        "properties": {
+          "severity": { "type": "string", "enum": ["critical", "high", "medium", "low", "info"] },
+          "location": { "type": "string" },
+          "description": { "type": "string" },
+          "recommendation": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "handoff": {
+      "type": "object",
+      "properties": {
+        "nextAgent": { "type": "string" },
+        "nextStage": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "human_decisions_required": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["decision", "reason"],
+        "properties": {
+          "decision": { "type": "string" },
+          "reason": { "type": "string" },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "agentId": { "type": "string" },
+        "promptVersion": { "type": "string" },
+        "model": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "bookId": { "type": "string" },
+        "costEstimate": { "type": "number" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

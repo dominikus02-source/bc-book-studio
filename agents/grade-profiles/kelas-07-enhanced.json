@@ -1,0 +1,35 @@
+{
+  "id": "grade_07",
+  "grade": 7,
+  "schoolLevel": "SMP",
+  "fase": "D",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase D (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis dasar, istilah mata pelajaran, kata konotatif sederhana, sinonim/antonim",
+    "sentenceLengthBand": "kalimat majemuk setara dan bertingkat sederhana, 8-15 kata",
+    "readingComplexityBand": "teks 150-400 kata, narasi, deskriptif, eksposisi sederhana, teks multimodal",
+    "abstractionBand": "mulai abstrak, konsep, hubungan sebab-akibat, opini sederhana"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "2-4 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca intensif", "diskusi kelompok", "menulis teks pendek", "presentasi sederhana", "analisis unsur intrinsik dasar"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek kecil", "observasi diskusi", "portofolio"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Memahami ide pokok, detail, dan makna tersirat sederhana; membedakan fakta dan opini.",
+    "writing": "Teks narasi, deskriptif, eksposisi pendek dengan struktur jelas.",
+    "listeningSpeaking": "Menyimak paparan, berpartisipasi dalam diskusi, menyampaikan pendapat dengan alasan.",
+    "inclusivity": "Dukungan visual adaptif, scaffolding, waktu tambahan, alternatif format."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": [
+      "Capaian Pembelajaran Bahasa Indonesia Fase D (Kelas 7-9) Kurikulum Merdeka"
+    ],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif berdasarkan fase D. Wajib validasi ahli dan pemetaan ke dokumen resmi sebelum produksi."
+  },
+  "note": "Struktur diperkaya. Nilai kuantitatif masih membutuhkan penetapan ahli."
+}
