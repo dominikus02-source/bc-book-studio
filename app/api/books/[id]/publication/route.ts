@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
 import { sessionUser, deny } from "../../../../../lib/auth";
 import { checkpointsFor } from "../../../../../lib/editorial";
+import { publicationPolicyBlockers, publishingPolicyVersion } from "../../../../../lib/publishing-policy";
 
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
@@ -21,7 +22,7 @@ async function readiness(id: string, ownerId: string) {
   });
   if (!book) return null;
   const checks = (book.editorialChecks ?? {}) as Record<string, unknown>;
-  const blockers: string[] = [];
+  const blockers: string[] = publicationPolicyBlockers(book.genre, book.bookType, checks);
   if (book.status !== "APPROVED" || !book.approvedAt) blockers.push("Independent editorial approval is required.");
   if (!book.title.trim() || !book.author.trim() || !book.description.trim()) blockers.push("Title, author, and book description are required.");
   if (book.chapters.length === 0) blockers.push("At least one chapter is required.");
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   const publication = result.book.publication;
   return NextResponse.json({
     ready: result.blockers.length === 0,
+    publishingPolicyVersion,
     blockers: result.blockers,
     publication: publication ? { id: publication.id, version: publication.version, publishedAt: publication.publishedAt, unpublishedAt: publication.unpublishedAt, active: !publication.unpublishedAt } : null,
   }, { headers: { "Cache-Control": "no-store" } });
@@ -86,11 +88,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       !book.reviews.some(r => r.decision === "approve") ||
       book.reviewNotes.length ||
       checkpointsFor(book.bookType).some(c => checks[c.key] !== true) ||
+      publicationPolicyBlockers(book.genre, book.bookType, checks).length > 0 ||
       book.assets.some(a => !a.altText.trim() || !a.license.trim())
     ) return jsonError("Publication requirements not met; GET this endpoint for a checklist", 409);
 
     const snapshot = {
       schemaVersion: 1,
+      publishingPolicyVersion,
       title: book.title, author: book.author, description: book.description,
       subject: book.subject, grade: book.grade, bookType: book.bookType,
       genre: book.genre, pageSize: book.pageSize,
