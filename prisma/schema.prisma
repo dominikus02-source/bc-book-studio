@@ -25,10 +25,32 @@ model Chapter {
   position  Int
   title     String
   content   String   @db.Text
+  revisions Revision[] @relation("ChapterRevisions")
+  currentRevisionId String? @unique
+  currentRevision Revision? @relation("CurrentRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([bookId, position])
 }
+model Revision {
+  id          String         @id @default(cuid())
+  chapterId   String
+  chapter     Chapter        @relation("ChapterRevisions", fields: [chapterId], references: [id], onDelete: Cascade)
+  currentFor  Chapter?       @relation("CurrentRevision")
+  version     Int
+  blocks      Json
+  contentHash String
+  authorId    String?
+  source      RevisionSource
+  createdAt   DateTime       @default(now())
+  @@unique([chapterId, version])
+}
+
+enum RevisionSource {
+  human
+  ai
+}
+
 model Review {
   id        String   @id @default(cuid())
   bookId    String

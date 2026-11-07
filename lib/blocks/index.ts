@@ -5,7 +5,7 @@ const base = z.object({ id: z.cuid() });
 
 const blockSchema = z.discriminatedUnion("type", [
   base.extend({ type: z.literal("heading"), level: z.union([z.literal(2), z.literal(3), z.literal(4)]), text }),
-  base.extend({ type: z.literal("paragraph"), text }),
+  base.extend({ type: z.literal("paragraph"), text: z.string() }),
   base.extend({ type: z.literal("list"), kind: z.enum(["ordered", "bullet"]), items: z.array(text).min(1) }),
   base.extend({ type: z.literal("example"), text }),
   base.extend({
