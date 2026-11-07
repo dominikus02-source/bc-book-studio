@@ -67,3 +67,25 @@ This is an early functional MVP.
 ## License
 
 Private / internal use for BahasaCerdas. Contact the maintainer for questions.
+
+## Kontrak blok bab untuk CRUD editorial
+
+`lib/blocks` menyediakan validasi Zod, konversi ke teks, hitung kata, dan
+render HTML. Setiap blok memakai CUID unik dalam bab. `type` membedakan jenis
+blok dan `exerciseType` membedakan jenis soal. Teks alternatif gambar dan
+kunci jawaban wajib diisi. Renderer isi bab menyimpan kunci jawaban untuk
+diolah terpisah oleh tahap ekspor. Referensi `assets/<assetId>` harus
+dipetakan oleh pipeline ekspor ke aset buku.
+
+Pemetaan mengacu pada `agents/AGENT_ROUTING_MATRIX.md` dan
+`agents/PROMPT_TEMPLATE_STANDARD.md` di branch
+`feat/agent-orchestrator-book-flow`. Penulis (`author`) mengusulkan blok
+naskah, Latihan dan Asesmen (`exercise`) memasok soal beserta kunci, dan
+Ilustrasi dan Visual (`visual`) memasok referensi aset serta teks alternatif.
+Penjamin Mutu (`qa`) dapat memakai hasil validasi sebagai bukti struktur.
+Tata Letak (`layout`) memakai hasil render ketika pipeline ekspor terhubung.
+Persetujuan editorial tetap melalui alur review manusia yang sudah ada.
+
+Jalankan `npm test` untuk memeriksa kontrak blok. CRUD bab lama masih memakai
+teks. Langkah berikutnya adalah revisi append-only, migrasi isi lama, dan
+penguncian versi sebelum blok dihubungkan ke penyimpanan.
