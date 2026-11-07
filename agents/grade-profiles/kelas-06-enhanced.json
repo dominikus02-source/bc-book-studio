@@ -1,0 +1,33 @@
+{
+  "id": "grade_06",
+  "grade": 6,
+  "schoolLevel": "SD",
+  "fase": "C",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase C (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis, istilah mata pelajaran, kata konotatif, variasi bahasa sederhana",
+    "sentenceLengthBand": "kalimat majemuk kompleks sederhana, 12-18 kata",
+    "readingComplexityBand": "teks 250-500 kata, berbagai tipe teks, multimodal",
+    "abstractionBand": "semi-abstrak ke abstrak, konsep, argumentasi sederhana"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "3-4 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca kritis sederhana", "menulis teks terstruktur", "diskusi kelompok", "analisis unsur intrinsik", "presentasi", "proyek kecil"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek", "portofolio", "observasi diskusi"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Menganalisis informasi, membedakan fakta dan opini, memahami makna tersirat.",
+    "writing": "Berbagai tipe teks dengan struktur dan ejaan yang lebih baik.",
+    "listeningSpeaking": "Berpartisipasi aktif, menyampaikan dan menanggapi gagasan dengan alasan.",
+    "inclusivity": "Scaffolding, dukungan adaptif, waktu tambahan."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase C Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Wajib ditelaah ahli pendidikan sebelum produksi."
+  },
+  "note": "Deskripsi kualitatif awal berdasarkan fase C. Bukan nilai final."
+}

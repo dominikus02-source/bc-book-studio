@@ -1,0 +1,33 @@
+{
+  "id": "grade_09",
+  "grade": 9,
+  "schoolLevel": "SMP",
+  "fase": "D",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase D (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis lebih luas, istilah teknis sederhana, variasi bahasa, retorika dasar",
+    "sentenceLengthBand": "kalimat majemuk kompleks, 15-22 kata",
+    "readingComplexityBand": "teks 400-800 kata, berbagai tipe teks, multimodal, teks sastra",
+    "abstractionBand": "abstrak, konsep, argumentasi, evaluasi gagasan"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "3-5 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca kritis", "menulis berbagai tipe teks", "diskusi dan debat sederhana", "analisis unsur intrinsik dan ekstrinsik dasar", "presentasi", "proyek"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek", "portofolio", "observasi"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Menginterpretasi dan mulai mengevaluasi gagasan serta pandangan dalam teks.",
+    "writing": "Berbagai tipe teks dengan struktur, ejaan, dan kohesi yang lebih baik.",
+    "listeningSpeaking": "Berpartisipasi aktif, menyampaikan argumentasi sederhana, menanggapi secara santun.",
+    "inclusivity": "Scaffolding, dukungan adaptif, waktu tambahan."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase D Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Wajib ditelaah ahli pendidikan sebelum produksi."
+  },
+  "note": "Deskripsi kualitatif awal berdasarkan fase D. Bukan nilai final."
+}

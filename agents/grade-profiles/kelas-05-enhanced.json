@@ -1,0 +1,33 @@
+{
+  "id": "grade_05",
+  "grade": 5,
+  "schoolLevel": "SD",
+  "fase": "C",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase C (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata lebih luas termasuk akademis dasar, istilah bidang, sinonim/antonim",
+    "sentenceLengthBand": "kalimat majemuk setara dan bertingkat, 10-16 kata",
+    "readingComplexityBand": "teks 200-400 kata, narasi, eksposisi sederhana, teks multimodal",
+    "abstractionBand": "semi-abstrak, hubungan sebab-akibat, opini sederhana"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "3-4 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca intensif", "menulis teks pendek", "diskusi", "analisis unsur intrinsik", "presentasi"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek kecil", "portofolio", "observasi"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Memahami informasi, mengidentifikasi ide pokok dan detail, mulai mengevaluasi teks sederhana.",
+    "writing": "Teks narasi, deskriptif, dan eksposisi pendek dengan struktur yang lebih baik.",
+    "listeningSpeaking": "Menyimak paparan, berpartisipasi aktif dalam diskusi, menyampaikan pendapat dengan alasan.",
+    "inclusivity": "Scaffolding, dukungan visual adaptif, waktu tambahan, alternatif format."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase C (Kelas 5-6) Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif berdasarkan fase C. Wajib validasi ahli."
+  },
+  "note": "Struktur diperkaya. Parameter kuantitatif membutuhkan penetapan ahli."
+}

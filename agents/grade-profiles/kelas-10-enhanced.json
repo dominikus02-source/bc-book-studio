@@ -1,0 +1,33 @@
+{
+  "id": "grade_10",
+  "grade": 10,
+  "schoolLevel": "SMA",
+  "fase": "E",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase E (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis dan profesional dasar, istilah bidang, retorika, variasi bahasa",
+    "sentenceLengthBand": "kalimat kompleks, 15-25 kata",
+    "readingComplexityBand": "teks 500-1000+ kata, berbagai tipe (akademis, sastra, multimodal), teks argumentatif",
+    "abstractionBand": "abstrak, konsep kompleks, argumentasi, evaluasi, pemikiran kritis"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "4-6 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca kritis", "menulis akademis/argumentatif", "diskusi dan debat", "analisis sastra", "presentasi", "proyek", "penelitian sederhana"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek", "portofolio", "presentasi", "observasi"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Memahami, mengolah, menginterpretasi, dan mulai mengevaluasi berbagai tipe teks.",
+    "writing": "Teks argumentatif, eksposisi, dan akademis dengan struktur dan bahasa yang baik.",
+    "listeningSpeaking": "Berpartisipasi aktif dalam diskusi akademis, menyampaikan dan mengevaluasi gagasan.",
+    "inclusivity": "Scaffolding, dukungan adaptif, waktu tambahan, alternatif format."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase E (Kelas 10) Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif berdasarkan fase E. Wajib validasi ahli."
+  },
+  "note": "Struktur diperkaya. Parameter kuantitatif membutuhkan penetapan ahli."
+}

@@ -1,0 +1,33 @@
+{
+  "id": "grade_02",
+  "grade": 2,
+  "schoolLevel": "SD",
+  "fase": "A",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase A (BSKAP; verifikasi wajib ke dokumen resmi terbaru)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata konkret sehari-hari + kata baru dari cerita, kata kerja dan sifat sederhana",
+    "sentenceLengthBand": "kalimat sederhana dan majemuk setara pendek, 5-10 kata",
+    "readingComplexityBand": "teks pendek 40-100 kata, cerita bergambar, instruksi 2 langkah",
+    "abstractionBand": "sangat konkret, pengalaman langsung, visual dominan"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "1-2 langkah jelas",
+    "visualSupport": "high",
+    "activityTypes": ["cerita bergambar", "menyimak cerita", "menulis kalimat sederhana", "berbicara tentang pengalaman", "permainan kata", "membaca nyaring"],
+    "assessmentTypes": ["observasi", "unjuk kerja sederhana", "portofolio gambar+tulisan", "tes lisan pendek"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Membaca kata dan kalimat sederhana dengan fasih, memahami cerita pendek dengan ilustrasi.",
+    "writing": "Menulis kalimat sederhana tentang pengalaman dengan ejaan dasar yang benar.",
+    "listeningSpeaking": "Menyimak cerita, menjawab pertanyaan, menceritakan kembali secara sederhana.",
+    "inclusivity": "Dukungan visual tinggi, instruksi berulang, waktu lebih lama, alternatif non-tulis."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Keputusan Kepala BSKAP tentang Capaian Pembelajaran Kurikulum Merdeka (verifikasi ke dokumen resmi terbaru wajib)"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif awal berdasarkan fase A. Wajib ditelaah ahli pendidikan dan dipetakan ke dokumen kurikulum resmi sebelum dipakai produksi."
+  },
+  "note": "Parameter kuantitatif dan rubrik wajib ditetapkan melalui validasi ahli. Bukan nilai final."
+}

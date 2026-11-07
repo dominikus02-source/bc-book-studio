@@ -1,0 +1,33 @@
+{
+  "id": "grade_03",
+  "grade": 3,
+  "schoolLevel": "SD",
+  "fase": "B",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase B (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata sehari-hari yang lebih luas, kata baru dari teks, sinonim sederhana",
+    "sentenceLengthBand": "kalimat majemuk setara dan sederhana, 6-12 kata",
+    "readingComplexityBand": "teks 80-200 kata, narasi dan informatif pendek, instruksi 2-3 langkah",
+    "abstractionBand": "konkret ke semi-konkret, pengalaman dan lingkungan sekitar"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "2-3 langkah",
+    "visualSupport": "high",
+    "activityTypes": ["membaca nyaring dan senyap", "menulis paragraf pendek", "diskusi sederhana", "cerita ulang", "identifikasi ide pokok"],
+    "assessmentTypes": ["observasi", "unjuk kerja", "portofolio", "tes tertulis singkat", "tes lisan"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Membaca fasih, memahami ide pokok dan detail teks narasi/informatif pendek.",
+    "writing": "Menulis paragraf sederhana tentang pengalaman atau pengamatan.",
+    "listeningSpeaking": "Menyimak dan menyampaikan gagasan secara lisan dengan lebih terstruktur.",
+    "inclusivity": "Dukungan visual, scaffolding, waktu tambahan, alternatif format."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase B (Kelas 3-4) Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif berdasarkan fase B. Wajib validasi ahli sebelum produksi."
+  },
+  "note": "Struktur diperkaya. Nilai kuantitatif masih membutuhkan penetapan ahli."
+}

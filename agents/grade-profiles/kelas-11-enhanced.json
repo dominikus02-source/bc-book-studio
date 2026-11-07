@@ -1,0 +1,33 @@
+{
+  "id": "grade_11",
+  "grade": 11,
+  "schoolLevel": "SMA",
+  "fase": "F",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase F (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis dan profesional, istilah teknis, retorika, variasi bahasa, bahasa sastra",
+    "sentenceLengthBand": "kalimat kompleks dan beragam, 18-30 kata",
+    "readingComplexityBand": "teks panjang dan kompleks, berbagai tipe (akademis, sastra, multimodal, kritis)",
+    "abstractionBand": "sangat abstrak, konsep kompleks, argumentasi mendalam, evaluasi kritis, refleksi"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "4-7 langkah",
+    "visualSupport": "adaptive",
+    "activityTypes": ["membaca kritis dan evaluatif", "menulis akademis/argumentatif/reflektif", "diskusi dan debat", "analisis sastra mendalam", "presentasi", "proyek penelitian", "produksi teks multimodal"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "proyek", "portofolio", "presentasi", "observasi", "penilaian diri"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Mengevaluasi gagasan dan pandangan berdasarkan kaidah logika; mengapresiasi teks fiksi dan nonfiksi.",
+    "writing": "Berbagai tipe teks kompleks untuk berbagai tujuan, termasuk refleksi dan aktualisasi diri.",
+    "listeningSpeaking": "Berpartisipasi aktif, mengevaluasi dan mengkreasi gagasan secara lisan.",
+    "inclusivity": "Scaffolding, dukungan adaptif, waktu tambahan, alternatif format."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase F (Kelas 11-12) Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Deskripsi kualitatif berdasarkan fase F. Wajib validasi ahli pendidikan."
+  },
+  "note": "Struktur diperkaya. Nilai kuantitatif membutuhkan penetapan ahli."
+}

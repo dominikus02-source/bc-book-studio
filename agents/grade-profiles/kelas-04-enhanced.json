@@ -1,0 +1,33 @@
+{
+  "id": "grade_04",
+  "grade": 4,
+  "schoolLevel": "SD",
+  "fase": "B",
+  "status": "draft",
+  "curriculumFrameworkVersion": "Kurikulum Merdeka - Capaian Pembelajaran Bahasa Indonesia Fase B (BSKAP; verifikasi wajib)",
+  "languageComplexity": {
+    "vocabularyBand": "kosakata akademis dasar, istilah sederhana, kata konotatif awal",
+    "sentenceLengthBand": "kalimat majemuk, 8-14 kata",
+    "readingComplexityBand": "teks 150-300 kata, narasi, deskriptif, informatif",
+    "abstractionBand": "semi-konkret, mulai memahami konsep sederhana"
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": "2-3 langkah",
+    "visualSupport": "medium-high",
+    "activityTypes": ["membaca intensif", "menulis paragraf", "diskusi kelompok kecil", "identifikasi unsur intrinsik dasar", "presentasi sederhana"],
+    "assessmentTypes": ["tes tertulis", "unjuk kerja", "portofolio", "observasi diskusi"]
+  },
+  "pedagogicalNotes": {
+    "reading": "Memahami ide pokok, detail, dan makna tersirat sederhana; membedakan fakta dan opini dasar.",
+    "writing": "Teks narasi dan deskriptif dengan struktur lebih jelas.",
+    "listeningSpeaking": "Berpartisipasi dalam diskusi dan menyampaikan pendapat dengan alasan sederhana.",
+    "inclusivity": "Dukungan visual adaptif, scaffolding, waktu tambahan."
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": ["Capaian Pembelajaran Bahasa Indonesia Fase B Kurikulum Merdeka"],
+    "reviewedAt": null,
+    "notes": "DRAFT. Wajib validasi ahli pendidikan sebelum dipakai produksi."
+  },
+  "note": "Deskripsi kualitatif awal. Bukan nilai final."
+}
