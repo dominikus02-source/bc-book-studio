@@ -31,6 +31,14 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      - name: Resolve image revision
+        id: rev
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -43,8 +51,8 @@ jobs:
           context: .
           target: runtime
           load: true
-          tags: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
-          build-args: REVISION=${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}:sha-${{ steps.rev.outputs.sha }}
+          build-args: REVISION=${{ steps.rev.outputs.sha }}
           cache-from: type=gha,scope=bookstudio-runtime
           cache-to: type=gha,mode=max,scope=bookstudio-runtime
       - name: Build separate migration tooling
@@ -52,21 +60,21 @@ jobs:
         with:
           context: .
           target: migrator
-          build-args: REVISION=${{ github.sha }}
+          build-args: REVISION=${{ steps.rev.outputs.sha }}
           load: true
-          tags: ghcr.io/${{ github.repository }}-migrator:sha-${{ github.sha }}
+          tags: ghcr.io/${{ github.repository }}-migrator:sha-${{ steps.rev.outputs.sha }}
           cache-from: type=gha,scope=bookstudio-runtime
       - name: Test migrations and runtime image
         env:
-          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
-          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ github.sha }}
+          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ steps.rev.outputs.sha }}
+          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ steps.rev.outputs.sha }}
         run: bash scripts/verify-release-images.sh
       - name: Publish verified image archive for VPS
         if: startsWith(github.ref, 'refs/tags/bookstudio-rc-')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
-          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ github.sha }}
+          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ steps.rev.outputs.sha }}
+          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ steps.rev.outputs.sha }}
         run: |
           set -euo pipefail
           docker save "$WEB_IMAGE" "$MIGRATOR_IMAGE" | gzip -1 > bookstudio-images.tar.gz
@@ -82,8 +90,8 @@ jobs:
       - name: Publish verified immutable images
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/bookstudio-rc-') || github.head_ref == 'feat/studio-xlsx-md-form-crud-20261106'
         env:
-          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
-          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ github.sha }}
+          WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ steps.rev.outputs.sha }}
+          MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ steps.rev.outputs.sha }}
         run: |
           set -euo pipefail
           docker push "$WEB_IMAGE"
