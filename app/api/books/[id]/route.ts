@@ -7,12 +7,14 @@ const edit = z.object({
   title: z.string().trim().min(3).max(250).optional(),
   grade: z.string().trim().min(1).max(40).optional(),
   subject: z.string().trim().min(2).max(120).optional(),
-  description: z.string().max(4000).optional(),
+  description: z.string().max(12000).optional(),
   author: z.string().trim().min(2).max(180).optional(),
+  bookType:z.enum(["FICTION","NONFICTION"]).optional(),
+  genre:z.enum(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY","TEXTBOOK","REFERENCE","GUIDE","WORKBOOK"]).optional(),
   pageSize: z.enum(["A4","A5","B5"]).optional(),
   editorialStage: z.enum(["BRIEF","OUTLINE","WRITING","EDITING","REVIEW","LAYOUT"]).optional(),
   editorialChecks: z.record(z.string().max(40),z.boolean()).optional()
-}).strict().refine(v => Object.keys(v).length > 0);
+}).strict().refine(v => Object.keys(v).length > 0).refine(v=>!(v.bookType||v.genre)||(Boolean(v.bookType)&&Boolean(v.genre)&&(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"].includes(v.genre!)===(v.bookType==="FICTION"))),"Jenis buku dan genre harus sesuai dan diperbarui bersama.");
 type Ctx = { params: Promise<{ id: string }> };
 export async function GET(req: NextRequest, { params }: Ctx) {
   const user = await sessionUser(req); if (!user) return deny();

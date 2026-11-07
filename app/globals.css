@@ -146,3 +146,24 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 :root[data-theme=dark] .auth-screen .auth-links a{color:#b8c9ff}
 :root[data-theme=dark] .auth-screen .auth-card>p,
 :root[data-theme=dark] .auth-screen .auth-bottom{color:#dce6f6}
+
+/* Structured form transfer: accessible, responsive, shared by book, chapter, AI and studio drafts */
+.form-transfer{border:1px solid var(--line,#cbd5e1);border-radius:15px;background:var(--panel,#fff);padding:16px;margin:16px 0;max-width:100%;min-width:0}
+.form-transfer-header{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;color:var(--ink,#17202b)}
+.form-transfer-header strong{font-size:14px}.form-transfer-header span,.form-transfer-caption{font-size:12px;line-height:1.6;color:var(--muted,#526277)}
+.form-transfer-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.form-transfer-actions button,.form-transfer-upload{display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.form-transfer-upload{cursor:pointer;position:relative}
+.form-transfer-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.form-transfer-upload:focus-within{outline:3px solid #e9aa40;outline-offset:3px}
+.form-transfer-error,.form-transfer-success{padding:10px 12px;border-radius:8px;font-size:13px;white-space:pre-wrap}
+.form-transfer-error{color:#fff;background:#7f1d1d}.form-transfer-success{color:#fff;background:#166534}
+.form-transfer-preview{border-top:1px solid var(--line,#cbd5e1);padding-top:12px}
+.form-transfer-preview dl{display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,2fr);max-height:260px;overflow:auto;gap:0}
+.form-transfer-preview dt,.form-transfer-preview dd{margin:0;padding:8px;border-bottom:1px solid var(--line,#cbd5e1);overflow-wrap:anywhere;font-size:12px;white-space:pre-wrap}
+.form-transfer-preview dt{font-weight:700}
+.form-draft-manager{margin-bottom:20px}.form-draft-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+:root[data-theme=dark] .form-transfer{background:#1a2942;border-color:#64748b}
+:root[data-theme=dark] .form-transfer-header,:root[data-theme=dark] .form-transfer-preview dt{color:#edf3ff}
+:root[data-theme=dark] .form-transfer-header span,:root[data-theme=dark] .form-transfer-caption{color:#d3e0f5}
+@media(max-width:600px){.form-draft-controls{grid-template-columns:1fr}.form-transfer{padding:12px}.form-transfer-actions button,.form-transfer-upload{flex:1 1 135px;justify-content:center}.form-transfer-preview dl{grid-template-columns:1fr}}

@@ -137,6 +137,7 @@ model StudioUser {
   sessions StudioSession[]
   tokens StudioAuthToken[]
   assignedBooks BookReviewer[]
+  formDrafts StudioFormDraft[]
 }
 model StudioSession {
   id String @id @default(cuid())
@@ -157,4 +158,16 @@ model StudioAuthToken {
   usedAt DateTime?
   createdAt DateTime @default(now())
   @@index([userId, purpose, createdAt])
+}
+
+model StudioFormDraft {
+  id String @id @default(cuid())
+  ownerId String
+  owner StudioUser @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+  module String
+  title String
+  payload Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ownerId,module,updatedAt])
 }
