@@ -25,7 +25,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await redirectPage.getByLabel("Kata sandi").fill(password);
   await redirectPage.getByRole("button",{name:/Masuk ke Studio/}).click();
   await redirectPage.waitForURL(url=>url.pathname==="/studio"&&url.searchParams.get("module")==="Kurikulum",{timeout:15000});
-  assert(await redirectPage.locator(".form-draft-manager").isVisible(),"Module not restored after login");
+  await redirectPage.locator(".form-draft-manager").waitFor({state:"visible",timeout:15000});
   await redirectContext.close();
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:390,height:844}});
   await login(context,users[0].email);
@@ -152,7 +152,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
     assert(await panel.locator('input[type="file"]').count()===1,module+" missing file input");
     await page.reload();
     assert.equal(new URL(page.url()).searchParams.get("module"),module,"Module deep link not persisted after reload");
-    assert(await page.locator(".form-draft-manager").isVisible(),"Module form missing after reload: "+module);
+    await page.locator(".form-draft-manager").waitFor({state:"visible",timeout:15000});
   }
   await page.getByRole("button",{name:"Buka menu"}).click();
   await page.getByRole("button",{name:"Buat Buku",exact:true}).click();
