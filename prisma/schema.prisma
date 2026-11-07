@@ -26,6 +26,8 @@ model Book {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   approvedAt DateTime?
+  publication BookPublication?
+  reviewNotes ReviewerNote[]
   @@index([ownerId, updatedAt])
 }
 model Chapter {
@@ -170,4 +172,29 @@ model StudioFormDraft {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([ownerId,module,updatedAt])
+}
+model BookPublication {
+  id String @id @default(cuid())
+  bookId String @unique
+  book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+  publishedById String
+  publishedAt DateTime @default(now())
+  unpublishedAt DateTime?
+  version Int @default(1)
+  snapshot Json
+  @@index([unpublishedAt,publishedAt])
+}
+model ReviewerNote {
+ id String @id @default(cuid())
+ bookId String
+ book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+ reviewerId String
+ chapterId String?
+ category String @default("CONTENT")
+ severity String @default("SUGGESTION")
+ status String @default("OPEN")
+ content String @db.Text
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([bookId,reviewerId,createdAt])
 }

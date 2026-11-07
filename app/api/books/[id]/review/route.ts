@@ -27,6 +27,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    if(!assigned)return fail("Not authorized",403);
    if(book.status!=="REVIEW")return fail("Invalid transition",409);
    if(!note.trim())return fail("Review note required",400);
+   if(action==="approve"&&await tx.reviewerNote.count({where:{bookId:id,severity:"CRITICAL",status:"OPEN"}}))return fail("Resolve all critical review findings before approval",409);
   }
   const status=action==="submit"?"REVIEW":action==="approve"?"APPROVED":"DRAFT";
   const updated=await tx.book.update({where:{id},data:{status,approvedAt:status==="APPROVED"?new Date():null}});

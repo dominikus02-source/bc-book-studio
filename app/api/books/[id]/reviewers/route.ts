@@ -10,7 +10,8 @@ export async function GET(req:NextRequest,{params}:Ctx){
  const book=await db.book.findFirst({where:{id,ownerId:user.id},select:{id:true}});
  if(!book)return error("Not found",404);
  const assigned=await db.bookReviewer.findMany({where:{bookId:id},include:{reviewer:{select:{name:true,email:true,role:true}}}});
- return NextResponse.json({reviewers:assigned.map(a=>({id:a.id,reviewerId:a.reviewerId,name:a.reviewer.name,email:a.reviewer.email,role:a.reviewer.role,assignedAt:a.assignedAt}))},{headers:{"Cache-Control":"no-store"}});
+ const available=await db.studioUser.findMany({where:{active:true,role:{in:["REVIEWER","ADMIN"]},id:{not:user.id}},select:{id:true,name:true,email:true,role:true},orderBy:[{name:"asc"},{email:"asc"}],take:200});
+ return NextResponse.json({reviewers:assigned.map(a=>({id:a.id,reviewerId:a.reviewerId,name:a.reviewer.name,email:a.reviewer.email,role:a.reviewer.role,assignedAt:a.assignedAt})),available:available.map(a=>({...a,assigned:assigned.some(r=>r.reviewerId===a.id)}))},{headers:{"Cache-Control":"no-store"}});
 }
 export async function POST(req:NextRequest,{params}:Ctx){
  const user=await sessionUser(req);if(!user)return deny();
