@@ -17,7 +17,18 @@ import {paginateDocx} from "../../../../../lib/pagination-docx";
 import {paperSizes,paperSpec,mmToPt,mmToTwips} from "../../../../../lib/paper-sizes";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-function xml(s: string) { return s.replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "'" }[c] ?? c)); }
+function xml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case "&": return "&";
+      case "<": return "<";
+      case ">": return ">";
+      case '"': return """;
+      case "'": return "'";
+      default: return c;
+    }
+  });
+}
 function slug(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0,60) || "buku"; }
 function wrap(text: string, font: { widthOfTextAtSize: (text: string, size: number) => number }, max: number, size: number) {
   const result: string[] = [];
