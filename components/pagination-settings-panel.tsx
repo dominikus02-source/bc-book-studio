@@ -67,10 +67,31 @@ export default function PaginationSettingsPanel({bookId}:{bookId:string}){
        <button className="secondary-button" type="button" disabled={busy} onClick={()=>void load()}>Muat ulang</button>
        <button className="secondary-button" type="button" disabled={busy||!snapshot?.saved} onClick={()=>{if(window.confirm("Pulihkan pagination default untuk buku ini?"))void save("DELETE")}}>Reset default</button>
       </div>
-      {dirty&&<p role="status">Ada perubahan yang belum disimpan.</p>}
+      {dirty&&<p role="status">Ada perubahan yang belum disimpan. Pratinjau di bawah ini menampilkan rancangan, belum hasil simpan.</p>}
      </fieldset>
+     <PaginationLivePreview value={value} dirty={dirty}/>
     </>}
    </div>
   </details>
+ </section>;
+}
+
+function PaginationLivePreview({value,dirty}:{value:PaginationSettings;dirty:boolean}){
+ const paper={background:"#fff",color:"#253044",border:"1px solid #cbd5e1",borderRadius:8,minHeight:218,aspectRatio:"3 / 4",padding:15,display:"flex",flexDirection:"column" as const,justifyContent:"space-between" as const,boxShadow:"0 3px 10px #00000014",minWidth:0};
+ const folio=(number:string,mode:"center"|"outer"|"top",odd:boolean)=>(
+  <div style={{width:"100%",display:"flex",justifyContent:mode==="center"?"center":odd?"flex-end":"flex-start",fontSize:11}}>{number}</div>
+ );
+ const header=(odd:boolean)=><div style={{minHeight:18,fontSize:10,textAlign:odd?"right":"left" as const,borderBottom:"1px solid #e2e8f0"}}>{value.runningHeaders?(odd?"JUDUL BUKU":"BAB 1 • PENDAHULUAN"):""}</div>;
+ return <section aria-label="Pratinjau langsung pagination" style={{display:"grid",gap:12}}>
+  <div><h3 style={{margin:0}}>Pratinjau langsung</h3><p className="panel-desc" aria-live="polite">Setiap pilihan langsung mengubah simulasi halaman. {dirty?"Belum disimpan; klik Simpan perubahan untuk menerapkan ke buku.":"Sesuai konfigurasi yang dimuat."}</p></div>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,155px),1fr))",gap:12}}>
+   <div><small>Sampul</small><div style={paper}><div/><div style={{textAlign:"center"}}><strong>JUDUL BUKU</strong><p>Nama Penulis</p></div><div style={{textAlign:"center",fontSize:10}}>Penerbit</div></div><small>Tanpa nomor halaman</small></div>
+   <div><small>Daftar isi</small><div style={paper}><div style={{fontSize:11}}><strong>DAFTAR ISI</strong><hr/><p>Prakata ........ i</p><p>Bab 1 ........ 1</p><p>Bab 2 ........ 13</p><small>{value.autoUpdateToc?"Daftar isi otomatis aktif":"Pembaruan daftar isi otomatis nonaktif"}</small></div>{folio("ii","center",false)}</div><small>Romawi kecil</small></div>
+   {value.chapterStart==="recto"&&<div><small>Sisipan halaman genap</small><div style={paper}><div/><small style={{textAlign:"center",color:"#94a3b8"}}>Halaman kosong agar bab dimulai di kanan</small><div/></div><small>Aturan mulai bab: ganjil</small></div>}
+   <div><small>Halaman pembuka bab</small><div style={paper}><div>{header(true)}<div style={{marginTop:33,textAlign:"center"}}><strong>BAB 1</strong><h4>Pendahuluan</h4><div style={{height:4,background:"#e2e8f0",margin:"20px 8px"}}/></div></div>{value.chapterOpeningFolio==="hidden"?<div style={{minHeight:14}}/>:folio("1",value.chapterOpeningFolio==="outer"?"outer":"center",true)}</div><small>{value.chapterOpeningFolio==="hidden"?"Folio disembunyikan, tetap dihitung":value.chapterOpeningFolio==="outer"?"Nomor di sisi luar":"Nomor bawah tengah"}</small></div>
+   <div><small>Isi bab — halaman genap</small><div style={paper}><div>{header(false)}{value.normalFolioPosition==="top"&&folio("2","top",false)}<p style={{fontSize:11,lineHeight:1.65,marginTop:17}}>Materi bab dimulai di sini. Paragraf berikutnya mengikuti tata letak dan ukuran halaman buku.</p></div>{value.normalFolioPosition==="top"?<div/>:folio("2",value.normalFolioPosition==="outer"?"outer":"center",false)}</div><small>{value.normalFolioPosition==="center"?"Nomor tengah":value.normalFolioPosition==="outer"?"Genap kiri":"Nomor di header"}</small></div>
+   <div><small>Isi bab — halaman ganjil</small><div style={paper}><div>{header(true)}{value.normalFolioPosition==="top"&&folio("3","top",true)}<p style={{fontSize:11,lineHeight:1.65,marginTop:17}}>Materi berlanjut. Posisi nomor mengikuti sisi luar pada halaman ganjil.</p></div>{value.normalFolioPosition==="top"?<div/>:folio("3",value.normalFolioPosition==="outer"?"outer":"center",true)}</div><small>{value.normalFolioPosition==="center"?"Nomor tengah":value.normalFolioPosition==="outer"?"Ganjil kanan":"Nomor di header"}</small></div>
+  </div>
+  <p className="panel-desc">Simulasi editorial, bukan render PDF final. Ekspor Stage 2 memakai pengaturan tersimpan melalui database; berkas yang sudah dibuat perlu digenerasi ulang setelah penyimpanan.</p>
  </section>;
 }
