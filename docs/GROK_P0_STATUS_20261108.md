@@ -11,7 +11,7 @@ Audit and incremental progress on P0 items from the handoff task. No production 
 |---|---|---|
 | 1. TypeScript / Prisma sync, typecheck/lint/build | BLOCKED / PARTIAL | Schema on wip branch already includes BookPagination, ExportJob, IsbnApplication, etc. Full typecheck/build/E2E not runnable in this remote session (no local Node + Postgres + full deps). Recommend isolated local `npm run typecheck && npm run build` on this branch. |
 | 2. Export engine 5 formats (PDF/DOCX/EPUB/HTML/Flipbook) | PARTIAL | Route `app/api/books/[id]/export/route.ts` supports all five + Quarto preferred path + fallbacks + pagination helpers. Synchronous ZIP disabled in favor of jobs. **Improvement:** PDF fallback now logs a clear Unicode warning and sets `X-PDF-Fallback: limited-fonts`. Invalid format error is clearer. Visual/artifact validation of real books NOT RUN here. |
-| 3. Job queue (queued/running/progress/retry/cancel/download) | PARTIAL | Models + routes (`export-jobs/*`) + `scripts/export-worker.cjs` + `lib/export-job-runner` already exist. **Improvement:** worker now isolates per-batch errors (continues after transient failure), logs start/batch/exit, and handles SIGINT/SIGTERM more clearly. Worker requires EXPORT_ARTIFACT_DIR + QUARTO_WORKER_URL in production. Runtime verification NOT RUN. |
+| 3. Job queue (queued/running/progress/retry/cancel/download) | PARTIAL | Models + routes (`export-jobs/*`) + `scripts/export-worker.cjs` + `lib/export-job-runner` already exist. **Improvements:** worker isolates per-batch errors and logs clearly; export-jobs routes now have clearer Indonesian validation/cancel/download integrity messages and safer body checks. Worker requires EXPORT_ARTIFACT_DIR + QUARTO_WORKER_URL in production. Runtime verification NOT RUN. |
 | 4. Database / backup / RBAC / ownership | PARTIAL | Schema has ownerId, archivedAt, sessions, roles, ISBN ownership, etc. Existing scripts (audit-route-rbac, backup-database.ps1, etc.) present. Full migration + restore rehearsal NOT RUN in this session. |
 
 ## Files observed (VERIFIED on branch)
@@ -23,8 +23,11 @@ Audit and incremental progress on P0 items from the handoff task. No production 
 
 ## Changes in this PR
 - docs/GROK_P0_STATUS_20261108.md — honest evidence matrix
-- scripts/export-worker.cjs — per-batch error isolation, clearer logging, graceful shutdown (commit 56e6c90)
-- app/api/books/[id]/export/route.ts — PDF fallback Unicode warning + header, clearer format error (commit c52bcf1)
+- scripts/export-worker.cjs — per-batch error isolation, clearer logging, graceful shutdown (56e6c90)
+- app/api/books/[id]/export/route.ts — PDF fallback Unicode warning + header, clearer format error (c52bcf1)
+- app/api/books/[id]/export-jobs/route.ts — clearer validation and job creation (26be658)
+- app/api/books/[id]/export-jobs/[jobId]/route.ts — clearer cancel/status messages (9671c21)
+- app/api/books/[id]/export-jobs/[jobId]/download/route.ts — clearer integrity and missing-file errors (b569428)
 
 ## Tests actually run
 NONE in this remote session. Local recommended next steps:
@@ -51,4 +54,4 @@ Existing sessionUser + ownerId checks observed. No secrets added. No production 
 3. Address any typecheck/build failures before merging.
 4. Do not merge to main or deploy without explicit GO and all gates PASS.
 
-Status overall: **PARTIAL** (implementation scaffolding present + concrete robustness improvements; verification blocked in this environment).
+Status overall: **PARTIAL** (implementation scaffolding present + concrete robustness improvements on export path; verification blocked in this environment).
