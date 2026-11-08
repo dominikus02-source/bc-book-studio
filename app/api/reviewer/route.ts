@@ -4,7 +4,14 @@ import {sessionUser,deny} from "../../../lib/auth";
 export const runtime="nodejs";
 export async function GET(req:NextRequest){
  const actor=await sessionUser(req);if(!actor)return deny();
- if(!["REVIEWER","ADMIN"].includes(actor.role))return NextResponse.json({error:"Forbidden"},{status:403});
- const assignments=await db.bookReviewer.findMany({where:{reviewerId:actor.id,book:{ownerId:{not:actor.id}}},orderBy:{assignedAt:"desc"},include:{book:{include:{chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},reviews:{orderBy:{createdAt:"desc"}},reviewNotes:{where:{reviewerId:actor.id},orderBy:{createdAt:"desc"}}}}}});
- return NextResponse.json({viewer:{email:actor.email,role:actor.role},assignments:assignments.map(a=>({assignedAt:a.assignedAt,book:a.book}))},{headers:{"Cache-Control":"no-store"}});
+ const reviewer=["REVIEWER","ADMIN"].includes(actor.role);
+ const books=await db.book.findMany({
+  where:{archivedAt:null,OR:[{ownerId:actor.id},...(reviewer?[{assignedReviewers:{some:{reviewerId:actor.id}}}]:[])]},
+  orderBy:{updatedAt:"desc"},
+  include:{chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},reviews:{orderBy:{createdAt:"desc"}},
+   reviewNotes:{where:{status:{not:"ARCHIVED"}},orderBy:{createdAt:"desc"}}}
+ });
+ return NextResponse.json({viewer:{id:actor.id,email:actor.email,role:actor.role},
+  assignments:books.map(book=>({book:{...book,isOwner:book.ownerId===actor.id,canReview:reviewer&&book.ownerId!==actor.id}}))
+ },{headers:{"Cache-Control":"no-store"}});
 }

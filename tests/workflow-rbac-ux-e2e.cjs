@@ -6,7 +6,7 @@ const {chromium}=require("playwright");
 const fs=require("node:fs/promises");
 const database=new URL(process.env.DATABASE_URL);
 assert.equal(database.host+database.pathname,"127.0.0.1:55999/bookstudio_import_qa");
-const db=new PrismaClient(),origin="http://127.0.0.1:32979",users=[],books=[];
+const db=new PrismaClient(),origin=process.env.REVIEW_QA_ORIGIN||"http://127.0.0.1:32979",users=[],books=[];
 let browser;
 async function actor(role){
  const user=await db.studioUser.create({data:{role,active:true,name:"Workflow QA",email:randomBytes(12).toString("hex")+"@example.invalid"}});
@@ -98,9 +98,9 @@ async function main(){
  await call("/api/reviewer/notes",403,owner,data);
  await call("/api/reviewer/notes",403,admin,data);
  const note=(await call("/api/reviewer/notes",201,reviewer,data)).note;
- await call("/api/reviewer/notes/"+note.id,404,admin,{status:"RESOLVED"},"PATCH");
+ await call("/api/reviewer/notes/"+note.id,404,admin,{status:"RESOLVED",expectedVersion:note.updatedAt},"PATCH");
  await call(path+"/review",409,reviewer,{action:"approve",note:"Masih ada catatan kritis"});
- await call("/api/reviewer/notes/"+note.id,200,reviewer,{status:"RESOLVED"},"PATCH");
+ await call("/api/reviewer/notes/"+note.id,200,reviewer,{status:"RESOLVED",expectedVersion:note.updatedAt},"PATCH");
  assert.equal(await db.review.count({where:{bookId:book.id,decision:"note:update"}}),1);
  const results=await Promise.all([
   call("/api/reviewer/notes",null,reviewer,{...data,content:"Catatan kritis bersamaan dengan persetujuan."}),
@@ -112,11 +112,11 @@ async function main(){
   assert.equal(await db.reviewerNote.count({where:{bookId:book.id,status:"OPEN",severity:"CRITICAL"}}),0);
  }else{
   assert.equal(results[0].status,201);assert.equal(results[1].status,409);
-  await call("/api/reviewer/notes/"+results[0].note.id,200,reviewer,{status:"RESOLVED"},"PATCH");
+  await call("/api/reviewer/notes/"+results[0].note.id,200,reviewer,{status:"RESOLVED",expectedVersion:results[0].note.updatedAt},"PATCH");
   await call(path+"/review",200,reviewer,{action:"approve",note:"Catatan telah diselesaikan"});
  }
  await call("/api/reviewer/notes",409,reviewer,data);
- await call("/api/reviewer/notes/"+note.id,409,reviewer,{content:"Tidak boleh setelah ditutup"},"PATCH");
+ await call("/api/reviewer/notes/"+note.id,409,reviewer,{content:"Tidak boleh setelah ditutup",expectedVersion:note.updatedAt},"PATCH");
  assert.equal((await call(path+"/workflow",200,owner)).stages[4].available,true);
  console.log("PASS locked review assignments, independent reviewer, critical-note gate, audit and concurrent note/approval serialization");
 }

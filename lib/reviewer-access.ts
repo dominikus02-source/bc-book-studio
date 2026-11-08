@@ -8,6 +8,6 @@ export async function reviewerAccess(req:NextRequest,bookId:string,client:Prisma
  const assigned=await client.bookReviewer.findUnique({where:{bookId_reviewerId:{bookId,reviewerId:actor.id}}});
  if(!assigned)return null;
  const book=await client.book.findUnique({where:{id:bookId}});
- if(!book||book.ownerId===actor.id)return null;
+ if(!book||book.archivedAt||book.ownerId===actor.id)return null;
  return {actor,book};
 }

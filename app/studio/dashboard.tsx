@@ -42,8 +42,8 @@ const modules = [
 
 export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
   const { books, error: booksError, loading, refresh } = useBooks();
-  const visibleNavigation=navigation.filter(item=>(item.label!=="Review Naskah"||role==="REVIEWER"||role==="ADMIN")&&(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
-  const primaryNavigation=[{label:"Dasbor",title:"Beranda",icon:Boxes},{label:"Buat Buku",title:"Buat Buku Baru",icon:BookOpen},{label:"Proyek Buku",title:"Buku Saya",icon:FolderOpen},{label:"Tata Letak",title:"Tata Letak",icon:LayoutTemplate},{label:"Review Naskah",title:"Review & Persetujuan",icon:ShieldCheck},{label:"Pengaturan",title:"Pengaturan",icon:Settings2},{label:"ISBN & Legalitas",title:"ISBN & Legalitas Penerbit",icon:ShieldCheck}].filter(item=>(item.label!=="Review Naskah"||role==="REVIEWER"||role==="ADMIN")&&(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
+  const visibleNavigation=navigation.filter(item=>(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
+  const primaryNavigation=[{label:"Dasbor",title:"Beranda",icon:Boxes},{label:"Buat Buku",title:"Buat Buku Baru",icon:BookOpen},{label:"Proyek Buku",title:"Buku Saya",icon:FolderOpen},{label:"Tata Letak",title:"Tata Letak",icon:LayoutTemplate},{label:"Review Naskah",title:"Review & Persetujuan",icon:ShieldCheck},{label:"Pengaturan",title:"Pengaturan",icon:Settings2},{label:"ISBN & Legalitas",title:"ISBN & Legalitas Penerbit",icon:ShieldCheck}].filter(item=>(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
   const workflow=[{name:"Ide",modules:["Proyek Buku","Idea Lab"]},{name:"Rancang",modules:["Rancang","Kurikulum"]},{name:"Tulis",modules:["Studio Penulisan","Studio Latihan","Studio Visual"]},{name:"Review",modules:["Penyuntingan","Review Naskah"]},{name:"Terbit",modules:["Tata Letak","Penerbitan"]}];
   const [workflowOpen,setWorkflowOpen]=useState(false);
   const [layoutView,setLayoutView]=useState<"editor"|"formats">("editor");
@@ -74,6 +74,7 @@ export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
   function navigateTo(module:string,bookId?:string){
     if(!visibleNavigation.some(item=>item.label===module))return;
     setActive(module);
+    if(bookId)setWorkflowBookId(bookId);
     const url=new URL(window.location.href);
     url.searchParams.set("module",module);
     if(bookId||workflowBookId)url.searchParams.set("bookId",bookId||workflowBookId);
@@ -139,7 +140,7 @@ export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
         </>}
       </section>}
 
-      {active==="Review Naskah"?<ReviewerWorkspace/>:active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Mulai dari gagasan sederhana. Rincian buku dapat Anda lengkapi sambil berjalan.</p></div><BlankBookForm onCreated={created=>{setWorkflowBookId(created.id);void refresh();navigateTo("Proyek Buku",created.id);}}/></>:active==="Dasbor"?<>
+      {active==="Review Naskah"?<ReviewerWorkspace initialBookId={workflowBookId} onSelectBook={id=>navigateTo("Review Naskah",id)} onNavigate={navigateTo}/>:active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Mulai dari gagasan sederhana. Rincian buku dapat Anda lengkapi sambil berjalan.</p></div><BlankBookForm onCreated={created=>{setWorkflowBookId(created.id);void refresh();navigateTo("Proyek Buku",created.id);}}/></>:active==="Dasbor"?<>
         <div style={{marginBottom:21}}><h1 className="page-title">Selamat datang di ruang penerbitan</h1><p className="page-sub">Rancang, tulis, periksa, dan terbitkan buku dalam satu alur kerja.</p></div>
         <section className="welcome"><div><div className="eyebrow">PUSAT KENDALI PENERBITAN</div><h2>Dari gagasan menjadi karya bermutu.</h2><p>Kelola brief, kerangka, naskah, pemeriksaan editorial, tata letak, dan publikasi dengan jejak penyimpanan serta kendali editor manusia.</p></div><div className="welcome-mark">BC</div></section>
         <div className="stats">{[["Proyek buku",String(books.length),"Buku milik Anda",FolderOpen],["Sedang ditinjau",String(books.filter(b=>b.status==="REVIEW").length),"Buku menunggu keputusan reviewer",ShieldCheck],["Naskah disetujui",String(books.filter(b=>b.status==="APPROVED").length),"Persetujuan editorial",BookOpen],["Draf aktif",String(books.filter(b=>b.status==="DRAFT").length),"Proyek yang masih dapat diedit",PenLine]].map(([label,value,note,Icon])=>{const I=Icon as typeof Activity;return <div className="stat" key={label as string}><div className="stat-top"><span>{label as string}</span><span className="stat-icon"><I size={15}/></span></div><div className="stat-value" style={{fontSize:(value as string).length>5?17:24}}>{value as string}</div><div className="stat-note">{note as string}</div></div>;})}</div>
