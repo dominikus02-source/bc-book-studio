@@ -5,6 +5,9 @@ type Snapshot={type:"snapshot";bookId:string;chapterId:string;title:string;html:
 export default function LivePreviewPage(){
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
  const [ids,setIds]=useState<{book:string;chapter:string}|null>(null);
+ const [now,setNow]=useState(()=>Date.now());
+ const [refreshCount,setRefreshCount]=useState(0);
+ const [lastReceivedAt,setLastReceivedAt]=useState<number|null>(null);
  useEffect(()=>{
   const params=new URLSearchParams(window.location.search);
   const book=params.get("bookId")||"",chapter=params.get("chapterId")||"";
@@ -13,18 +16,23 @@ export default function LivePreviewPage(){
   const channel=new BroadcastChannel("bcstudio:live-preview:"+book+":"+chapter);
   channel.onmessage=event=>{
    const data=event.data as Partial<Snapshot>;
-   if(data?.type==="snapshot"&&data.bookId===book&&data.chapterId===chapter&&typeof data.html==="string"&&typeof data.title==="string")setSnapshot(data as Snapshot);
+   if(data?.type==="snapshot"&&data.bookId===book&&data.chapterId===chapter&&typeof data.html==="string"&&typeof data.title==="string"&&["serif","sans"].includes(data.font||"")&&["small","medium","large"].includes(data.size||"")){
+    setSnapshot(data as Snapshot);
+    setLastReceivedAt(Date.now());
+   }
   };
   const request=()=>channel.postMessage({type:"request"});
   request();
   const onVisibility=()=>{if(document.visibilityState==="visible")request()};
   document.addEventListener("visibilitychange",onVisibility);
-  return ()=>{document.removeEventListener("visibilitychange",onVisibility);channel.close()};
- },[]);
+  const heartbeat=window.setInterval(()=>{setNow(Date.now());request()},4000);
+  return ()=>{window.clearInterval(heartbeat);document.removeEventListener("visibilitychange",onVisibility);channel.close()};
+ },[refreshCount]);
+ const disconnected=lastReceivedAt!==null&&now-lastReceivedAt>12000;
  return <main className="live-book-preview-shell">
   <header className="live-book-preview-header">
    <div><strong>Pratinjau langsung · Studio Penulisan</strong><p>Perubahan blok, judul, dan gaya mengikuti editor secara langsung.</p></div>
-   <div className="live-book-preview-actions"><span role="status" aria-live="polite">{!snapshot?"Menunggu editor":snapshot.dirty?"Belum tersimpan":"Tersinkronisasi"}</span><button type="button" className="secondary-button" onClick={()=>window.close()}>Tutup tab</button></div>
+   <div className="live-book-preview-actions"><span role="status" aria-live="polite">{disconnected?"Koneksi editor terputus":!snapshot?"Menunggu editor":snapshot.dirty?"Belum tersimpan":"Tersinkronisasi"}</span><button type="button" className="secondary-button" onClick={()=>{setNow(Date.now());setRefreshCount(value=>value+1)}}>Sambungkan ulang</button><button type="button" className="secondary-button" onClick={()=>window.close()}>Tutup tab</button></div>
   </header>
   {!ids?.book||!ids?.chapter?<p role="alert">Buka pratinjau dari tab Studio Penulisan.</p>:snapshot?
    <article className={"writing-preview-paper font-"+snapshot.font+" size-"+snapshot.size} aria-label={"Pratinjau "+snapshot.title}><div dangerouslySetInnerHTML={{__html:snapshot.html}}/></article>:
