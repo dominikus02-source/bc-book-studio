@@ -6,20 +6,33 @@ if(process.env.NODE_ENV!=="production"&&!process.env.DATABASE_URL&&fs.existsSync
 const {db}=require(path.join(base,"lib","db.ts"));
 const {runExportJobBatch,expireOldExportArtifacts}=require(path.join(base,"lib","export-job-runner.ts"));
 let stopping=false;
-process.on("SIGINT",()=>{stopping=true});process.on("SIGTERM",()=>{stopping=true});
+process.on("SIGINT",()=>{console.log("Export worker received SIGINT, finishing current batch");stopping=true});
+process.on("SIGTERM",()=>{console.log("Export worker received SIGTERM, finishing current batch");stopping=true});
 function delay(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function main(){
+ console.log("Export worker starting",process.env.NODE_ENV||"development",process.argv.includes("--once")?"(once)":"(loop)");
  if(process.env.NODE_ENV==="production"){
   if(!process.env.EXPORT_ARTIFACT_DIR||!process.env.QUARTO_WORKER_URL)throw Error("Production worker needs persistent EXPORT_ARTIFACT_DIR and isolated QUARTO_WORKER_URL");
  }
- let total=0,lastCleanup=0;
+ let total=0,lastCleanup=0,errors=0;
  do{
-  if(Date.now()-lastCleanup>3600000){await expireOldExportArtifacts();lastCleanup=Date.now()}
-  const completed=await runExportJobBatch(process.argv.includes("--once")?1:5);
-  total+=completed;
+  try{
+   if(Date.now()-lastCleanup>3600000){
+    console.log("Export worker running artifact cleanup");
+    await expireOldExportArtifacts();
+    lastCleanup=Date.now();
+   }
+   const completed=await runExportJobBatch(process.argv.includes("--once")?1:5);
+   if(completed>0)console.log("Export worker processed batch of",completed,"job(s)");
+   total+=completed;
+  }catch(e){
+   errors++;
+   console.error("Export worker batch error (will continue)",e instanceof Error?e.message:e);
+   if(errors>20)throw Error("Too many consecutive batch errors");
+  }
   if(process.argv.includes("--once"))break;
-  if(!completed)await delay(3000);
+  if(!stopping)await delay(3000);
  }while(!stopping);
- console.log("Export worker exit, processed",total,"job(s)");
+ console.log("Export worker exit, processed",total,"job(s), batch errors",errors);
 }
-main().catch(e=>{console.error("Export worker fatal",e instanceof Error?e.message:e);process.exitCode=1}).finally(async()=>{await db.$disconnect()});
+main().catch(e=>{console.error("Export worker fatal",e instanceof Error?e.message:e);process.exitCode=1}).finally(async()=>{try{await db.$disconnect()}catch{}});
