@@ -12,9 +12,18 @@ model Book {
   grade String
   subject String
   description String @default("")
+  targetAudience String @default("")
+  writingGoal String @default("")
+  archivedAt DateTime?
   status BookStatus @default(DRAFT)
   chapters Chapter[]
   reviews Review[]
+  briefRevisions BookBriefRevision[]
+  approvalSnapshots BookApprovalSnapshot[]
+  publishingEvidence BookPublishingEvidence[]
+  exportJobs ExportJob[]
+  pagination BookPagination?
+  isbnApplications IsbnApplication[]
   assignedReviewers BookReviewer[]
   assets BookAsset[]
   bookType String @default("NONFICTION")
@@ -29,7 +38,18 @@ model Book {
   publication BookPublication?
   reviewNotes ReviewerNote[]
   @@index([ownerId, updatedAt])
+  @@index([ownerId, archivedAt])
 }
+model BookBriefRevision {
+  id String @id @default(cuid())
+  bookId String
+  book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+  actorId String
+  snapshot Json
+  createdAt DateTime @default(now())
+  @@index([bookId,createdAt])
+}
+
 model Chapter {
   id String @id @default(cuid())
   bookId String
@@ -37,9 +57,12 @@ model Chapter {
   position Int
   title String
   content String @db.Text
+  outlineObjective String @default("")
+  archivedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   revisions ChapterRevision[]
+  outlineSections OutlineSection[]
   @@unique([bookId, position])
 }
 model ChapterRevision {
@@ -48,6 +71,7 @@ model ChapterRevision {
   chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   title String
   content String @db.Text
+  outlineObjective String @default("")
   revision Int
   createdAt DateTime @default(now())
   @@unique([chapterId, revision])
@@ -65,6 +89,9 @@ model BookAsset {
   altText String
   license String
   sourceUrl String?
+  archivedAt DateTime?
+  updatedAt DateTime @updatedAt
+  revisions BookAssetRevision[]
   createdAt DateTime @default(now())
   @@index([bookId, createdAt])
 }
@@ -114,6 +141,22 @@ model ProviderCredential {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+model AiUsageEvent {
+  id String @id @default(cuid())
+  credentialId String
+  provider String
+  model String
+  purpose String
+  actorId String?
+  inputTokens Int?
+  outputTokens Int?
+  totalTokens Int?
+  reported Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([credentialId,createdAt])
+  @@index([createdAt])
+  @@index([actorId,createdAt])
+}
 model CredentialAudit {
   id String @id @default(cuid())
   actorId String
@@ -140,6 +183,10 @@ model StudioUser {
   tokens StudioAuthToken[]
   assignedBooks BookReviewer[]
   formDrafts StudioFormDraft[]
+  exportJobs ExportJob[]
+  isbnEvents IsbnEvent[]
+  isbnDocuments IsbnDocument[]
+  publisherDocuments PublisherDocument[]
 }
 model StudioSession {
   id String @id @default(cuid())
@@ -197,4 +244,241 @@ model ReviewerNote {
  createdAt DateTime @default(now())
  updatedAt DateTime @updatedAt
  @@index([bookId,reviewerId,createdAt])
+}
+
+model BookPagination {
+  bookId String @id
+  settings Json
+  version Int @default(1)
+  updatedAt DateTime @updatedAt
+  book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+}
+
+model BookLayout {
+  bookId String
+  approvedAt DateTime
+  version Int @default(1)
+  settings Json
+  archivedAt DateTime?
+  updatedAt DateTime @updatedAt
+  approval BookApprovalSnapshot @relation(fields:[bookId,approvedAt],references:[bookId,approvedAt],onDelete:Restrict)
+
+  @@id([bookId,approvedAt])
+}
+
+model BookApprovalSnapshot {
+  bookId String
+  approvedAt DateTime
+  reviewerId String
+  manuscript Json
+  layout BookLayout?
+  book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@id([bookId, approvedAt])
+}
+
+
+model OutlineSection {
+  id String @id @default(cuid())
+  bookId String
+  chapterId String
+  chapter Chapter @relation(fields:[chapterId],references:[id],onDelete:Cascade)
+  parentId String?
+  parent OutlineSection? @relation("OutlineHierarchy",fields:[parentId],references:[id],onDelete:Cascade)
+  children OutlineSection[] @relation("OutlineHierarchy")
+  position Int
+  title String
+  objective String
+  content String @default("") @db.Text
+  genreTarget String @default("NONFICTION")
+  accessTier String @default("DRAFT")
+  archivedAt DateTime?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  revisions OutlineSectionRevision[]
+  @@index([chapterId,parentId,archivedAt,position])
+  @@index([bookId,archivedAt])
+}
+model OutlineSectionRevision {
+  id String @id @default(cuid())
+  sectionId String
+  section OutlineSection @relation(fields:[sectionId],references:[id],onDelete:Cascade)
+  actorId String
+  action String
+  snapshot Json
+  createdAt DateTime @default(now())
+  @@index([sectionId,createdAt])
+}
+
+
+model BookAssetRevision {
+  id String @id @default(cuid())
+  assetId String
+  asset BookAsset @relation(fields:[assetId],references:[id],onDelete:Cascade)
+  actorId String
+  action String
+  metadata Json
+  createdAt DateTime @default(now())
+  @@index([assetId,createdAt])
+}
+
+
+/// Append-only submission and independent review trail for publishing evidence.
+/// An older approval or layout version remains in history but is never current proof.
+model BookPublishingEvidence {
+  id String @id @default(cuid())
+  bookId String
+  book Book @relation(fields:[bookId],references:[id],onDelete:Restrict)
+  actorId String
+  kind String
+  status String
+  approvedAt DateTime
+  layoutVersion Int
+  referenceUrl String?
+  isbn String?
+  checksum String?
+  validator String?
+  validatorVersion String?
+  artifactBytes Int?
+  note String @db.Text
+  reviewedSubmissionId String?
+  createdAt DateTime @default(now())
+  @@index([bookId,kind,approvedAt,layoutVersion,createdAt])
+  @@index([bookId,createdAt])
+}
+
+model ExportJob {
+ id String @id @default(cuid())
+ bookId String
+ book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+ ownerId String
+ owner StudioUser @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+ status String @default("QUEUED")
+ preview Boolean @default(true)
+ sizes Json
+ progress Int @default(0)
+ currentStep String @default("Queued")
+ cancellationRequested Boolean @default(false)
+ leaseUntil DateTime?
+ attempts Int @default(0)
+ error String?
+ resultBytes Int?
+ resultSha256 String?
+ startedAt DateTime?
+ finishedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([ownerId,createdAt])
+ @@index([status,leaseUntil])
+}
+
+
+model PublisherProfile {
+ id String @id @default("bci-publisher")
+ legalName String @default("PT Bahasa Cerdas Indonesia")
+ imprintName String @default("Bahasa Cerdas Indonesia")
+ directorName String @default("")
+ legalAddress String @default("") @db.Text
+ correspondenceAddress String @default("") @db.Text
+ email String @default("")
+ phone String @default("")
+ officialWebsite String @default("")
+ catalogWebsite String @default("")
+ nib String @default("")
+ kbli String @default("")
+ decreeNumber String @default("")
+ deedNumber String @default("")
+ perpusnasAccountStatus String @default("NOT_REGISTERED")
+ perpusnasReference String @default("")
+ approvalNote String @default("") @db.Text
+ updatedById String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ applications IsbnApplication[]
+ documents PublisherDocument[]
+}
+
+model IsbnApplication {
+ id String @id @default(cuid())
+ publisherId String @default("bci-publisher")
+ publisher PublisherProfile @relation(fields:[publisherId],references:[id],onDelete:Restrict)
+ bookId String
+ book Book @relation(fields:[bookId],references:[id],onDelete:Restrict)
+ createdById String
+ title String
+ subtitle String @default("")
+ authorNames String @default("")
+ language String @default("id")
+ editionNumber Int @default(1)
+ format String @default("PRINT")
+ binding String @default("PAPERBACK")
+ paperSize String @default("a5")
+ imprint String @default("Bahasa Cerdas Indonesia")
+ plannedPublicationYear Int?
+ catalogUrl String @default("")
+ territory String @default("GLOBAL")
+ rightsBasis String @default("ORIGINAL")
+ originalWorkReference String @default("")
+ externalReference String @default("")
+ officialEvidenceUrl String @default("")
+ isbn13 String? @unique
+ kdtReference String @default("")
+ barcodeReference String @default("")
+ status String @default("DRAFT")
+ submittedAt DateTime?
+ issuedAt DateTime?
+ publishedAt DateTime?
+ note String @default("") @db.Text
+ archivedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ events IsbnEvent[]
+ documents IsbnDocument[]
+ @@index([bookId,createdAt])
+ @@index([status,updatedAt])
+}
+
+model IsbnDocument {
+ id String @id @default(cuid())
+ applicationId String
+ application IsbnApplication @relation(fields:[applicationId],references:[id],onDelete:Cascade)
+ uploaderId String
+ uploader StudioUser @relation(fields:[uploaderId],references:[id],onDelete:Restrict)
+ kind String
+ filename String
+ mime String
+ bytes Bytes @db.ByteA
+ size Int
+ sha256 String
+ createdAt DateTime @default(now())
+ @@index([applicationId,kind,createdAt])
+}
+
+model IsbnEvent {
+ id String @id @default(cuid())
+ applicationId String
+ application IsbnApplication @relation(fields:[applicationId],references:[id],onDelete:Cascade)
+ actorId String
+ actor StudioUser @relation(fields:[actorId],references:[id],onDelete:Restrict)
+ action String
+ detail Json
+ createdAt DateTime @default(now())
+ @@index([applicationId,createdAt])
+}
+
+model PublisherDocument {
+ id String @id @default(cuid())
+ publisherId String
+ publisher PublisherProfile @relation(fields:[publisherId],references:[id],onDelete:Restrict)
+ uploaderId String
+ uploader StudioUser @relation(fields:[uploaderId],references:[id],onDelete:Restrict)
+ kind String
+ filename String
+ mime String
+ bytes Bytes @db.ByteA
+ size Int
+ sha256 String
+ archivedAt DateTime?
+ createdAt DateTime @default(now())
+ @@index([publisherId,kind,createdAt])
 }

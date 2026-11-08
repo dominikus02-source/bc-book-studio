@@ -13,7 +13,7 @@ function worksheet(rows:string[][],widths:number[]){
  '<worksheet xmlns="'+NS+'"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
  '<sheetFormatPr defaultRowHeight="17"/><cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join("")+'</cols><sheetData>'+lines+'</sheetData><autoFilter ref="A1:'+String.fromCharCode(64+widths.length)+rows.length+'"/></worksheet>';
 }
-export async function makeFormWorkbook(fields:readonly Field[],values:Record<string,string|boolean>):Promise<Uint8Array>{
+export async function makeFormWorkbook(fields:readonly Field[],values:Record<string,string|boolean>,context=""):Promise<Uint8Array>{
  const zip=new JSZip();
  zip.file("[Content_Types].xml",'<?xml version="1.0" encoding="UTF-8"?>'+
  '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
@@ -36,7 +36,7 @@ export async function makeFormWorkbook(fields:readonly Field[],values:Record<str
  '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/></cellXfs></styleSheet>');
  const rows=[["field_id","Nama isian","Nilai (edit kolom ini)","Petunjuk"],...fields.map(f=>[f.key,f.label,f.type==="boolean"?(values[f.key]===true?"Ya":"Tidak"):String(values[f.key]??""),f.hint||""])];
  zip.file("xl/worksheets/sheet1.xml",worksheet(rows,[30,37,62,62]));
- zip.file("xl/worksheets/sheet2.xml",worksheet([["BC BOOK STUDIO | PANDUAN IMPOR XLSX"],["Edit hanya kolom C pada sheet FORM."],["Jangan ubah field_id pada kolom A; jangan menambah rumus atau hyperlink."],["File hanya dibaca di memori browser. Tidak dikirim ke server."],["Periksa pratinjau sebelum klik Terapkan ke form dan Simpan."],["Maksimal 1 MB; jangan masukkan password, token, atau API key."]],[109]));
+ zip.file("xl/worksheets/sheet2.xml",worksheet([["BC BOOK STUDIO | PANDUAN IMPOR XLSX"],["Edit hanya kolom C pada sheet FORM."],["Jangan ubah field_id pada kolom A; jangan menambah rumus atau hyperlink."],["File hanya dibaca di memori browser. Tidak dikirim ke server."],["Periksa pratinjau sebelum klik Terapkan ke form dan Simpan."],["Maksimal 1 MB; jangan masukkan password, token, atau API key."],...(context?[["KONTEKS PROYEK DAN PROMPT AI — salin bersama FORM ke AI."],...context.split("\n").map(line=>[line])]:[])],[109]));
  return zip.generateAsync({type:"uint8array",compression:"DEFLATE",compressionOptions:{level:5}});
 }
 function parseXml(input:string){

@@ -29,10 +29,13 @@
     }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next-qa-pdfworker/types/**/*.ts",
+    ".next-ui-qa/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-settings-qa/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

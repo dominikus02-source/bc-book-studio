@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-11-08T03:26:50.902Z",
+  "scope": "LOCAL_ARTIFACT_CHECK_ONLY",
+  "sourceSnapshot": "NOT_SUPPLIED",
+  "decision": "NO_GO",
+  "formats": [
+    {
+      "format": "docx",
+      "status": "NOT_RUN",
+      "message": "Tidak ada artefak untuk divalidasi; jangan menandai lulus."
+    },
+    {
+      "format": "pdf",
+      "status": "NOT_RUN",
+      "message": "Tidak ada artefak untuk divalidasi; jangan menandai lulus."
+    },
+    {
+      "format": "epub",
+      "status": "NOT_RUN",
+      "message": "Tidak ada artefak untuk divalidasi; jangan menandai lulus."
+    },
+    {
+      "format": "html",
+      "status": "NOT_RUN",
+      "message": "Tidak ada artefak untuk divalidasi; jangan menandai lulus."
+    },
+    {
+      "format": "flipbook",
+      "status": "NOT_RUN",
+      "message": "Tidak ada artefak untuk divalidasi; jangan menandai lulus."
+    }
+  ],
+  "warning": "Pemeriksaan struktur dasar atau suksesnya EPUBCheck tidak menyatakan sertifikasi resmi. Pemeriksaan artefak terhadap snapshot, aksesibilitas, lisensi, bukti manusia dan distribusi tetap wajib."
+}

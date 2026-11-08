@@ -1,0 +1,3 @@
+ALTER TABLE "Book"
+  ADD COLUMN "targetAudience" TEXT NOT NULL DEFAULT '',
+  ADD COLUMN "writingGoal" TEXT NOT NULL DEFAULT '';

@@ -1,0 +1,32 @@
+"use strict";
+const assert=require("node:assert/strict"),{PrismaClient}=require("@prisma/client"),{randomBytes,createHash}=require("node:crypto"),{chromium}=require("playwright");
+const u=new URL(process.env.DATABASE_URL||"");assert.equal(u.host+u.pathname,"127.0.0.1:55999/bookstudio_import_qa");
+const db=new PrismaClient(),origin="http://127.0.0.1:32979";let user,book,browser;
+async function main(){
+ user=await db.studioUser.create({data:{role:"EDITOR",active:true,name:"Asset UI QA",email:randomBytes(10).toString("hex")+"@example.invalid"}});
+ const token=randomBytes(32).toString("hex");await db.studioSession.create({data:{userId:user.id,tokenHash:createHash("sha256").update(token).digest("hex"),expiresAt:new Date(Date.now()+600000)}});
+ book=await db.book.create({data:{ownerId:user.id,title:"Aset UI QA",grade:"7",subject:"IPA",editorialStage:"WRITING",chapters:{create:{position:1,title:"Bab QA",outlineObjective:"Periksa gambar",content:"Teks awal lebih dari dua puluh karakter."}}},include:{chapters:true}});
+ const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jxioAAAAASUVORK5CYII=","base64");
+ const asset=await db.bookAsset.create({data:{bookId:book.id,name:"Gambar lama",altText:"Gambar awal dengan penjelasan",license:"OWNED",mime:"image/png",bytes:png,size:png.length,width:1,height:1}});
+ browser=await chromium.launch();const ctx=await browser.newContext({viewport:{width:390,height:900}});await ctx.addCookies([{name:"bcstudio_session",value:token,url:origin}]);
+ const page=await ctx.newPage();const errors=[];page.on("pageerror",e=>errors.push(e.message));page.on("dialog",dialog=>dialog.accept());
+ await page.goto(origin+"/studio?module=Studio+Penulisan&bookId="+book.id);
+ const manager=page.getByRole("region",{name:"CRUD metadata ilustrasi"});await manager.waitFor({timeout:45000});
+ await manager.getByRole("button",{name:"Ubah metadata"}).click();
+ await manager.getByLabel("Nama berkas").fill("Gambar revisi");
+ await manager.getByLabel("Teks alternatif").fill("Gambar ilustrasi dengan metadata revisi dan teks alternatif");
+ await manager.getByRole("button",{name:"Simpan metadata"}).click();
+ await manager.getByText("Gambar revisi",{exact:true}).first().waitFor({timeout:15000});
+ await manager.getByRole("button",{name:"Arsipkan"}).click();
+ await manager.getByText("Belum ada ilustrasi aktif.").waitFor({timeout:15000});
+ await manager.getByText(/Arsip ilustrasi/).click();
+ await manager.getByRole("button",{name:"Pulihkan"}).click();
+ await manager.getByText("Arsip ilustrasi (0)").waitFor({timeout:15000});
+ await manager.getByText("Gambar revisi",{exact:true}).first().waitFor({timeout:15000});
+ const current=await db.bookAsset.findUniqueOrThrow({where:{id:asset.id}});assert.equal(current.archivedAt,null);assert.equal(current.name,"Gambar revisi");
+ await page.evaluate(()=>{localStorage.setItem("bcstudio-theme","dark");document.documentElement.dataset.theme="dark"});
+ await page.reload();await manager.waitFor({timeout:15000});assert.equal(await page.evaluate(()=>document.documentElement.dataset.theme),"dark");
+ assert.deepEqual(errors,[]);
+ console.log("STAGE3_ASSET_UI_PASS: edit, archive, restore, persisted, dark mode, no browser errors");
+}
+main().catch(e=>{console.error("STAGE3_ASSET_UI_FAIL",e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();if(book)await db.book.deleteMany({where:{id:book.id}}).catch(()=>{});if(user)await db.studioUser.deleteMany({where:{id:user.id}}).catch(()=>{});await db.$disconnect()});

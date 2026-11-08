@@ -58,11 +58,17 @@ export async function activeProvider() {
  const record=await db.providerCredential.findFirst({where:{active:true}});
  if(!record)return null;
  const provider=providerSchema.parse(record.provider);
- return {provider,apiKey:decryptCredential(record.encryptedKey,record.id),model:record.model,endpoint:providerEndpoints[provider]};
+ return {id:record.id,provider,apiKey:decryptCredential(record.encryptedKey,record.id),model:record.model,endpoint:providerEndpoints[provider]};
 }
 export function safeMutation(req:Request) {
- const origin=req.headers.get("origin");
- if(origin&&origin!==new URL(req.url).origin&&origin!==process.env.STUDIO_PUBLIC_ORIGIN)return false;
+ const origin=req.headers.get("origin"),target=new URL(req.url);
+ if(origin&&origin!==target.origin&&origin!==process.env.STUDIO_PUBLIC_ORIGIN){
+  let local=false;
+  try{const from=new URL(origin);const hosts=["localhost","127.0.0.1"];
+   local=process.env.NODE_ENV!=="production"&&hosts.includes(from.hostname)&&hosts.includes(target.hostname)&&from.port===target.port&&from.protocol===target.protocol;
+  }catch{}
+  if(!local)return false;
+ }
  return req.headers.get("content-type")?.split(";")[0]==="application/json";
 }
 
@@ -70,7 +76,7 @@ type Message = {role:"system"|"user";content:string};
 export async function invokeProvider(
   provider: z.infer<typeof providerSchema>,
   model: string, apiKey: string, messages: Message[],
-  options: { maxTokens?: number; timeoutMs?: number } = {}
+  options: { maxTokens?: number; timeoutMs?: number; onUsage?:(usage:import("./ai-usage").ReportedUsage)=>Promise<void> } = {}
 ) {
   const endpoint = providerEndpoints[provider];
   const headers:Record<string,string> = {"Content-Type":"application/json"};
@@ -112,11 +118,13 @@ export async function invokeProvider(
     candidates?:{content?:{parts?:{text?:string}[]}}[];
     content?:{type?:string;text?:string}[];
   };
+
   const content=provider==="gemini"
     ? data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")
     : provider==="anthropic"
       ? data.content?.filter(p=>p.type==="text").map(p=>p.text||"").join("")
       : data.choices?.[0]?.message?.content;
   if(!content?.trim())throw Error("PROVIDER_EMPTY_RESPONSE");
+  if(options.onUsage){try{const {parseProviderUsage}=await import("./ai-usage");await options.onUsage(parseProviderUsage(provider,data))}catch{/* Telemetry must not interrupt content delivery. */}}
   return content.trim();
 }

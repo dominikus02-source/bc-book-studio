@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent,useEffect,useState } from "react";
 import FormTransfer,{type TransferField} from "./form-transfer";
+import AiTokenDashboard from "./ai-token-dashboard";
 const providerMetadataFields:TransferField[]=[{key:"provider",label:"Provider AI",maxLength:50},{key:"label",label:"Nama konfigurasi",maxLength:80},{key:"model",label:"ID model",maxLength:120},{key:"active",label:"Provider aktif",type:"boolean"}];
 const providerChoices=[
  ["openai","OpenAI","gpt-4.1-mini"],
@@ -18,6 +19,7 @@ export default function ProviderSettings(){
  const [items,setItems]=useState<Provider[]>([]),[loading,setLoading]=useState(true),[allowed,setAllowed]=useState(true),[ready,setReady]=useState(false);
  const [editing,setEditing]=useState<string|null>(null),[provider,setProvider]=useState("openai"),[label,setLabel]=useState(""),[model,setModel]=useState(""),[secret,setSecret]=useState(""),[active,setActive]=useState(false);
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
+ const [checks,setChecks]=useState<Record<string,{ready:boolean;liveVerified:boolean;active:boolean;message:string;checks:Record<string,boolean>}>>({});
  async function refresh(){
   const response=await fetch("/api/settings/providers",{cache:"no-store"});
   if(response.status===403){setAllowed(false);return}
@@ -38,13 +40,21 @@ export default function ProviderSettings(){
   }catch(e){setError(e instanceof Error?e.message:"Konfigurasi belum tersimpan.")}
   finally{setSecret("");setBusy(false)}
  }
+ async function check(item:Provider){
+  setBusy(true);setError("");setMessage("");
+  try{const response=await fetch("/api/settings/providers/"+item.id+"/check",{cache:"no-store"});const data=await response.json();if(!response.ok)throw Error(data.error||"Pemeriksaan gagal.");setChecks(previous=>({...previous,[item.id]:data}));setMessage(item.label+": "+data.message)}catch(e){setError(e instanceof Error?e.message:"Pemeriksaan gagal")}finally{setBusy(false)}
+ }
+ async function activate(item:Provider){
+  setBusy(true);setError("");setMessage("");
+  try{const response=await fetch("/api/settings/providers/"+item.id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({active:true})});const data=await response.json();if(!response.ok)throw Error(data.error||"Gagal mengganti model.");await refresh();setChecks({});setMessage("Model aktif diganti ke "+item.label+" ("+item.model+").");window.dispatchEvent(new Event("bc-provider-updated"))}catch(e){setError(e instanceof Error?e.message:"Gagal mengganti model")}finally{setBusy(false)}
+ }
  async function test(item:Provider){
   setBusy(true);setError("");setMessage("");
   try{
    const response=await fetch("/api/settings/providers/"+item.id+"/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
    const data=await response.json();
    if(!response.ok)throw Error(data.error||"Gagal menguji provider.");
-   if(data.ok)setMessage("Koneksi "+item.label+" berhasil. Tes singkat dapat memakai kuota API.");
+   if(data.ok){setMessage("Koneksi "+item.label+" berhasil. Tes singkat dapat memakai kuota API.");await check(item);window.dispatchEvent(new Event("bc-provider-updated"));}
    else setError(data.message||"Provider tidak dapat dihubungi.");
   }catch(e){setError(e instanceof Error?e.message:"Tes koneksi gagal")}
   finally{setBusy(false)}
@@ -61,16 +71,16 @@ export default function ProviderSettings(){
  }
  if(loading)return <section className="panel"><p>Memuat konfigurasi AI...</p></section>;
  if(!allowed)return <section className="panel"><h3 className="panel-title">Layanan AI</h3><p>Konfigurasi provider dikelola oleh pengelola studio.</p></section>;
- return <section className="panel"><h3 className="panel-title">API key dan provider AI</h3><p className="panel-desc">Key disimpan terenkripsi dalam database. Hanya empat karakter terakhir yang ditampilkan. Pilih satu provider aktif sebagai otak penulisan buku. Gunakan Tes koneksi untuk memastikan model dan key tersedia.</p>
+ return <div className="workspace-stack"><section className="panel"><h3 className="panel-title">API key dan provider AI</h3><p className="panel-desc">Key disimpan terenkripsi dalam database. Hanya empat karakter terakhir yang ditampilkan. Simpan beberapa konfigurasi, termasuk beberapa model pada provider yang sama. Hanya satu model aktif pada satu waktu. Gunakan Cek kesiapan sebelum Tes koneksi (Tes koneksi memakai API).</p>
  {message&&<p role="status">{message}</p>}{error&&<p role="alert">{error}</p>}
  {!ready&&<p role="alert">Penyimpanan rahasia belum siap. Hubungi pengelola server.</p>}
- <div>{items.length===0?<p>Belum ada API key. Studio tetap bisa digunakan untuk menulis dan menyimpan buku secara manual.</p>:items.map(item=><div className="provider-row" key={item.id}><div style={{minWidth:0,overflowWrap:"anywhere"}}><strong>{item.label}</strong><p>{item.provider} · {item.model} · ••••{item.lastFour}</p><span className="status">{item.active?"Aktif":"Nonaktif"}</span></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button className="secondary-button" disabled={busy} onClick={()=>edit(item)} aria-label={"Ubah "+item.label}>Ubah</button><button className="secondary-button" disabled={busy||!ready} onClick={()=>test(item)} aria-label={"Tes koneksi "+item.label}>Tes koneksi</button><button className="secondary-button" disabled={busy} onClick={()=>remove(item)} aria-label={"Hapus "+item.label}>Hapus</button></div></div>)}</div>
+ <div>{items.length===0?<p>Belum ada API key. Studio tetap bisa digunakan untuk menulis dan menyimpan buku secara manual.</p>:items.map(item=><div className="provider-row" key={item.id}><div style={{minWidth:0,overflowWrap:"anywhere"}}><strong>{item.label}</strong><p>{item.provider} · {item.model} · ••••{item.lastFour}</p><span className="status">{item.active?"Aktif":"Nonaktif"}</span></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{!item.active&&<button type="button" className="primary-button" disabled={busy} onClick={()=>void activate(item)} aria-label={"Aktifkan "+item.label}>Aktifkan model</button>}<button type="button" className="secondary-button" disabled={busy} onClick={()=>edit(item)} aria-label={"Ubah "+item.label}>Ubah</button><button type="button" className="secondary-button" disabled={busy} onClick={()=>void check(item)} aria-label={"Cek kesiapan "+item.label}>Cek kesiapan</button><button className="secondary-button" disabled={busy||!ready} onClick={()=>test(item)} aria-label={"Tes koneksi "+item.label}>Tes koneksi</button><button className="secondary-button" disabled={busy} onClick={()=>remove(item)} aria-label={"Hapus "+item.label}>Hapus</button></div>{checks[item.id]&&<div role="status" className="form-hint" style={{marginTop:7}}><strong>{checks[item.id].ready?"Konfigurasi siap":"Belum siap"}</strong> · {checks[item.id].liveVerified?"API terverifikasi":"Koneksi belum diverifikasi / perlu diuji ulang"}<p>{checks[item.id].message}</p></div>}</div>)}</div>
  <form onSubmit={save} style={{marginTop:24}}><h4>{editing?"Ubah konfigurasi provider":"Tambah provider"}</h4><FormTransfer name="Metadata provider AI (tanpa API key)" fields={providerMetadataFields} values={{provider,label,model,active}} onApply={r=>{if(!editing&&typeof r.provider==="string"&&providerChoices.some(x=>x[0]===r.provider))setProvider(r.provider);if(typeof r.label==="string")setLabel(r.label);if(typeof r.model==="string")setModel(r.model);if(typeof r.active==="boolean")setActive(r.active)}} disabled={busy} hint="File hanya memuat nama, model, dan status provider. API key wajib dimasukkan manual secara rahasia; tidak pernah disalin ke XLSX atau Markdown."/><div className="form-grid two">
  <label className="studio-field"><span>Provider AI</span><select value={provider} disabled={Boolean(editing)||busy} onChange={e=>{const next=e.target.value;setProvider(next);setModel(providerChoices.find(x=>x[0]===next)?.[2]||"")}}>{providerChoices.map(([id,name,example])=><option key={id} value={id}>{name} · {example}</option>)}</select></label>
  <label className="studio-field"><span>Nama konfigurasi</span><input required minLength={2} maxLength={80} value={label} onChange={e=>setLabel(e.target.value)} placeholder="Contoh: Penulis utama"/></label>
  <label className="studio-field"><span>ID model</span><input required maxLength={120} value={model} onChange={e=>setModel(e.target.value)} placeholder="ID model dari dashboard provider"/></label>
  <label className="studio-field"><span>API key provider</span><input type="password" autoComplete="new-password" spellCheck={false} required={!editing} minLength={16} maxLength={4096} value={secret} onChange={e=>setSecret(e.target.value)} placeholder={editing?"Kosongkan untuk mempertahankan key":"Masukkan key secara privat"}/></label>
- </div><label style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0"}}><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Gunakan sebagai provider aktif</label>
+ </div><label style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0"}}><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Jadikan konfigurasi ini sebagai model aktif</label>
  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="submit" className="primary-button" disabled={busy||!ready}>{busy?"Menyimpan...":"Simpan provider"}</button>{editing&&<button type="button" className="secondary-button" disabled={busy} onClick={reset}>Batal</button>}</div>
- <p className="form-hint">Model dan saldo mengikuti akun provider. Nama model harus sesuai izin akun. Tes koneksi mengirim prompt singkat yang dapat menggunakan kuota; batas harian studio tetap berlaku.</p></form></section>;
+ <p className="form-hint">Model dan saldo mengikuti akun provider. Nama model harus sesuai izin akun. Tes koneksi mengirim prompt singkat yang dapat menggunakan kuota; batas harian studio tetap berlaku.</p></form></section><AiTokenDashboard/></div>;
 }

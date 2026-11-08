@@ -1,3 +1,4 @@
+import {recordAiUsage} from "../../../../../lib/ai-usage";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "../../../../../lib/db";
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const ownerId = await identity(req);
   if (!ownerId) return deny();
   const { id } = await params;
-  const book = await db.book.findFirst({ where: { id, ownerId } });
+  const book = await db.book.findFirst({ where: { id, ownerId, archivedAt:null } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   if (book.status !== "DRAFT") return NextResponse.json({ error: "Book must be a draft" }, { status: 409 });
   const parsed = schema.safeParse(await req.json().catch(() => null));
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         bookTitle:book.title,grade:book.grade,subject:book.subject,
         topic:parsed.data.topic,learningGoals:parsed.data.learningGoals
       })}
-    ],{maxTokens,timeoutMs:45000});
+    ],{maxTokens,timeoutMs:45000,onUsage:usage=>recordAiUsage({credentialId:provider.id,provider:provider.provider,model:provider.model,purpose:"CHAPTER",actorId:ownerId,usage})});
     return NextResponse.json({
       draft:{title:parsed.data.topic,content},
       provider:{name:provider.provider,model:provider.model},

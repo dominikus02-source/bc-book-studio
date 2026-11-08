@@ -14,3 +14,8 @@ apply-ownership.cjs
 update-ui.cjs
 test-results/
 playwright-report/
+
+# Private local book-preview builds: never commit manuscripts or author data
+artifacts/
+.data/export-jobs/
+.next-ui-qa/

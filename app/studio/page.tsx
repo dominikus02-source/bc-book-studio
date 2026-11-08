@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { db } from "../../lib/db";
 import Dashboard from "./dashboard";
 export const dynamic="force-dynamic";
-const accessibleModules=["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan"];
+const accessibleModules=["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Rancang","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Review Naskah","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan","ISBN & Legalitas"];
 export default async function StudioPage({searchParams}:{searchParams:Promise<{module?:string}>}) {
  const {module}=await searchParams;
  const loginHref=typeof module==="string"&&accessibleModules.includes(module)?"/login?module="+encodeURIComponent(module):"/login";
@@ -13,5 +13,5 @@ export default async function StudioPage({searchParams}:{searchParams:Promise<{m
  const tokenHash=createHash("sha256").update(token).digest("hex");
  const session=await db.studioSession.findUnique({where:{tokenHash},include:{user:true}});
  if(!session || session.expiresAt<=new Date() || !session.user.active) redirect(loginHref);
- return <Dashboard/>;
+ return <Dashboard role={session.user.role}/>;
 }

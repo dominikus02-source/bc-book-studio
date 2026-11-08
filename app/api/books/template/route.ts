@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
   const ownerId = await identity(req);
   if (!ownerId) return deny();
   const title = "Bahasa Indonesia Kelas VII — Contoh Beta";
-  const template = await db.book.findFirst({ where: { ownerId: "legacy-unassigned", title }, include: { chapters: { orderBy: { position: "asc" } } } });
+  const template = await db.book.findFirst({ where: { ownerId: "legacy-unassigned", title }, include: { chapters: { where:{archivedAt:null}, orderBy: { position: "asc" } } } });
   if (!template) return NextResponse.json({ error: "Template belum tersedia" }, { status: 503 });
-  const existing = await db.book.findFirst({ where: { ownerId, title }, select: { id: true } });
+  const existing = await db.book.findFirst({ where: { ownerId, title, archivedAt:null }, select: { id: true } });
   if (existing) return NextResponse.json({ bookId: existing.id, alreadyExists: true });
   if (!await canCreateBook(ownerId)) return quotaDenied();
   const book = await db.book.create({ data: {

@@ -33,9 +33,10 @@ function dimensions(bytes:Buffer,mime:string):[number,number]{
 export async function GET(req:NextRequest,{params}:Ctx){
  const userId=await identity(req);if(!userId)return deny();
  const {id}=await params;
- const owner=await db.book.findFirst({where:{id,ownerId:userId},select:{id:true}});
+ const owner=await db.book.findFirst({where:{id,ownerId:userId,archivedAt:null},select:{id:true}});
  if(!owner)return err("Not found",404);
- const assets=await db.bookAsset.findMany({where:{bookId:id},select:{id:true,name:true,mime:true,size:true,width:true,height:true,altText:true,license:true,sourceUrl:true,createdAt:true},orderBy:{createdAt:"desc"}});
+ const archived=req.nextUrl.searchParams.get("archived")==="1";
+ const assets=await db.bookAsset.findMany({where:{bookId:id,...(archived?{archivedAt:{not:null}}:{archivedAt:null})},select:{id:true,name:true,mime:true,size:true,width:true,height:true,altText:true,license:true,sourceUrl:true,createdAt:true,updatedAt:true,archivedAt:true,revisions:{orderBy:{createdAt:"desc"},take:20}},orderBy:{createdAt:"desc"}});
  return NextResponse.json({assets},{headers:{"Cache-Control":"no-store"}});
 }
 export async function POST(req:NextRequest,{params}:Ctx){
@@ -50,12 +51,13 @@ export async function POST(req:NextRequest,{params}:Ctx){
  try{[width,height]=dimensions(bytes,b.mime)}catch{return err("Unsupported or damaged image",400)}
  if(width<1||height<1||width>4000||height>4000||width*height>10000000)return err("Image dimensions too large",413);
  return db.$transaction(async tx=>{
-  const book=await tx.book.findFirst({where:{id,ownerId:userId},select:{status:true}});
+  await tx.$queryRaw`SELECT id FROM "Book" WHERE id = ${id} AND "ownerId" = ${userId} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book=await tx.book.findFirst({where:{id,ownerId:userId,archivedAt:null},select:{status:true}});
   if(!book)return err("Not found",404);
   if(book.status!=="DRAFT")return err("Only draft books can add images",409);
   const count=await tx.bookAsset.count({where:{bookId:id}});
   if(count>=20)return err("Maximum 20 images per book",409);
   const asset=await tx.bookAsset.create({data:{bookId:id,name:b.name,mime:b.mime,bytes,size:bytes.length,width,height,altText:b.altText,license:b.license,sourceUrl:b.sourceUrl}});
-  return NextResponse.json({asset:{id:asset.id,name:asset.name,altText:asset.altText,license:asset.license,size:asset.size,width,height}},{status:201});
+  return NextResponse.json({asset:{id:asset.id,name:asset.name,altText:asset.altText,license:asset.license,size:asset.size,width,height,updatedAt:asset.updatedAt}},{status:201});
  });
 }
