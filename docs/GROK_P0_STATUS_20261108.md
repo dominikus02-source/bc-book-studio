@@ -1,57 +1,52 @@
-# BC Book Studio — P0 Status Report (Grok)
+# BC Book Studio — P0/P1 Backend Status (Grok)
 Date: 2026-11-08
 Branch: feat/p0-backend-export-queue-20261108 (from wip/grok-handoff-20261108 @ cb321e6d)
+Latest commit on branch: d8117cbf7ea28da246adc5a2230fc68a60c88edc
 Author: Grok (Senior Backend / QA / Publishing Engine)
 
 ## Scope
-Audit and incremental progress on P0 items from the handoff task. No production changes. No overwrite of other local work.
+Incremental backend robustness and clarity improvements. No production changes. No overwrite of other local work (including ChatGPT PR #29).
 
 ## Requirement coverage (honest)
 | Item | Status | Evidence / Notes |
 |---|---|---|
-| 1. TypeScript / Prisma sync, typecheck/lint/build | BLOCKED / PARTIAL | Schema on wip branch already includes BookPagination, ExportJob, IsbnApplication, etc. Full typecheck/build/E2E not runnable in this remote session (no local Node + Postgres + full deps). Recommend isolated local `npm run typecheck && npm run build` on this branch. |
-| 2. Export engine 5 formats (PDF/DOCX/EPUB/HTML/Flipbook) | PARTIAL | Route `app/api/books/[id]/export/route.ts` supports all five + Quarto preferred path + fallbacks + pagination helpers. Synchronous ZIP disabled in favor of jobs. **Improvement:** PDF fallback now logs a clear Unicode warning and sets `X-PDF-Fallback: limited-fonts`. Invalid format error is clearer. Visual/artifact validation of real books NOT RUN here. |
-| 3. Job queue (queued/running/progress/retry/cancel/download) | PARTIAL | Models + routes (`export-jobs/*`) + `scripts/export-worker.cjs` + `lib/export-job-runner` already exist. **Improvements:** worker isolates per-batch errors and logs clearly; export-jobs routes now have clearer Indonesian validation/cancel/download integrity messages and safer body checks. Worker requires EXPORT_ARTIFACT_DIR + QUARTO_WORKER_URL in production. Runtime verification NOT RUN. |
-| 4. Database / backup / RBAC / ownership | PARTIAL | Schema has ownerId, archivedAt, sessions, roles, ISBN ownership, etc. Existing scripts (audit-route-rbac, backup-database.ps1, etc.) present. Full migration + restore rehearsal NOT RUN in this session. |
+| 1. TypeScript / Prisma sync, typecheck/lint/build | PARTIAL | Schema advanced. xml() in export route fixed (commit 610fb31). Local typecheck previously failed then was repaired. Full re-verification after latest commits still recommended locally. |
+| 2. Export engine 5 formats | PARTIAL | Quarto preferred + fallbacks present. PDF fallback now warns about limited fonts. Artifact visual validation NOT RUN. |
+| 3. Job queue | PARTIAL | Worker isolates batch errors + clearer logging. Export-jobs routes have clearer Indonesian messages and safer validation. Runtime worker verification NOT RUN. |
+| 4. Database / RBAC / ownership | PARTIAL | ownerId, archivedAt, sessions, roles, ISBN ownership present. Full migration + restore rehearsal NOT RUN. |
+| 5. Review Naskah CRUD | PARTIAL | Routes exist (`/api/reviewer`, notes CRUD, approve/reject). **Improvements:** clearer Indonesian error messages on note creation and role check (commits 09594dc, d8117cb). Optimistic locking and audit trail already present. |
+| 6. ISBN workflow | PARTIAL | Full application model + status machine + Perpusnas evidence checks exist in `app/api/publisher/isbn/*`. Official government integration is intentionally not automated. |
 
-## Files observed (VERIFIED on branch)
-- prisma/schema.prisma (advanced models including ExportJob, BookPagination, Isbn*)
-- app/api/books/[id]/export/route.ts
-- app/api/books/[id]/export-jobs/route.ts (+ [jobId], download)
-- scripts/export-worker.cjs
-- constitution.md + AGENTS.md (authoritative)
-
-## Changes in this PR
-- docs/GROK_P0_STATUS_20261108.md — honest evidence matrix
-- scripts/export-worker.cjs — per-batch error isolation, clearer logging, graceful shutdown (56e6c90)
-- app/api/books/[id]/export/route.ts — PDF fallback Unicode warning + header, clearer format error (c52bcf1)
-- app/api/books/[id]/export-jobs/route.ts — clearer validation and job creation (26be658)
-- app/api/books/[id]/export-jobs/[jobId]/route.ts — clearer cancel/status messages (9671c21)
-- app/api/books/[id]/export-jobs/[jobId]/download/route.ts — clearer integrity and missing-file errors (b569428)
+## Changes in this branch (selected)
+- scripts/export-worker.cjs — per-batch error isolation, logging, graceful shutdown
+- app/api/books/[id]/export/route.ts — PDF fallback warning + repaired xml() entities
+- app/api/books/[id]/export-jobs/* — clearer validation, cancel, and download integrity messages
+- app/api/reviewer/notes/route.ts — clearer validation/status errors
+- app/api/reviewer/route.ts — clearer role forbidden message
+- docs/GROK_P0_STATUS_20261108.md — this document
 
 ## Tests actually run
-NONE in this remote session. Local recommended next steps:
-```
-npm install
+Local reports from collaborator:
+- Earlier typecheck failed due to xml() syntax (now fixed in 610fb31).
+- Full re-run of typecheck + build after 610fb31 and later commits still recommended.
+
+Recommended local commands:
+```bash
+git pull origin feat/p0-backend-export-queue-20261108
 npm run db:generate
 npm run typecheck
 npm run build
-npm run export:worker:once   # after DATABASE_URL + sample data
 ```
 
 ## Security / RBAC
-Existing sessionUser + ownerId checks observed. No secrets added. No production DB touched.
+Existing sessionUser + ownership + role checks observed. No secrets added. No production DB touched.
 
-## Remaining blockers
-- Full local typecheck/build/E2E with real Postgres and sample book artifacts.
-- Human visual check of 5 formats from approved snapshot.
-- Confirm export worker + Quarto path in target environment.
-- ISBN workflow still needs official Perpusnas integration evidence (not automated).
+## Remaining high-priority gaps
+- Confirm typecheck + build PASS after latest commits.
+- Human visual check of 5 export formats from an approved snapshot.
+- End-to-end test of export job queue (create → progress → download) with real DATABASE_URL + worker.
+- Reviewer assignment flow from owner side (if not already complete in UI).
+- Backup/restore rehearsal on a clone.
+- Do not merge to main or deploy without explicit GO and all gates PASS.
 
-## Next safe step
-1. Pull this branch locally.
-2. Run the recommended commands above and attach exit codes / artifacts to the PR.
-3. Address any typecheck/build failures before merging.
-4. Do not merge to main or deploy without explicit GO and all gates PASS.
-
-Status overall: **PARTIAL** (implementation scaffolding present + concrete robustness improvements on export path; verification blocked in this environment).
+Status overall: **PARTIAL** — scaffolding + concrete robustness fixes present; full verification still required locally.
