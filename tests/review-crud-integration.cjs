@@ -58,10 +58,10 @@ async function call(who,path,method='GET',data,expected=200){
  await page.getByRole('textbox',{name:'Isi catatan reviewer'}).fill('Catatan browser diperbarui QA');
  await page.getByRole('button',{name:'Simpan perubahan',exact:true}).click();
  await page.getByText('Perubahan catatan disimpan.',{exact:true}).waitFor();
- await page.locator('.reviewer-note-card').filter({hasText:'Catatan browser diperbarui QA'}).getByRole('button',{name:'Ubah status',exact:true}).click();
- await page.getByText('CONTENT · SUGGESTION · RESOLVED',{exact:true}).waitFor();
- await page.locator('.reviewer-note-card').filter({hasText:'Catatan browser diperbarui QA'}).getByRole('button',{name:'Hapus',exact:true}).click();
- await page.getByRole('button',{name:'Ya, hapus',exact:true}).click();
+ await page.locator('.reviewer-note-card').filter({hasText:'Catatan browser diperbarui QA'}).getByRole('button',{name:'Tandai selesai',exact:true}).click();
+ await page.locator('.reviewer-note-card').filter({hasText:'Catatan browser diperbarui QA'}).getByText('Selesai').waitFor();
+ await page.locator('.reviewer-note-card').filter({hasText:'Catatan browser diperbarui QA'}).getByRole('button',{name:'Arsipkan',exact:true}).click();
+ await page.getByRole('button',{name:'Ya, arsipkan',exact:true}).click();
  await page.getByText('Catatan diarsipkan.',{exact:true}).waitFor();ok('browser create/read/reload/update/resolve/archive');
  for(const theme of ['light','dark'])for(const width of [320,375,390,768,1024,1440]){
   await page.setViewportSize({width,height:900});await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
@@ -73,9 +73,9 @@ async function call(who,path,method='GET',data,expected=200){
  await op.goto(origin+'/studio?'+new URLSearchParams({bookId:b.id,module:'Review Naskah'}),{waitUntil:'domcontentloaded'});
  await op.getByRole('heading',{name:b.title,exact:true}).waitFor();
  assert(await op.getByRole('button',{name:'+ Tambah catatan',exact:true}).isDisabled());
- await op.getByRole('button',{name:'Checklist & penugasan reviewer'}).click();
+ await op.getByRole('button',{name:'Persiapan'}).click();
  assert.equal(new URL(op.url()).searchParams.get('bookId'),b.id);
- assert.equal(new URL(op.url()).searchParams.get('module'),'Penyuntingan');ok('owner sees selected book and preserved bookId in editorial stage');
+ await op.getByRole('heading',{name:'Siapkan peninjauan'}).waitFor(); assert.equal(new URL(op.url()).searchParams.get('module'),'Review Naskah');ok('owner sees selected book and preserved bookId in editorial stage');
  await call(reviewer,'/api/books/'+b.id+'/review','POST',{action:'reject',note:'Perbaiki sebelum terbit'});
  assert.equal((await db.book.findUnique({where:{id:b.id}})).status,'DRAFT');
  await call(owner,'/api/books/'+b.id+'/review','POST',{action:'submit',note:''});
