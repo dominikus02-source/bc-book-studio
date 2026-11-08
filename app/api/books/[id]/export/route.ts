@@ -19,14 +19,12 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 function xml(s: string) {
   return s.replace(/[&<>"']/g, (c) => {
-    switch (c) {
-      case "&": return "&";
-      case "<": return "<";
-      case ">": return ">";
-      case '"': return """;
-      case "'": return "'";
-      default: return c;
-    }
+    if (c === "&") return "&" + "amp;";
+    if (c === "<") return "&" + "lt;";
+    if (c === ">") return "&" + "gt;";
+    if (c === '"') return "&" + "quot;";
+    if (c === "'") return "&" + "apos;";
+    return c;
   });
 }
 function slug(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0,60) || "buku"; }
