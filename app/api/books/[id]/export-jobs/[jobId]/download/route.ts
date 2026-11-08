@@ -10,9 +10,13 @@ export async function GET(req:NextRequest,{params}:C){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id,jobId}=await params;
  const job=await db.exportJob.findFirst({where:{id:jobId,bookId:id,ownerId:actor.id,status:"COMPLETE"}});
- if(!job||!job.resultSha256)return NextResponse.json({error:"Arsip belum tersedia"},{status:404});
+ if(!job||!job.resultSha256)return NextResponse.json({error:"Arsip belum siap atau pekerjaan belum selesai."},{status:404});
  let bytes:Buffer;
- try{bytes=await readFile(artifactPath(job.id))}catch{return NextResponse.json({error:"File arsip tidak tersedia di server ini"},{status:503})}
- if(bytes.length!==job.resultBytes||createHash("sha256").update(bytes).digest("hex")!==job.resultSha256)return NextResponse.json({error:"Integritas arsip gagal diverifikasi"},{status:503});
+ try{bytes=await readFile(artifactPath(job.id))}catch{return NextResponse.json({error:"File arsip tidak tersedia di server. Coba ulang nanti atau hubungi admin."},{status:503})}
+ const hash=createHash("sha256").update(bytes).digest("hex");
+ if(bytes.length!==job.resultBytes||hash!==job.resultSha256){
+  console.error("Export artifact integrity mismatch",job.id,bytes.length,job.resultBytes,hash,job.resultSha256);
+  return NextResponse.json({error:"Integritas arsip gagal diverifikasi. Unduhan ditolak."},{status:503});
+ }
  return new NextResponse(new Uint8Array(bytes),{headers:{"Content-Type":"application/zip","Content-Disposition":'attachment; filename="book-'+job.bookId+'-'+job.id+'.zip"',"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","X-Content-SHA256":job.resultSha256}});
 }
