@@ -31,5 +31,16 @@ let user,book,browser;
  await page.getByRole("heading",{name:"Review Naskah"}).first().waitFor();
  await page.getByText("0 reviewer",{exact:false}).first().waitFor();
  assert(!errors.some(x=>/assignedReviewers|archivedNotes|Cannot read properties of undefined/.test(x)),errors.join(" | "));
+ for(const width of [320,375,768,1024,1440]){
+   await page.setViewportSize({width,height:850});
+   await page.getByRole("button",{name:"Catatan",exact:false}).first().click();
+   const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,viewport:innerWidth,forms:document.querySelectorAll(".reviewer-filter").length}));
+   assert(size.scroll<=size.viewport+2,"HORIZONTAL_OVERFLOW_"+width+" "+JSON.stringify(size));
+   assert(size.forms===1,"REVIEW_FILTER_NOT_VISIBLE");
+   await page.screenshot({path:"tests/qa-review-layout-"+width+".png",fullPage:true});
+ }
+ await page.getByRole("button",{name:"Persiapan",exact:false}).click();
+ await page.getByText("Siapkan peninjauan").first().waitFor();
+ console.log("REVIEW_LAYOUT_RESPONSIVE_PASS_320_375_768_1024_1440");
  console.log("REVIEW_BROWSER_NO_CRASH_PASS");
 })().catch(e=>{console.error("REVIEW_QA_FAILED",e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();if(book)await db.book.deleteMany({where:{id:book.id}}).catch(()=>{});if(user)await db.studioUser.deleteMany({where:{id:user.id}}).catch(()=>{});await db.$disconnect();});
