@@ -17,7 +17,7 @@ import {paginateDocx} from "../../../../../lib/pagination-docx";
 import {paperSizes,paperSpec,mmToPt,mmToTwips} from "../../../../../lib/paper-sizes";
 export const runtime = "nodejs";
 export const maxDuration = 300;
-function xml(s: string) { return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c] ?? c)); }
+function xml(s: string) { return s.replace(/[&<>"']/g, c => ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "'" }[c] ?? c)); }
 function slug(s: string) { return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0,60) || "buku"; }
 function wrap(text: string, font: { widthOfTextAtSize: (text: string, size: number) => number }, max: number, size: number) {
   const result: string[] = [];
@@ -37,7 +37,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!actor) return deny();
   const { id } = await params;
   const format = req.nextUrl.searchParams.get("format");
-  if (format !== "pdf" && format !== "epub" && format !== "docx" && format !== "html" && format !== "flipbook" && format !== "zip") return NextResponse.json({ error: "Choose pdf, epub, docx or html" }, { status: 400 });
+  if (format !== "pdf" && format !== "epub" && format !== "docx" && format !== "html" && format !== "flipbook" && format !== "zip") {
+    return NextResponse.json({ error: "Format tidak didukung. Pilih: pdf, epub, docx, html, flipbook (atau zip via job queue)." }, { status: 400 });
+  }
   const preview = req.nextUrl.searchParams.get("preview") === "1";
   const source = await db.book.findFirst({ where: { id, archivedAt:null, OR: [{ownerId: actor.id}, {assignedReviewers: {some: {reviewerId: actor.id}}}] }, include: { chapters: { where:{archivedAt:null}, orderBy: { position: "asc" } } } });
   if (!source) return NextResponse.json({ error: "Book not found" }, { status: 404 });
@@ -89,10 +91,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return new NextResponse(Buffer.from(output),{headers:{"Content-Type":format==="pdf"?"application/pdf":format==="epub"?"application/epub+zip":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","Content-Disposition":'attachment; filename="'+filename+'"',"Cache-Control":"no-store","X-Renderer":"Quarto"}});
    }catch(e){
     console.error("Quarto export unavailable",e instanceof Error?e.message:"unknown");
-    return NextResponse.json({error:"Quarto rendering failed; publication export held"},{status:503});
+    return NextResponse.json({error:"Quarto rendering failed; publication export held. Fallback limited."},{status:503});
    }
   }
   if (format === "pdf") {
+    console.warn("PDF export using limited StandardFonts fallback (Indonesian Unicode may be replaced with ?). Prefer Quarto worker for full support.");
     const pdf=await PDFDocument.create();
     const normal=await pdf.embedFont(StandardFonts.Helvetica);
     const strong=await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -132,7 +135,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     const pages=pdf.getPages();
     pages.forEach((p,i)=>p.drawText(String(i+1)+" / "+pages.length,{x:w-margin-36,y:25,size:9,font:normal}));
-    return new NextResponse(Buffer.from(await pdf.save()),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="'+filename+'"',"Cache-Control":"no-store"}});
+    return new NextResponse(Buffer.from(await pdf.save()),{headers:{"Content-Type":"application/pdf","Content-Disposition":'attachment; filename="'+filename+'"',"Cache-Control":"no-store","X-PDF-Fallback":"limited-fonts"}});
   }
   if (format === "docx") {
     const zip = new JSZip();
