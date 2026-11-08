@@ -69,7 +69,7 @@ export default function BookLayoutEditor({id,onPublish}:{id:string;onPublish:()=
  },[dirty]);
  return <section className="panel layout-output" aria-labelledby="book-layout-title">
   <h2 id="book-layout-title">Tata letak buku</h2>
-  <p><a className="secondary-button" href={"/studio/pagination?bookId="+encodeURIComponent(id)}>Atur penomoran halaman buku →</a></p>
+  <p><a className="secondary-button" href={"/studio?module=Pengaturan&bookId="+encodeURIComponent(id)}>Atur penomoran halaman buku →</a></p>
   <p className="form-hint">Seret bab di kanvas atau ubah ukuran halaman. Perubahan disimpan otomatis. Isi naskah tetap terikat pada snapshot Review.</p>
   {busy&&<p role="status">Memproses tata letak…</p>}
   {error&&<p role="alert">{error}</p>}

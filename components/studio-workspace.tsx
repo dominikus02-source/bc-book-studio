@@ -9,6 +9,7 @@ import {
 
 import ProviderSettings from "./provider-settings";
 import SettingsOverview from "./settings-overview";
+import PaginationSettingsPanel from "./pagination-settings-panel";
 import FormDraftManager from "./form-draft-manager";
 import {type TransferField,type TransferRecord} from "./form-transfer";
 
@@ -121,9 +122,5 @@ function LightbulbIcon(){return <Sparkles size={23}/>}
 function PaginationSettingsLink(){
   const [bookId,setBookId]=useState("");
   useEffect(()=>{setBookId(new URLSearchParams(window.location.search).get("bookId")||"")},[]);
-  return <section className="panel" aria-labelledby="pagination-settings-heading">
-    <h3 id="pagination-settings-heading" className="panel-title">Penomoran halaman dan tipografi buku</h3>
-    <p className="panel-desc">Atur cover tanpa folio, halaman pendahuluan Romawi kecil, bab utama angka Arab, halaman ganjil, nomor kiri/kanan, serta header berjalan. Pengaturan tersimpan per buku.</p>
-    {bookId?<a className="secondary-button" href={"/studio/pagination?bookId="+encodeURIComponent(bookId)}>Buka pengaturan pagination buku</a>:<p>Pilih buku terlebih dahulu dari Proyek Buku atau Tata Letak, lalu kembali ke Pengaturan.</p>}
-  </section>;
+  return <PaginationSettingsPanel bookId={bookId}/>;
 }
