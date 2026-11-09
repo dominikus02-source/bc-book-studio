@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import ThemeControl from "@/components/theme-control";
 import BetaWorkspace, { useBooks } from "@/components/beta-workspace";
 import StudioWorkspace from "@/components/studio-workspace";
 import IsbnOfficeDashboard from "@/components/isbn-office-dashboard";
@@ -95,10 +96,10 @@ export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
     window.addEventListener("popstate",sync);
     return ()=>window.removeEventListener("popstate",sync);
   },[]);
-  const [dark,setDark]=useState(false);
-  useEffect(()=>{setDark(localStorage.getItem("bcstudio-theme")==="dark");},[]);
-  useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light";localStorage.setItem("bcstudio-theme",dark?"dark":"light");window.dispatchEvent(new Event("bc-theme-change"));},[dark]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const sidebarRef=useRef<HTMLDivElement>(null);
+  const menuRef=useRef<HTMLButtonElement>(null);
+  const mainRef=useRef<HTMLElement>(null);
   const [logoutBusy,setLogoutBusy]=useState(false);
   async function logout(){setLogoutBusy(true);try{const r=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});if(!r.ok)throw Error("Logout gagal");window.location.assign("/login");}catch{alert("Gagal keluar. Coba lagi.");setLogoutBusy(false);}}
 
@@ -110,24 +111,46 @@ export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
 
   useEffect(() => {
     if (!mobileOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileOpen(false);
+    const panel=sidebarRef.current;
+    const main=mainRef.current;
+    if(!panel||!main)return;
+    const previousOverflow=document.body.style.overflow;
+    document.body.style.overflow="hidden";
+    const previousInert=main.inert;
+    main.inert=true;
+    const focusable=()=>Array.from(panel.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],select,input,[tabindex="0"]')).filter(el=>el.getClientRects().length>0);
+    focusable()[0]?.focus();
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key==="Escape"){event.preventDefault();setMobileOpen(false);}
+      if(event.key!=="Tab")return;
+      const nodes=focusable(),first=nodes[0],last=nodes[nodes.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
     };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
+    const desktop=window.matchMedia("(min-width: 761px)");
+    const resize=()=>{if(desktop.matches)setMobileOpen(false)};
+    window.addEventListener("keydown",onKey);
+    desktop.addEventListener("change",resize);
+    return()=>{
+      window.removeEventListener("keydown",onKey);
+      desktop.removeEventListener("change",resize);
+      main.inert=previousInert;
+      document.body.style.overflow=previousOverflow;
+      menuRef.current?.focus();
+    };
   }, [mobileOpen]);
 
   return <div className="shell min-h-dvh">
     <a className="skip-link" href="#main-content">Lewati navigasi</a>
     {mobileOpen && <button type="button" className="sidebar-backdrop" aria-label="Tutup navigasi" onClick={() => setMobileOpen(false)} />}
-    <nav id="studio-sidebar" aria-label="Menu studio" className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+    <div ref={sidebarRef} id="studio-sidebar" role={mobileOpen?"dialog":"navigation"} aria-modal={mobileOpen?true:undefined} aria-label="Menu studio" className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
       <button type="button" className="sidebar-close" aria-label="Tutup menu" onClick={() => setMobileOpen(false)}>×</button>
       <div className="brand"><div className="brand-mark">BC</div><div><div className="brand-name">BOOK STUDIO</div><div className="brand-sub">Ekosistem Penerbitan Cerdas</div></div></div>
-      <div><div className="nav-label">RUANG KERJA</div><div className="nav-list">{primaryNavigation.map(item=>{const Icon=item.icon;return <button key={item.label} className={`nav-item ${active===item.label?"active":""}`} onClick={()=>{navigateTo(item.label);setMobileOpen(false);}}><Icon size={16} strokeWidth={1.8}/>{item.title}</button>})}</div><button type="button" className="nav-item" aria-expanded={workflowOpen} onClick={()=>setWorkflowOpen(x=>!x)}><ChevronRight size={16}/> {workflowOpen?"Sembunyikan tahapan":"Lihat semua tahapan"}</button>{workflowOpen&&workflow.map(step=><div key={step.name} style={{marginTop:12}}><div className="nav-label">{step.name.toUpperCase()}</div><div className="nav-list">{step.modules.filter(m=>visibleNavigation.some(x=>x.label===m)).map(m=><button key={m} className={`nav-item ${active===m?"active":""}`} onClick={()=>{navigateTo(m);setMobileOpen(false)}}>{m}</button>)}</div></div>)}</div>
+      <div><div className="nav-label">RUANG KERJA</div><div className="nav-list">{primaryNavigation.map(item=>{const Icon=item.icon;return <button key={item.label} aria-current={active===item.label?"page":undefined} className={`nav-item ${active===item.label?"active":""}`} onClick={()=>{navigateTo(item.label);setMobileOpen(false);}}><Icon size={16} strokeWidth={1.8}/>{item.title}</button>})}</div><button type="button" className="nav-item" aria-expanded={workflowOpen} onClick={()=>setWorkflowOpen(x=>!x)}><ChevronRight size={16}/> {workflowOpen?"Sembunyikan tahapan":"Lihat semua tahapan"}</button>{workflowOpen&&workflow.map(step=><div key={step.name} style={{marginTop:12}}><div className="nav-label">{step.name.toUpperCase()}</div><div className="nav-list">{step.modules.filter(m=>visibleNavigation.some(x=>x.label===m)).map(m=><button key={m} aria-current={active===m?"page":undefined} className={`nav-item ${active===m?"active":""}`} onClick={()=>{navigateTo(m);setMobileOpen(false)}}>{m}</button>)}</div></div>)}</div>
       <div className="sidebar-bottom"><strong><ShieldCheck size={13} style={{display:"inline",marginRight:5}}/>Alur dengan validasi</strong><p>Progres tersimpan pada buku. Review manusia dan bukti penerbitan diperlukan untuk rilis.</p></div>
-    </nav>
-    <main id="main-content" tabIndex={-1} className={active==="Tata Letak"?"main min-w-0 layout-main":"main min-w-0"}>
-      <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button className="icon-button mobile-menu" aria-label="Buka menu" aria-expanded={mobileOpen} aria-controls="studio-sidebar" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><button type="button" className="secondary-button" onClick={()=>setDark(x=>!x)}>{dark?"Mode terang":"Mode gelap"}</button><button type="button" className="secondary-button" disabled={logoutBusy} onClick={()=>void logout()}>{logoutBusy?"Keluar?":"Keluar"}</button></div></header>
+    </div>
+    <main ref={mainRef} id="main-content" tabIndex={-1} className={active==="Tata Letak"?"main min-w-0 layout-main":"main min-w-0"}>
+      <header className="topbar"><div style={{display:"flex",alignItems:"center",gap:10}}><button ref={menuRef} className="icon-button mobile-menu" aria-label="Buka menu" aria-expanded={mobileOpen} aria-controls="studio-sidebar" onClick={()=>setMobileOpen(!mobileOpen)}><Menu size={17}/></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{display:"inline",verticalAlign:"middle"}}/> {active}</div></div><div className="top-actions"><ThemeControl/><button type="button" className="secondary-button" disabled={logoutBusy} onClick={()=>void logout()}>{logoutBusy?"Keluar?":"Keluar"}</button></div></header>
       {active!=="Review Naskah"&&active!=="Dasbor"&&active!=="Pengaturan"&&active!=="Buat Buku"&&active!=="Percetakan"&&active!=="Petunjuk Penggunaan"&&<section className={"panel studio-workflow"+(active==="Studio Penulisan"?" writing-workflow-summary":"")} aria-label="Tahapan pembuatan buku">
         <div className="panel-toolbar"><div><p className="form-hint">BUKU YANG SEDANG ANDA KERJAKAN</p><strong>{workflowBook?.title||"Mulai buku pertama Anda"}</strong><p className="panel-desc">Satu langkah setiap kali. Anda dapat kembali ke tahap sebelumnya untuk memperbaiki naskah.</p></div></div>
         {active==="Studio Penulisan"&&<p className="writing-workflow-status">Tahap 3 dari 5 · Menulis bab · Penyimpanan otomatis</p>}
