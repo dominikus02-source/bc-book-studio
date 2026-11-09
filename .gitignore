@@ -19,3 +19,6 @@ playwright-report/
 artifacts/
 .data/export-jobs/
 .next-ui-qa/
+
+# Isolated Next.js development and QA caches (never source)
+.next-*/
