@@ -13,7 +13,7 @@ const allowed:Record<string,string[]>={
  CORRECTION_REQUIRED:["DOCUMENTS_READY","REJECTED"],ISSUED:["PUBLISHED"],PUBLISHED:[],REJECTED:[],CANCELLED:[]
 };
 export async function PATCH(req:NextRequest,{params}:C){
- const actor=await sessionUser(req);if(!actor)return deny();if(actor.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ const actor=await sessionUser(req);if(!actor)return deny();if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const {applicationId}=await params,parsed=change.safeParse(await req.json().catch(()=>null));
  if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message},{status:400});
  const input=parsed.data;
@@ -46,7 +46,7 @@ export async function PATCH(req:NextRequest,{params}:C){
  }catch(e){return NextResponse.json({error:e instanceof Error&&e.message.includes("Unique constraint")?"ISBN already assigned to another edition":"Update failed"},{status:409})}
 }
 export async function DELETE(req:NextRequest,{params}:C){
- const actor=await sessionUser(req);if(!actor)return deny();if(actor.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ const actor=await sessionUser(req);if(!actor)return deny();if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const {applicationId}=await params,app=await db.isbnApplication.findUnique({where:{id:applicationId}});
  if(!app||app.archivedAt)return NextResponse.json({error:"Not found"},{status:404});
  if(!["DRAFT","CANCELLED","REJECTED"].includes(app.status))return NextResponse.json({error:"Submitted/issued records are immutable and cannot be deleted"},{status:409});
