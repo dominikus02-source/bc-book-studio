@@ -16,7 +16,18 @@ exec 9>.bookstudio-deploy.lock
 flock -n 9 || { echo 'A Book Studio deployment is already running'; exit 2; }
 compose=(docker compose -p bc-book-studio-runtime -f compose.yml)
 [[ ! -f compose.edge.yml ]] || compose+=(-f compose.edge.yml)
-compose+=(-f compose.release.yml)
+compose+=(-f compose.resources.yml -f compose.release.yml)
+# Refuse to operate on a newly created or different Compose database.
+expected_project=bc-book-studio-runtime
+expected_volume=bc-book-studio-runtime_bookstudio_pg
+existing_db=$(docker ps -q --filter "name=^/bc-book-studio-runtime-db-1$" --filter "status=running")
+[[ -n "$existing_db" ]] || { echo 'Existing production database container is not running'; exit 2; }
+actual_project=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project"}}')
+actual_workdir=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}')
+[[ "$actual_project" == "$expected_project" && "$actual_workdir" == "/opt/bc-book-studio-runtime/source" ]] || { echo 'Database Compose identity mismatch'; exit 2; }
+docker inspect "$existing_db" --format '{{range .Mounts}}{{println .Name}}{{end}}' | grep -qxF "$expected_volume" || { echo 'Existing production database volume mismatch'; exit 2; }
+[[ -f compose.resources.yml ]] || { echo 'Existing database resource Compose file missing'; exit 2; }
+# The active database uses compose.resources.yml; include it to preserve volume bindings.
 "${compose[@]}" config --quiet
 db=$("${compose[@]}" ps -q db)
 [[ -n "$db" ]] || { echo 'Existing database not found; no changes made'; exit 2; }
