@@ -6,7 +6,7 @@ import {ISBN_DOCUMENTS} from "../../../../../../lib/isbn-office";
 export const runtime="nodejs";
 type C={params:Promise<{applicationId:string}>};
 export async function POST(req:NextRequest,{params}:C){
- const actor=await sessionUser(req);if(!actor)return deny();if(actor.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ const actor=await sessionUser(req);if(!actor)return deny();if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const {applicationId}=await params;const app=await db.isbnApplication.findUnique({where:{id:applicationId}});
  if(!app||app.archivedAt)return NextResponse.json({error:"Not found"},{status:404});
  if(!["DRAFT","CORRECTION_REQUIRED","DOCUMENTS_READY"].includes(app.status))return NextResponse.json({error:"Submitted application documents are locked"},{status:409});
