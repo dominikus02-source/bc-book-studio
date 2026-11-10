@@ -20,7 +20,7 @@ async function run(){
   assert(ca.startsWith("bcstudio_session=")&&cb.startsWith("bcstudio_session="));
   await call("/studio","GET",null,ca);
   await call("/studio","GET",null,cb);
-  const aBook=(await call("/api/books","POST",{title:"QA Cerita Nusantara",grade:"Referensi",subject:"Sastra",description:"Uji fiksi",bookType:"FICTION",genre:"NOVEL"},ca,201)).data.book;
+  const aBook=(await call("/api/books","POST",{title:"QA Cerita Nusantara",grade:"Referensi",subject:"Sastra",description:"Sinopsis cerita fiksi untuk pengujian alur penerbitan.",targetAudience:"Pembaca remaja",writingGoal:"Mengembangkan cerita yang runtut",bookType:"FICTION",genre:"NOVEL"},ca,201)).data.book;
   const bBook=(await call("/api/books","POST",{title:"QA Panduan Sains",grade:"7",subject:"IPA",description:"Uji nonfiksi",bookType:"NONFICTION",genre:"TEXTBOOK"},cb,201)).data.book;
   ids.push(aBook.id,bBook.id);
   assert.equal(aBook.bookType,"FICTION");assert.equal(bBook.bookType,"NONFICTION");
@@ -29,6 +29,7 @@ async function run(){
   await call("/api/books/"+aBook.id,"GET",null,cb,404);
   await call("/api/books/"+aBook.id,"PATCH",{title:"Hijack",expectedVersion:aBook.updatedAt},cb,404);
   await call("/api/books/"+aBook.id,"DELETE",{expectedVersion:aBook.updatedAt},cb,404);
+  await call("/api/books/"+aBook.id+"/workflow","POST",{to:"OUTLINE"},ca);
   const c1=(await call("/api/books/"+aBook.id+"/chapters","POST",{title:"Bab Pertama",content:"Isi cerita sangat panjang untuk pengujian bab pertama."},ca,201)).data.chapter;
   const c2=(await call("/api/books/"+aBook.id+"/chapters","POST",{title:"Bab Kedua",content:"Cerita lanjutan yang juga cukup panjang untuk pengujian."},ca,201)).data.chapter;
   await call("/api/books/"+aBook.id+"/chapters/"+c1.id,"PATCH",{title:"Hijack",content:"Konten yang tidak boleh tersimpan karena pemiliknya berbeda.",expectedVersion:c1.updatedAt},cb,404);
