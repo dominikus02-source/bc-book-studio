@@ -1,4 +1,8 @@
-# Deployment runbook (not yet executed)
+# Deployment
+
+Untuk rilis produksi (termasuk migrasi berpagar, deploy VPS, rollback, dan promosi SUPERADMIN), ikuti [RELEASE_RUNBOOK.md](RELEASE_RUNBOOK.md). Ringkasan di bawah ini adalah titik awal infrastruktur, bukan prosedur rilis otomatis yang berlaku sekarang.
+
+# Titik awal infrastruktur (bukan jalur rilis produksi saat ini)
 1. Provision a dedicated Linux VPS or isolated project directory, DNS and HTTPS reverse proxy.
 2. Install Docker Engine and Compose. Restrict inbound traffic to 80/443 and SSH. Do not expose PostgreSQL publicly.
 3. Create a server-only `.env` from `.env.example` with STUDIO_API_KEY (at least 24 random characters), DB_PASSWORD (strong random), AI_API_KEY and AI_MODEL if AI is needed. Keep this file out of Git.
