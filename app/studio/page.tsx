@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { db } from "../../lib/db";
 import Dashboard from "./dashboard";
 export const dynamic="force-dynamic";
-const accessibleModules=["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Rancang","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Review Naskah","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan"];
+const accessibleModules=["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Rancang","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Review Naskah","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan","Manajemen Akun"];
 export default async function StudioPage({searchParams}:{searchParams:Promise<{module?:string}>}) {
  const {module}=await searchParams;
  const loginHref=typeof module==="string"&&accessibleModules.includes(module)?"/login?module="+encodeURIComponent(module):"/login";
