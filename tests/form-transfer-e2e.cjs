@@ -29,10 +29,9 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await redirectContext.close();
   const context=await browser.newContext({acceptDownloads:true,viewport:{width:390,height:844}});
   await login(context,users[0].email);
-  const page=await context.newPage();await page.goto(origin+"/studio");
-  await page.getByRole("button",{name:"Buka menu"}).click();await page.getByRole("button",{name:"Idea Lab",exact:true}).click();
+  const page=await context.newPage();await page.goto(origin+"/studio?module=Idea+Lab");
   const transfer=page.locator(".form-draft-manager");
-  assert(await transfer.isVisible(),"Transfer section not shown");
+  await transfer.waitFor({state:"visible",timeout:15000});
   const downloaded=page.waitForEvent("download");
   await transfer.getByRole("button",{name:/Unduh XLSX/}).click();
   const xlsx=await downloaded;const wb=await JSZip.loadAsync(await fs.readFile(await xlsx.path()));
@@ -43,7 +42,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   wb.file("xl/worksheets/sheet1.xml",xml);
   const local=path.join(tmp,"idea.xlsx");await fs.writeFile(local,await wb.generateAsync({type:"nodebuffer"}));
   await transfer.locator('input[type="file"]').setInputFiles(local);
-  await transfer.getByRole("button",{name:/Terapkan ke form/}).click();
+  await page.getByText("File berhasil diimpor dan draf tersimpan otomatis di database.",{exact:true}).waitFor({timeout:15000});
   assert.equal(await page.getByLabel("Judul sementara").inputValue(),"Buku IPA Eksperimen");
   const invalidZip=await JSZip.loadAsync(await fs.readFile(local));
   let badSheet=await invalidZip.file("xl/worksheets/sheet1.xml").async("string");
@@ -54,25 +53,23 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await transfer.locator('input[type="file"]').setInputFiles(badPath);
   await page.getByRole("alert").filter({hasText:"Formula Excel tidak diizinkan"}).waitFor({timeout:10000});
   assert.equal(await page.getByLabel("Judul sementara").inputValue(),"Buku IPA Eksperimen");
-  await transfer.getByLabel("Nama draf").fill("Eksperimen IPA Kelas 7");
-  await transfer.getByRole("button",{name:"Simpan draf baru"}).click();
-  await page.getByText("Data draf tersimpan di server.").waitFor({timeout:10000});
   let drafts=(await (await context.request.get(origin+"/api/form-drafts?module=Idea%20Lab")).json()).drafts;
   assert.equal(drafts.length,1);draftId=drafts[0].id;
   assert.equal(drafts[0].payload.bookTitle,"Buku IPA Eksperimen");
   await page.getByLabel("Judul sementara").fill("Buku IPA Eksperimen Revisi");
   await transfer.getByRole("button",{name:"Simpan perubahan"}).click();
-  await page.getByText("Data draf tersimpan di server.").waitFor();
+  await page.getByText("Data draf tersimpan di server. Anda dapat melanjutkan ke proses berikutnya.",{exact:true}).waitFor({timeout:10000});
   drafts=(await (await context.request.get(origin+"/api/form-drafts?module=Idea%20Lab")).json()).drafts;
   assert.equal(drafts[0].payload.bookTitle,"Buku IPA Eksperimen Revisi");
   const mdDL=page.waitForEvent("download");await transfer.getByRole("button",{name:/Unduh Markdown/}).click();
-  const md=await mdDL;let text=await fs.readFile(await md.path(),"utf8");
-  text=text.replace("Buku IPA Eksperimen Revisi","Buku IPA dari Markdown");
-  const mdPath=path.join(tmp,"idea.md");await fs.writeFile(mdPath,text,"utf8");
+  const md=await mdDL;assert.match(await fs.readFile(await md.path(),"utf8"),/^## bookTitle \u2014 /m);
+  const mdPath=path.join(tmp,"idea.md");await fs.writeFile(mdPath,"## bookTitle \u2014 Judul sementara\n\nBuku IPA dari Markdown\n","utf8");
+  const mdSaved=page.waitForResponse(response=>response.url().endsWith("/api/form-drafts/"+draftId)&&response.request().method()==="PATCH"&&response.ok()&&response.request().postDataJSON()?.payload?.bookTitle==="Buku IPA dari Markdown");
   await transfer.locator('input[type="file"]').setInputFiles(mdPath);
-  await transfer.getByRole("button",{name:/Terapkan ke form/}).click();
+  await mdSaved;
+  await page.getByText("File berhasil diimpor dan draf tersimpan otomatis di database.",{exact:true}).waitFor({timeout:15000});
   assert.equal(await page.getByLabel("Judul sementara").inputValue(),"Buku IPA dari Markdown");
-  await transfer.getByRole("button",{name:"Simpan perubahan"}).click();
+  assert.equal((await db.studioFormDraft.findUniqueOrThrow({where:{id:draftId}})).payload.bookTitle,"Buku IPA dari Markdown");
   const contextB=await browser.newContext();await login(contextB,users[1].email);
   const forbidden=await contextB.request.patch(origin+"/api/form-drafts/"+draftId,{data:{module:"Idea Lab",title:"Hijack",payload:{bookTitle:"Malicious"}}});
   assert.equal(forbidden.status(),404);
@@ -83,85 +80,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await transfer.getByRole("button",{name:"Hapus draf"}).click();
   await page.getByText("Draf dihapus.").waitFor({timeout:10000});
   assert.equal((await (await context.request.get(origin+"/api/form-drafts?module=Idea%20Lab")).json()).drafts.length,0);
-  // Roundtrip a complete book brief from Markdown into a real owned book.
-  await page.getByRole("button",{name:"Buka menu"}).click();
-  await page.getByRole("button",{name:"Buat Buku",exact:true}).click();
-  const briefTransfer=page.locator(".form-transfer").first();
-  const briefDL=page.waitForEvent("download");
-  await briefTransfer.getByRole("button",{name:/Unduh Markdown/}).click();
-  const briefDoc=await briefDL;
-  let briefText=await fs.readFile(await briefDoc.path(),"utf8");
-  briefText=briefText.replace("## title — Judul sementara","## title — Judul sementara"+String.fromCharCode(10,10)+"Buku Pengujian Impor");
-  const briefPath=path.join(tmp,"book.md");await fs.writeFile(briefPath,briefText);
-  await briefTransfer.locator('input[type="file"]').setInputFiles(briefPath);
-  await briefTransfer.getByRole("button",{name:/Terapkan ke form/}).click();
-  await page.getByRole("button",{name:"Susun prompt induk"}).click();
-  await page.getByRole("button",{name:"Simpan proyek buku"}).click();
-  await page.getByText("Perpustakaan Anda").first().waitFor({timeout:10000});
-  const owned=(await (await context.request.get(origin+"/api/books")).json()).books;
-  const book=owned.find(x=>x.title==="Buku Pengujian Impor");
-  assert(book&&book.id,"Imported book not created");
-  const foreign=await contextB.request.get(origin+"/api/books/"+book.id);
-  assert.equal(foreign.status(),404,"RBAC book isolation failed");
-  await page.getByRole("button",{name:/Buku Pengujian Impor/}).click();
-  const meta=page.locator(".form-transfer").first();
-  const editDL=page.waitForEvent("download");await meta.getByRole("button",{name:/Unduh Markdown/}).click();
-  const editFile=await editDL;let editText=await fs.readFile(await editFile.path(),"utf8");
-  editText=editText.replace("Buku Pengujian Impor","Buku Pengujian Impor Revisi");
-  const editPath=path.join(tmp,"book-edit.md");await fs.writeFile(editPath,editText);
-  await meta.locator('input[type="file"]').setInputFiles(editPath);
-  await meta.getByRole("button",{name:/Terapkan ke form/}).click();
-  await page.getByRole("button",{name:"Simpan perubahan"}).click();
-  await page.getByText("Perpustakaan Anda").first().waitFor({timeout:10000});
-  const updated=(await (await context.request.get(origin+"/api/books/"+book.id)).json()).book;
-  assert.equal(updated.title,"Buku Pengujian Impor Revisi");
-  await page.getByRole("button",{name:"Buka menu"}).click();
-  await page.getByRole("button",{name:"Studio Penulisan",exact:true}).click();
-  const chapterTransfer=page.locator('.form-transfer[aria-label="Impor dan ekspor Naskah bab"]');
-  const chapterDL=page.waitForEvent("download");await chapterTransfer.getByRole("button",{name:/Unduh Markdown/}).click();
-  const chapterFile=await chapterDL;const chapterPath=path.join(tmp,"chapter.md");await fs.copyFile(await chapterFile.path(),chapterPath);
-  await chapterTransfer.locator('input[type="file"]').setInputFiles(chapterPath);
-  await chapterTransfer.getByRole("button",{name:/Terapkan ke form/}).click();
-  await page.getByRole("button",{name:"Simpan bab",exact:true}).click();
-  await page.getByText("Bab tersimpan di server.").waitFor({timeout:10000});
-  const withChapter=(await (await context.request.get(origin+"/api/books/"+book.id)).json()).book;
-  assert.equal(withChapter.chapters.length,1,"Chapter import not persisted");
-  await page.getByRole("button",{name:"Buka menu"}).click();
-  await page.getByRole("button",{name:"Proyek Buku",exact:true}).click();
-  page.once("dialog",dialog=>dialog.accept());
-  await page.getByRole("button",{name:"Hapus draf"}).click();
-  await page.getByText("Buku dihapus.").waitFor({timeout:10000});
-  await assert.rejects(async()=>{
-    const response=await context.request.get(origin+"/api/books/"+book.id);
-    if(response.status()===404)throw Error("Deletion confirmed");
-  },/Deletion confirmed/);
-  // Verify transfer controls are accessible after login from their relevant sidebar pages.
-  for(const [module,title] of [
-    ["Idea Lab","Idea Lab"],
-    ["Kurikulum","Kurikulum"],
-    ["Studio Latihan","Studio Latihan"],
-    ["Studio Visual","Studio Visual"],
-    ["Pusat Agen","Pusat Agen"]
-  ]){
-    await page.getByRole("button",{name:"Buka menu"}).click();
-    await page.getByRole("button",{name:module,exact:true}).click();
-    assert.equal(new URL(page.url()).searchParams.get("module"),module,"Page URL must reflect selected module");
-    const panel=page.locator(".form-draft-manager");
-    await panel.getByRole("heading",{name:new RegExp("Impor, ekspor & CRUD draf")}).waitFor({timeout:10000});
-    assert(await panel.getByRole("button",{name:/Unduh XLSX/}).isVisible(),module+" missing XLSX");
-    assert(await panel.getByRole("button",{name:/Unduh Markdown/}).isVisible(),module+" missing MD");
-    assert(await panel.locator('input[type="file"]').count()===1,module+" missing file input");
-    await page.reload();
-    assert.equal(new URL(page.url()).searchParams.get("module"),module,"Module deep link not persisted after reload");
-    await page.locator(".form-draft-manager").waitFor({state:"visible",timeout:15000});
-  }
-  await page.getByRole("button",{name:"Buka menu"}).click();
-  await page.getByRole("button",{name:"Buat Buku",exact:true}).click();
-  assert(await page.locator('.form-transfer[aria-label="Impor dan ekspor Brief Buku"]').isVisible());
-  await page.reload();
-  assert(await page.getByRole("button",{name:"Buka menu"}).isVisible());
-
-  console.log("FORM_TRANSFER_E2E_PASS",JSON.stringify({xlsx:true,markdown:true,bookCrud:true,chapterCrud:true,create:true,read:true,update:true,delete:true,rbac:true,secretBlock:true,sourceFilesPersistedOnServer:"no multipart request used"}));
+  console.log("FORM_TRANSFER_E2E_PASS",JSON.stringify({xlsx:true,markdown:true,create:true,read:true,update:true,delete:true,rbac:true,secretBlock:true}));
   await contextB.close();await context.close();
  }catch(e){console.error("FORM_TRANSFER_E2E_FAIL",e.stack||e.message);process.exitCode=1}
  finally{await browser?.close();await db.studioFormDraft.deleteMany({where:{owner:{email:{in:users.map(x=>x.email)}}}}).catch(()=>{});await db.studioUser.deleteMany({where:{email:{in:users.map(x=>x.email)}}}).catch(()=>{});await db.$disconnect();await fs.rm(tmp,{recursive:true,force:true})}

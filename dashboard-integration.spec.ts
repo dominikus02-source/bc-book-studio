@@ -36,7 +36,7 @@ test("dashboard creates a project through the live API and restores it on reload
   const response=await page.request.get(origin+"/api/books");
   expect(response.ok()).toBeTruthy();
   expect((await response.json()).books.some((item:{id:string;title:string})=>item.id===book.id&&item.title===title)).toBeTruthy();
- }finally{await db.book.delete({where:{id:book.id}});}
+ }finally{await page.close();await db.book.delete({where:{id:book.id}});}
 });
 test("unauthenticated and forged headers fail closed",async({request})=>{
 for(const headers of ([{},{"cf-access-authenticated-user-email":"fake@example.com"},{"cf-access-jwt-assertion":"fake.jwt.token"}] as Record<string,string>[])){
