@@ -56,9 +56,10 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   let drafts=(await (await context.request.get(origin+"/api/form-drafts?module=Idea%20Lab")).json()).drafts;
   assert.equal(drafts.length,1);draftId=drafts[0].id;
   assert.equal(drafts[0].payload.bookTitle,"Buku IPA Eksperimen");
+  const autoSaved=page.waitForResponse(response=>response.url().endsWith("/api/form-drafts/"+draftId)&&response.request().method()==="PATCH"&&response.ok()&&response.request().postDataJSON()?.payload?.bookTitle==="Buku IPA Eksperimen Revisi");
   await page.getByLabel("Judul sementara").fill("Buku IPA Eksperimen Revisi");
-  await transfer.getByRole("button",{name:"Simpan perubahan"}).click();
-  await page.getByText("Data draf tersimpan di server. Anda dapat melanjutkan ke proses berikutnya.",{exact:true}).waitFor({timeout:10000});
+  await autoSaved;
+  await page.getByText(/Tersimpan otomatis/).waitFor({timeout:10000});
   drafts=(await (await context.request.get(origin+"/api/form-drafts?module=Idea%20Lab")).json()).drafts;
   assert.equal(drafts[0].payload.bookTitle,"Buku IPA Eksperimen Revisi");
   const mdDL=page.waitForEvent("download");await transfer.getByRole("button",{name:/Unduh Markdown/}).click();
