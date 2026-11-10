@@ -1,0 +1,11 @@
+services:
+  export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.export-worker
+      args:
+        REVISION: ${STAGING_SOURCE_SHA:?Set the checked out release commit}
+  quarto:
+    build:
+      context: .
+      dockerfile: Dockerfile.quarto-worker
