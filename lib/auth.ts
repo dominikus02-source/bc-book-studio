@@ -15,7 +15,7 @@ export async function authorized(req: NextRequest): Promise<boolean> {
 }
 export async function reviewerAuthorized(req: NextRequest): Promise<boolean> {
   const user = await sessionUser(req);
-  if (user && (user.role === "REVIEWER" || user.role === "ADMIN")) return true;
+  if (user && (user.role === "REVIEWER" || (user.role === "ADMIN" || user.role === "SUPERADMIN"))) return true;
   const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const editor = process.env.STUDIO_API_KEY;
   const reviewer = process.env.STUDIO_REVIEWER_API_KEY;
@@ -38,5 +38,5 @@ export async function identity(req: NextRequest): Promise<string|null>{
 }
 export async function administrator(req: NextRequest): Promise<string|null>{
  const user=await sessionUser(req);
- return user?.role==="ADMIN" ? user.id : null;
+ return (user?.role==="ADMIN" || user?.role==="SUPERADMIN") ? user.id : null;
 }
