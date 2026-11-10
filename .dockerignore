@@ -1,5 +1,16 @@
+.git
 node_modules
 .next
-.git
 .env*
 !.env.example
+backups
+artifacts
+test-results
+playwright-report
+*.log
+*.bak
+Dockerfile.backup*
+.data
+.next-*
+public/momentum-draft
+publishing/**/_book

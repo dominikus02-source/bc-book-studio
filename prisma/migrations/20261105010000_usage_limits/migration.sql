@@ -1,0 +1,1 @@
+CREATE TABLE "UsageCounter" ("scope" TEXT NOT NULL, "subject" TEXT NOT NULL, "period" TEXT NOT NULL, "count" INTEGER NOT NULL DEFAULT 0, CONSTRAINT "UsageCounter_pkey" PRIMARY KEY ("scope","subject","period"));

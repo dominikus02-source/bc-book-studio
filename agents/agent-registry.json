@@ -1,0 +1,223 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "design_only",
+  "orchestration": {
+    "mode": "hybrid",
+    "logicalAgentCount": 11,
+    "persistentAgentProcesses": 0,
+    "dispatchPolicy": "route_by_stage_grade_specialization_risk_budget",
+    "humanApprovalRequiredForPublishing": true
+  },
+  "agents": [
+    {
+      "id": "chief_editor",
+      "name": "Pemimpin Redaksi",
+      "stage": [
+        "planning",
+        "all"
+      ],
+      "capabilities": [
+        "planning",
+        "routing",
+        "risk_review",
+        "approval_gate"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "research",
+      "name": "Riset dan Referensi",
+      "stage": [
+        "research"
+      ],
+      "capabilities": [
+        "source_discovery",
+        "fact_check",
+        "audience_research"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "curriculum",
+      "name": "Kurikulum",
+      "stage": [
+        "curriculum"
+      ],
+      "capabilities": [
+        "curriculum_mapping",
+        "learning_objectives",
+        "coverage_analysis"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "author",
+      "name": "Penulis",
+      "stage": [
+        "writing"
+      ],
+      "capabilities": [
+        "outline",
+        "chapter_drafting",
+        "examples",
+        "activities"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "exercise",
+      "name": "Latihan dan Asesmen",
+      "stage": [
+        "exercise"
+      ],
+      "capabilities": [
+        "question_design",
+        "answer_key",
+        "rubric",
+        "item_review"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "visual",
+      "name": "Ilustrasi dan Visual",
+      "stage": [
+        "visual"
+      ],
+      "capabilities": [
+        "visual_brief",
+        "diagram_specification",
+        "asset_metadata"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "editorial",
+      "name": "Penyunting Bahasa",
+      "stage": [
+        "editorial"
+      ],
+      "capabilities": [
+        "spelling",
+        "grammar",
+        "readability",
+        "consistency"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "pedagogy",
+      "name": "Penelaah Pedagogis",
+      "stage": [
+        "pedagogy"
+      ],
+      "capabilities": [
+        "age_appropriateness",
+        "learning_alignment",
+        "activity_balance"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "qa",
+      "name": "Penjamin Mutu",
+      "stage": [
+        "quality"
+      ],
+      "capabilities": [
+        "completeness",
+        "duplicate_detection",
+        "source_validation",
+        "gate_review"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "layout",
+      "name": "Tata Letak",
+      "stage": [
+        "layout"
+      ],
+      "capabilities": [
+        "page_structure",
+        "typography",
+        "export_preparation"
+      ],
+      "mayPublish": false
+    },
+    {
+      "id": "publisher",
+      "name": "Penerbit",
+      "stage": [
+        "publishing"
+      ],
+      "capabilities": [
+        "metadata_validation",
+        "package_preparation",
+        "archive_record"
+      ],
+      "mayPublish": false
+    }
+  ],
+  "specializations": [
+    "linguistik",
+    "tata_bahasa_ortografi",
+    "sastra",
+    "literasi",
+    "retorika_komunikasi",
+    "genre_keterampilan_menulis",
+    "asesmen",
+    "literasi_digital"
+  ],
+  "memoryScopes": [
+    "global_knowledge",
+    "project_memory",
+    "working_memory"
+  ],
+  "safety": {
+    "noFabricatedSources": true,
+    "noFabricatedISBN": true,
+    "noUnapprovedPublishing": true,
+    "noSilentSubstantiveEdits": true,
+    "noPermanentDeletionByAgent": true,
+    "recordModelAndPromptVersion": true,
+    "enforceProjectBudget": true
+  },
+  "technicalSpecialists": [
+    {
+      "id": "qmd-book-agent",
+      "kind": "subagent",
+      "status": "design_only",
+      "promptPath": "agents/specialists/qmd-book-agent.md",
+      "allowedCallers": [
+        "layout",
+        "qa",
+        "publisher"
+      ],
+      "capabilities": [
+        "quarto_generation",
+        "render_validation",
+        "accessibility_evidence",
+        "artifact_manifest"
+      ],
+      "approvalAuthority": false,
+      "publishingAuthority": false,
+      "productionEnabled": false,
+      "requiredReleaseInput": [
+        "bookId",
+        "snapshotHash",
+        "approvalId",
+        "approvalStatus",
+        "orderedChapters",
+        "metadata",
+        "targetFormats",
+        "assets"
+      ],
+      "gates": [
+        "G7",
+        "G8",
+        "G9"
+      ]
+    }
+  ]
+}

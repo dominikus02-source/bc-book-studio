@@ -1,0 +1,25 @@
+{
+  "id": "grade_03",
+  "grade": 3,
+  "schoolLevel": "SD",
+  "status": "draft",
+  "curriculumFrameworkVersion": null,
+  "languageComplexity": {
+    "vocabularyBand": null,
+    "sentenceLengthBand": null,
+    "readingComplexityBand": null,
+    "abstractionBand": null
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": null,
+    "visualSupport": "high",
+    "activityTypes": [],
+    "assessmentTypes": []
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": [],
+    "reviewedAt": null
+  },
+  "note": "Parameter kuantitatif wajib ditetapkan melalui validasi ahli dan sumber kurikulum yang berlaku; jangan gunakan nilai tebakan."
+}

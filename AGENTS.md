@@ -1,24 +1,5 @@
-# AGENTS.md
+﻿# BC Book Studio — Agent and Developer Instructions
 
-## Project
-BC Book Studio — independent educational book publishing studio for BahasaCerdas.
-Next.js 15 + React 19 + TypeScript + Prisma + PostgreSQL.
+The authoritative product and development contract is [`constitution.md`](./constitution.md). Read it before modifying code, designs, tests, database schemas, publishing, or deployment.
 
-## Commands
-- `npm install`
-- `npm run db:generate && npm run db:migrate`
-- `npm run dev`
-- `npm run typecheck && npm run build`
-
-## Conventions
-- Preserve the quality gate: DRAFT → REVIEW → APPROVED. Exports must remain blocked until APPROVED.
-- Prefer Indonesian language in user-facing strings.
-- AI-generated text is always a draft; humans must review before saving.
-- Embed Unicode-capable fonts for any PDF export work (current PDF uses limited WinAnsi fonts).
-- Keep editor and reviewer tokens separate.
-
-## Boundaries
-- Do not remove the reviewer token separation or the approval requirement.
-- Do not commit secrets or reuse the BahasaCerdas production database.
-- Prefer incremental improvements that fit the existing API and schema over large rewrites.
-- See docs/VISION.md for product direction.
+Every task must produce a requirement-to-evidence matrix, verify actual repository state, preserve unrelated working-tree changes, and report PASS/FAIL/BLOCKED/NOT RUN honestly. Never claim implemented or compliant based on a document alone. Follow the five-stage author workflow and global UI/UX, CRUD/RBAC, accessibility, publishing and legal gates. Do not publish or deploy without evidence and authorized GO.

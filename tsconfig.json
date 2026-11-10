@@ -21,13 +21,37 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next-active-edit-qa/types/**/*.ts",
+    ".next-crud-snapshot-qa/types/**/*.ts",
+    ".next-dnd-qa/types/**/*.ts",
+    ".next-full-qa/types/**/*.ts",
+    ".next-isbn-dossier-qa/types/**/*.ts",
+    ".next-isbn-responsive/types/**/*.ts",
+    ".next-live-space-qa/types/**/*.ts",
+    ".next-print-guide-qa/types/**/*.ts",
+    ".next-print-release-check/types/**/*.ts",
+    ".next-qa-pdfworker/types/**/*.ts",
+    ".next-release-qa/types/**/*.ts",
+    ".next-review-qa/types/**/*.ts",
+    ".next-review-release-check/types/**/*.ts",
+    ".next-review-release-check2/types/**/*.ts",
+    ".next-settings-qa/types/**/*.ts",
+    ".next-snapshot-build/types/**/*.ts",
+    ".next-snapshot-local/types/**/*.ts",
+    ".next-snapshot-qa/types/**/*.ts",
+    ".next-ui-qa/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules"

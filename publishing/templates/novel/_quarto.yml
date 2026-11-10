@@ -1,0 +1,22 @@
+project:
+  type: book
+  output-dir: _book
+execute:
+  enabled: false
+book:
+  title: "Judul Buku"
+  author: "Nama Penulis"
+  chapters:
+    - index.qmd
+format:
+  html:
+    toc: true
+  docx:
+    toc: true
+    reference-doc: ../shared/reference.docx
+  epub:
+    toc: true
+  typst:
+    toc: true
+    papersize: a5
+    number-sections: false

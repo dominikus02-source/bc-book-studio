@@ -1,0 +1,71 @@
+name: bc-book-studio-staging
+x-export-environment: &export-environment
+  DATABASE_URL: postgresql://bookstudio:${STAGING_DB_PASSWORD:?Required}@db:5432/bookstudio
+  QUARTO_WORKER_URL: http://quarto.internal:39319/
+  QUARTO_WORKER_TOKEN: ${STAGING_QUARTO_TOKEN:?Required}
+  EXPORT_ARTIFACT_DIR: /var/bookstudio/artifacts
+  EXPORT_WORKER_ENABLED: "true"
+  NODE_ENV: production
+services:
+  web:
+    image: ${STAGING_WEB_IMAGE:?Set verified web digest}
+    restart: unless-stopped
+    env_file: ${STAGING_APP_ENV:?Set dedicated staging app env file}
+    environment: *export-environment
+    ports: ["127.0.0.1:${STAGING_PORT:-3110}:3000"]
+    volumes:
+      - ${STAGING_ARTIFACT_DIR:?Set staging artifact path}:/var/bookstudio/artifacts
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [default, renderer]
+    security_opt: ["no-new-privileges:true"]
+  export-worker:
+    image: ${STAGING_EXPORT_IMAGE:?Set verified export worker digest}
+    restart: unless-stopped
+    environment: *export-environment
+    volumes:
+      - ${STAGING_ARTIFACT_DIR:?Set staging artifact path}:/var/bookstudio/artifacts
+    depends_on:
+      db: {condition: service_healthy}
+    networks: [default, renderer]
+    security_opt: ["no-new-privileges:true"]
+  quarto:
+    image: ${STAGING_QUARTO_IMAGE:?Set verified Quarto Worker v2 digest}
+    restart: unless-stopped
+    environment:
+      QUARTO_WORKER_TOKEN: ${STAGING_QUARTO_TOKEN:?Required}
+      QUARTO_WORKER_BIND: 0.0.0.0
+      QUARTO_WORKER_ALLOW_PRIVATE_BIND: "1"
+      QUARTO_WORKER_PORT: "39319"
+    networks:
+      renderer:
+        aliases: [quarto.internal]
+    security_opt: ["no-new-privileges:true"]
+  db:
+    image: ${STAGING_DB_IMAGE:?Set verified PostgreSQL 16 digest}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bookstudio
+      POSTGRES_USER: bookstudio
+      POSTGRES_PASSWORD: ${STAGING_DB_PASSWORD:?Required}
+    volumes:
+      - staging_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U bookstudio -d bookstudio"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: ["no-new-privileges:true"]
+  migrate:
+    profiles: [migration]
+    image: ${STAGING_MIGRATOR_IMAGE:?Set matching migrator digest}
+    environment:
+      DATABASE_URL: postgresql://bookstudio:${STAGING_DB_PASSWORD:?Required}@db:5432/bookstudio
+    depends_on:
+      db: {condition: service_healthy}
+    security_opt: ["no-new-privileges:true"]
+networks:
+  renderer:
+    internal: true
+volumes:
+  staging_pg:

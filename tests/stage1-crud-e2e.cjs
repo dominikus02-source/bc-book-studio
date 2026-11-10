@@ -1,0 +1,72 @@
+"use strict";
+const assert=require("node:assert/strict");
+const {createHash,randomBytes}=require("node:crypto");
+const {PrismaClient}=require("@prisma/client");
+const uri=new URL(process.env.DATABASE_URL||"");
+assert.equal(uri.host+uri.pathname,"127.0.0.1:55999/bookstudio_import_qa");
+const db=new PrismaClient();
+const origin="http://127.0.0.1:32979";
+const users=[],books=[];
+async function actor(){
+ const user=await db.studioUser.create({data:{role:"EDITOR",active:true,name:"Stage 1 Test",email:randomBytes(9).toString("hex")+"@example.invalid"}});
+ users.push(user.id);
+ const token=randomBytes(32).toString("hex");
+ await db.studioSession.create({data:{userId:user.id,tokenHash:createHash("sha256").update(token).digest("hex"),expiresAt:new Date(Date.now()+600000)}});
+ return {...user,token};
+}
+async function call(path,expected,actor,body,method=body?"POST":"GET"){
+ const r=await fetch(origin+path,{method,headers:{...(actor?{cookie:"bcstudio_session="+actor.token}:{}),...(body?{"content-type":"application/json"}:{})},body:body?JSON.stringify(body):undefined});
+ const obj=await r.json().catch(()=>({}));
+ assert.equal(r.status,expected,method+" "+path+" expected "+expected+" got "+r.status+" "+JSON.stringify(obj).slice(0,450));
+ return obj;
+}
+async function run(){
+ const owner=await actor(),other=await actor();
+ const {book}=await call("/api/books",201,owner,{title:"Test Brief Stage 1",grade:"7",subject:"Fisika",bookType:"NONFICTION",genre:"REFERENCE"});books.push(book.id);
+ const path="/api/books/"+book.id;
+ assert.equal((await call("/api/books",200,owner)).books.some(b=>b.id===book.id),true);
+ assert.equal((await call("/api/books",200,other)).books.some(b=>b.id===book.id),false);
+ await call(path,401);await call(path,404,other);
+ await call(path,428,owner,{description:"Naskah lengkap tanpa versi"},"PATCH");
+ await call(path,404,other,{description:"Tidak boleh",expectedVersion:book.updatedAt},"PATCH");
+ const {book:edited}=await call(path,200,owner,{expectedVersion:book.updatedAt,description:"Buku fisika untuk siswa kelas tujuh dan pembelajaran dasar.",targetAudience:"Siswa SMP",writingGoal:"Memahami konsep fisika dan eksperimen."},"PATCH");
+ assert.equal(edited.targetAudience,"Siswa SMP");
+ const history=(await call(path+"?briefHistory=1",200,owner)).history;
+ assert.equal(history.length,1);assert.equal(history[0].snapshot.targetAudience,"");
+ await call(path,409,owner,{expectedVersion:book.updatedAt,title:"Teks lama harus ditolak"},"PATCH");
+ const current=(await call(path,200,owner)).book;
+ await call(path+"/workflow",200,owner,{to:"OUTLINE"});
+ const {chapter}=await call(path+"/chapters",201,owner,{title:"Pengukuran",outlineObjective:"Memahami satuan SI."});
+ const latest=(await call(path,200,owner)).book;
+ await call(path,409,owner,{expectedVersion:current.updatedAt,description:"Kedaluarsa"},"PATCH");
+ await call(path,428,owner,undefined,"DELETE");
+ await call(path,409,owner,{expectedVersion:book.updatedAt},"DELETE");
+ await call(path,404,other,{expectedVersion:latest.updatedAt},"DELETE");
+ const archived=await call(path,200,owner,{expectedVersion:latest.updatedAt},"DELETE");
+ assert.equal(archived.archived,true);
+ assert.equal((await call("/api/books",200,owner)).books.some(b=>b.id===book.id),false);
+ assert.equal((await call("/api/books?archived=1",200,owner)).books.length>=1,true);
+ const record=(await call("/api/books?archived=1",200,owner)).books.find(b=>b.id===book.id);
+ assert(record);assert.equal(record.chapters.length,1);
+ await call(path,404,owner);
+ await call(path+"/workflow",404,owner);
+ await call(path+"/assets",404,owner);
+ await call(path+"/reviewers",404,owner);
+ await call(path+"/layout",404,owner);
+ await call(path+"/publication",404,owner);
+ await call(path+"/chapters",404,owner);
+ await call(path+"/chapters",404,owner,{title:"Injeksi",outlineObjective:"Terlarang"},"POST");
+ await call(path+"/chapters/"+chapter.id,404,owner);
+ await call(path+"/restore",404,other,{expectedVersion:record.updatedAt});
+ await call(path+"/restore",428,owner,{});
+ await call(path+"/restore",409,owner,{expectedVersion:latest.updatedAt});
+ assert.equal((await call(path+"/restore",200,owner,{expectedVersion:record.updatedAt})).restored,true);
+ await call(path+"/restore",409,owner,{expectedVersion:record.updatedAt});
+ const restored=(await call(path,200,owner)).book;
+ assert.equal(restored.chapters.length,1);
+ assert.equal(restored.chapters[0].id,chapter.id);
+ assert.equal((await call("/api/books",200,owner)).books.some(b=>b.id===book.id),true);
+ assert.equal((await call("/api/books?archived=1",200,owner)).books.some(b=>b.id===book.id),false);
+ console.log("STAGE1_CRUD_API_PASS: create, read, edit, version409, history, RBAC, archive, hidden routes, restore and chapter retention");
+}
+run().catch(e=>{console.error("STAGE1_FAIL",e);process.exitCode=1}).finally(async()=>{for(const id of books)await db.book.deleteMany({where:{id}}).catch(()=>{});for(const id of users)await db.studioUser.deleteMany({where:{id}}).catch(()=>{});await db.$disconnect()});

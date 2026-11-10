@@ -1,0 +1,108 @@
+/* Scoped responsive improvements for the printing workflow. */
+.print-workspace {max-width:100%;min-width:0;overflow-wrap:anywhere}
+.print-workspace .print-readiness {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px 24px;border:1px solid var(--line);border-radius:16px;padding:clamp(14px,2vw,22px);background:var(--panel);margin-bottom:18px;min-width:0}
+.print-workspace .print-readiness strong {font-weight:750}
+.print-workspace .print-readiness p {font-size:.85rem;color:var(--muted);margin:8px 0 0;line-height:1.55}
+.print-workspace .print-readiness-items {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;align-content:start}
+.print-workspace .print-readiness-items span {display:grid;gap:4px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:11px;font-size:.75rem;color:var(--muted);min-width:0}
+.print-workspace .print-readiness-items b {color:var(--ink);font-size:.92rem;overflow-wrap:anywhere}
+.print-workspace .print-readiness ul {grid-column:1/-1;margin:0;padding:10px 14px 10px 30px;background:var(--bg);border-left:3px solid #d97706;border-radius:8px;font-size:.84rem;line-height:1.65}
+.print-workspace :is(.print-form,.print-editor,.print-history,.print-context,.print-heading,.print-order) {min-width:0}
+.print-workspace :is(.print-form input,.print-form select,.print-form textarea,.print-filters input,.print-filters select){width:100%;min-width:0;max-width:100%}
+.print-workspace button {max-width:100%;white-space:normal;text-align:center}
+.print-workspace .print-order-bottom strong {overflow-wrap:anywhere}
+@media(max-width:960px){.print-workspace .print-readiness{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.print-workspace .print-readiness-items{grid-template-columns:minmax(0,1fr)}.print-workspace .print-readiness{padding:13px}.print-workspace .print-section-heading{flex-wrap:wrap}.print-workspace .print-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.print-workspace .print-actions>*{width:100%;min-width:0}.print-workspace .print-form-actions{grid-template-columns:minmax(0,1fr)}.print-workspace .print-order .print-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:360px){.print-workspace .print-order .print-actions{grid-template-columns:minmax(0,1fr)}}
+
+/* Pair each printing surface with its own readable foreground. */
+.print-workspace {
+  --print-ink:#172235;
+  --print-muted:#49576b;
+  --print-panel:#ffffff;
+  --print-subtle:#eef2f7;
+  --print-line:#64748b;
+  --print-accent:#1e40af;
+  --print-action:#1e40af;
+  --print-action-ink:#ffffff;
+  --print-warning:#78350f;
+  --print-warning-bg:#fffbeb;
+  --print-error:#991b1b;
+  --print-error-bg:#fef2f2;
+  --print-success:#166534;
+  --print-success-bg:#f0fdf4;
+  --ink:var(--print-ink);
+  --muted:var(--print-muted);
+  --panel:var(--print-panel);
+  --bg:var(--print-subtle);
+  --line:var(--print-line);
+  color:var(--print-ink);
+}
+:root[data-theme="dark"] .print-workspace {
+  --print-ink:#f1f5f9;
+  --print-muted:#cbd5e1;
+  --print-panel:#1e293b;
+  --print-subtle:#111827;
+  --print-line:#8494aa;
+  --print-accent:#bfdbfe;
+  --print-action:#bfdbfe;
+  --print-action-ink:#172554;
+  --print-warning:#fde68a;
+  --print-warning-bg:#422006;
+  --print-error:#fecaca;
+  --print-error-bg:#450a0a;
+  --print-success:#bbf7d0;
+  --print-success-bg:#052e16;
+}
+.print-workspace :is(.print-editor,.print-history,.print-order,.print-context,.print-readiness,.print-metrics>div){
+  color:var(--print-ink);background:var(--print-panel);border-color:var(--print-line);
+}
+.print-workspace :is(.print-form,.print-filters) :is(input,select,textarea,option){
+  color:var(--print-ink);background:var(--print-subtle);border-color:var(--print-line);
+}
+.print-workspace :is(input,textarea)::placeholder{color:var(--print-muted);opacity:1}
+.print-workspace :is(.print-total,.print-vendor,.print-context-meta span,.print-order-details span){
+  color:var(--print-ink);background:var(--print-subtle);
+}
+.print-workspace :is(.print-eyebrow,.print-order-top span[data-status]){color:var(--print-accent)}
+.print-workspace :is(.print-warning,.print-readiness ul){color:var(--print-warning);background:var(--print-warning-bg)}
+.print-workspace .print-error{color:var(--print-error);background:var(--print-error-bg)}
+.print-workspace .print-success{color:var(--print-success);background:var(--print-success-bg)}
+.print-workspace .print-message button{color:inherit}
+.print-workspace .secondary-button{color:var(--print-ink);background:var(--print-subtle);border-color:var(--print-line)}
+.print-workspace .primary-button{color:var(--print-action-ink);background:var(--print-action)}
+.print-workspace :is(button,input,select,textarea):focus-visible{outline:2px solid var(--print-accent);outline-offset:2px}
+/* Make the print workflow and order status easier to scan. */
+.print-workspace .print-heading {
+  background:linear-gradient(125deg,var(--print-panel) 40%,var(--print-subtle));
+  border:1px solid var(--print-line);
+  border-radius:20px;
+  padding:clamp(16px,3vw,30px);
+}
+.print-workspace .print-heading p {color:var(--print-muted);max-width:62ch}
+.print-workspace .print-metrics strong {color:var(--print-accent)}
+.print-workspace .print-context {border-inline-start:4px solid var(--print-accent)}
+.print-workspace :is(.print-kicker,.print-divider-label) {color:var(--print-accent)}
+.print-workspace .print-section-heading {border-bottom:1px solid var(--print-line);padding-bottom:14px}
+.print-workspace .print-form label {display:grid;gap:6px;font-weight:650}
+.print-workspace :is(.print-form,.print-filters) :is(input,select,textarea) {min-height:44px;border-radius:10px}
+.print-workspace .print-actions button {min-height:44px}
+.print-workspace .print-total {border-inline-start:4px solid var(--print-accent)}
+.print-workspace .print-total strong {color:var(--print-accent);font-size:1.15rem}
+.print-workspace .print-empty {background:var(--print-subtle);line-height:1.55}
+.print-workspace .print-order-top span[data-status] {
+  background:var(--print-subtle);
+  border:1px solid currentColor;
+  border-radius:999px;
+  padding:4px 10px;
+}
+.print-workspace .print-order-top span:is([data-status="QUOTED"],[data-status="IN_PRODUCTION"]) {
+  color:var(--print-warning);background:var(--print-warning-bg);
+}
+.print-workspace .print-order-top span:is([data-status="APPROVED"],[data-status="COMPLETED"]) {
+  color:var(--print-success);background:var(--print-success-bg);
+}
+.print-workspace .print-order-top span[data-status="CANCELLED"] {
+  color:var(--print-error);background:var(--print-error-bg);
+}
+.print-workspace :is(button,input,select,textarea,option) {font-family:inherit}

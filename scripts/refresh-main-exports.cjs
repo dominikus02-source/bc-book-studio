@@ -1,0 +1,11 @@
+const fs=require("fs"),path=require("path"),assert=require("assert/strict"),{randomBytes,createHash}=require("crypto"),{PrismaClient}=require("@prisma/client"),JSZip=require("jszip"),{PDFDocument}=require("pdf-lib");
+process.loadEnvFile(".env.local");const db=new PrismaClient(),base="http://127.0.0.1:3000",id="cmw9sb9mm000qulx8fzvieiwp",dir="artifacts/20261110-snapshot/main-book",hash=b=>createHash("sha256").update(b).digest("hex");let th;
+(async()=>{const book=await db.book.findUniqueOrThrow({where:{id}}),old=JSON.parse(fs.readFileSync(dir+"/manifest.json","utf8")),token=randomBytes(32).toString("hex");th=hash(token);await db.studioSession.create({data:{userId:book.ownerId,tokenHash:th,expiresAt:new Date(Date.now()+600000)}});const headers={cookie:"bcstudio_session="+token},files=[];
+for(const format of ["html","flipbook","docx","epub","pdf"]){const r=await fetch(base+"/api/books/"+id+"/export?format="+format,{headers}),bytes=Buffer.from(await r.arrayBuffer());assert.equal(r.status,200,format+" "+bytes.toString("utf8",0,150));const filename="work-done-and-energy."+(format==="flipbook"?"flipbook.html":format);fs.writeFileSync(path.join(dir,filename),bytes);
+if(format==="pdf"){const pdf=await PDFDocument.load(bytes);assert.equal(pdf.getTitle(),book.title);assert.equal(pdf.getAuthor(),book.author);}
+if(format==="docx"){const zip=await JSZip.loadAsync(bytes,{checkCRC32:true}),xml=await zip.file("word/document.xml").async("string");const plain=xml.replace(/<[^>]+>/g,"");assert.ok(plain.includes("Gambar 1."));assert.ok(!/Figure 1/.test(plain),"Duplicate automatic caption");}
+files.push({format,filename,bytes:bytes.length,sha256:hash(bytes),sourceSnapshot:r.headers.get("x-source-snapshot"),sourceSha256:r.headers.get("x-source-sha256")});console.log("VERIFIED_3000",format,bytes.length);}
+assert.equal(new Set(files.map(f=>f.sourceSha256)).size,1);assert.equal(new Set(files.map(f=>f.sourceSnapshot)).size,1);
+fs.writeFileSync(dir+"/manifest.json",JSON.stringify({...old,verifiedOrigin:base,files},null,2));
+console.log("LOCAL_3000_FIVE_FORMAT_PASS");
+})().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{if(th)await db.studioSession.deleteMany({where:{tokenHash:th}});await db.$disconnect()});

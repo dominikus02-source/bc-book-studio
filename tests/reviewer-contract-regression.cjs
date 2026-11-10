@@ -1,0 +1,46 @@
+require("dotenv").config({path:".env.local"});
+const {PrismaClient}=require("@prisma/client");
+const {chromium}=require("@playwright/test");
+const {randomBytes,scryptSync}=require("node:crypto");
+const assert=require("node:assert/strict");
+const db=new PrismaClient(),base=process.env.QA_ORIGIN||"http://127.0.0.1:3106";
+const password="Qa"+randomBytes(16).toString("hex")+"!";
+const salt=randomBytes(16).toString("hex");
+let user,book,browser;
+(async()=>{
+ assert(["localhost","127.0.0.1"].includes(new URL(process.env.DATABASE_URL).hostname),"Do not test on non-local database");
+ user=await db.studioUser.create({data:{email:"qa-review-"+Date.now()+"@example.test",name:"Reviewer Contract QA",role:"EDITOR",active:true,passwordHash:salt+":"+scryptSync(password,salt,64).toString("hex")}});
+ book=await db.book.create({data:{ownerId:user.id,title:"Reviewer Contract QA Book",grade:"SMP",subject:"QA"}});
+ const response=await fetch(base+"/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email:user.email,password})});
+ assert.equal(response.status,200,"login real");
+ const cookie=response.headers.get("set-cookie").split(";")[0];
+ const api=await fetch(base+"/api/reviewer",{headers:{cookie},cache:"no-store"});
+ assert.equal(api.status,200,"reviewer API");
+ const data=await api.json();
+ const entry=data.assignments.find(x=>x.book.id===book.id);
+ assert(entry,"book present");
+ for(const key of ["chapters","reviewNotes","archivedNotes","assignedReviewers","reviewSubmissionMissing","reviews"])assert(Array.isArray(entry.book[key]),key+" array missing");
+ assert.equal(entry.book.assignedReviewers.length,0);assert.equal(entry.book.archivedNotes.length,0);
+ console.log("REVIEW_API_CONTRACT_PASS");
+ browser=await chromium.launch({headless:true});
+ const context=await browser.newContext({viewport:{width:375,height:850}});
+ await context.addCookies([{name:"bcstudio_session",value:cookie.substring(cookie.indexOf("=")+1),domain:"127.0.0.1",path:"/",httpOnly:true,sameSite:"Lax"}]);
+ const page=await context.newPage();
+ const errors=[];page.on("pageerror",e=>errors.push(e.message));
+ await page.goto(base+"/studio?bookId="+book.id+"&module="+encodeURIComponent("Review Naskah"),{waitUntil:"domcontentloaded"});
+ await page.getByRole("heading",{name:"Review Naskah"}).first().waitFor();
+ await page.getByText("0 reviewer",{exact:false}).first().waitFor();
+ assert(!errors.some(x=>/assignedReviewers|archivedNotes|Cannot read properties of undefined/.test(x)),errors.join(" | "));
+ for(const width of [320,375,768,1024,1440]){
+   await page.setViewportSize({width,height:850});
+   await page.getByRole("button",{name:"Catatan",exact:false}).first().click();
+   const size=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,viewport:innerWidth,forms:document.querySelectorAll(".reviewer-filter").length}));
+   assert(size.scroll<=size.viewport+2,"HORIZONTAL_OVERFLOW_"+width+" "+JSON.stringify(size));
+   assert(size.forms===1,"REVIEW_FILTER_NOT_VISIBLE");
+   await page.screenshot({path:"tests/qa-review-layout-"+width+".png",fullPage:true});
+ }
+ await page.getByRole("button",{name:"Persiapan",exact:false}).click();
+ await page.getByText("Siapkan peninjauan").first().waitFor();
+ console.log("REVIEW_LAYOUT_RESPONSIVE_PASS_320_375_768_1024_1440");
+ console.log("REVIEW_BROWSER_NO_CRASH_PASS");
+})().catch(e=>{console.error("REVIEW_QA_FAILED",e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();if(book)await db.book.deleteMany({where:{id:book.id}}).catch(()=>{});if(user)await db.studioUser.deleteMany({where:{id:user.id}}).catch(()=>{});await db.$disconnect();});
