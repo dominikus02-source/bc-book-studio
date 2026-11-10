@@ -16,7 +16,7 @@ compose+=(-f compose.resources.yml -f compose.release.yml)
 # Refuse to operate on a newly created or different Compose database.
 expected_project=bc-book-studio-runtime
 expected_volume=bc-book-studio-runtime_bookstudio_pg
-existing_db=$(docker ps -q --filter "name=^/bc-book-studio-runtime-db-1$" --filter "status=running")
+existing_db=$(docker ps -q --no-trunc --filter "name=^/bc-book-studio-runtime-db-1$" --filter "status=running")
 [[ -n "$existing_db" ]] || { echo 'Existing production database container is not running'; exit 2; }
 actual_project=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project"}}')
 actual_workdir=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}')
