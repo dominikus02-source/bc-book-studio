@@ -4,7 +4,7 @@ import {sessionUser,deny} from "../../../../../lib/auth";
 import {LETTER_KINDS,makeLetter,letterPdf,letterDocx} from "../../../../../lib/isbn-office";
 type C={params:Promise<{kind:string}>};
 export async function GET(req:NextRequest,{params}:C){
- const user=await sessionUser(req);if(!user)return deny();if(user.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ const user=await sessionUser(req);if(!user)return deny();if((user.role!=="ADMIN"&&user.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const {kind}=await params;if(kind!=="membership_letter")return NextResponse.json({error:"Use application-specific template"},{status:400});
  const ext=req.nextUrl.searchParams.get("format");if(ext!=="pdf"&&ext!=="docx")return NextResponse.json({error:"format is required"},{status:400});
  const publisher=await db.publisherProfile.findUnique({where:{id:"bci-publisher"}});
