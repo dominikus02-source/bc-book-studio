@@ -1,0 +1,214 @@
+<!doctype html><html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BC Book Studio · Studio Tata Letak</title>
+<style>
+:root{--ink:#172b29;--muted:#526663;--green:#16463e;--lime:#def1d8;--paper:#fffef8;--line:#cddbd6;--bg:#e8efeb;--panel:#fcfdfa}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,sans-serif}button,select,input,textarea{font:inherit;max-width:100%}button,select{min-height:42px}button{border:1px solid var(--line);border-radius:9px;background:white;color:var(--ink);padding:7px 11px;cursor:pointer}button:disabled{opacity:.55;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #bc6415;outline-offset:2px}.primary,button[aria-pressed=true]{background:var(--green);color:white;border-color:var(--green)}header{background:#103832;color:white;padding:14px clamp(12px,3vw,38px);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}.brand{font-weight:800;letter-spacing:.02em}.mark{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:8px;background:#dff0cc;color:#163b2d;margin-right:8px;font:700 16px Georgia}.flag{font-size:12px;color:#d3e7db}.wrap{max-width:1550px;margin:auto;padding:clamp(12px,2vw,27px)}.intro{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:10px;margin-bottom:16px}h1,h2,h3,p{margin:0 0 8px}h1{font:clamp(32px,5vw,56px)/1 Georgia;letter-spacing:-.045em}.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.14em;font-weight:800;color:var(--muted)}.muted{color:var(--muted);font-size:13px}.actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center}.grid{display:grid;grid-template-columns:minmax(165px,220px) minmax(0,1fr) minmax(210px,270px);gap:12px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}.panel h2{font-size:17px}.panel h3{font-size:14px}.stack{display:grid;gap:8px}.page-choice{width:100%;text-align:left}.canvas{background:#d7e3dd;border:1px solid #c8d6cf;border-radius:14px;padding:clamp(9px,2vw,24px);min-width:0}.sheet{background:var(--paper);box-shadow:0 8px 24px #1c3f3020;max-width:600px;margin:12px auto 0;border-radius:3px;padding:clamp(12px,4vw,37px);overflow-wrap:anywhere}.sheet[data-size=A5]{max-width:470px}.sheet[data-mode=flow]{max-width:400px;border-radius:18px}.sheet-head{border-bottom:1px solid var(--line);padding-bottom:8px}.folio{font-size:11px;font-weight:800;letter-spacing:.1em;color:#526663}.block{position:relative;border:1px solid transparent;border-radius:9px;padding:10px;margin:7px 0}.block[data-selected=true]{border-color:#49816f;background:#eaf5ed}.block.over{border-top:4px solid #006546}.block[data-width=narrow]{max-width:70%;margin-inline:auto}.sheet[data-mode=flow] .block[data-width=narrow]{max-width:100%}.block[data-align=center]{text-align:center}.block h2{font:clamp(22px,3.4vw,39px)/1.08 Georgia;margin:3px 0 8px}.handle{min-height:36px;font-size:12px;cursor:grab;border-style:dashed}.block-actions{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:5px}.graphic{min-height:90px;display:grid;place-items:center;text-align:center;background:#cfe5db;color:#114438;border-radius:8px;font:700 clamp(18px,4vw,30px) Georgia;padding:15px}.exercise{background:#eef2d9;padding:12px;border-radius:8px}.sheet footer{border-top:1px solid var(--line);padding-top:8px;color:var(--muted);font-size:11px}.field{display:grid;gap:4px;margin:10px 0;font-size:13px;font-weight:700}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:8px;background:white;padding:8px}.notice{background:#fff1cf;padding:9px;border-radius:8px;font-size:13px;margin-top:8px}.notes{margin-top:14px}.notes li{margin-bottom:8px}.notes a{color:#14584c}.badge{background:var(--lime);border-radius:30px;padding:4px 8px;font-weight:750;font-size:11px}.status{min-height:20px;font-size:13px;color:var(--muted);margin-top:8px}summary{cursor:pointer;padding:5px}hr{border:0;border-top:1px solid var(--line);margin:14px 0}.preview .block-actions{display:none}.preview .block[data-selected=true]{border-color:transparent;background:transparent}@media(max-width:980px){.grid{grid-template-columns:minmax(145px,190px) minmax(0,1fr)}.inspector{grid-column:1/-1}}@media(max-width:640px){.grid{grid-template-columns:minmax(0,1fr)}.inspector{grid-column:auto}.pages{display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:6px}.page-choice{font-size:13px}.block[data-width=narrow]{max-width:90%}}@media print{header,.intro,.sidebar,.inspector,.notes,.block-actions,.canvas>.actions,.status{display:none!important}.grid{display:block}.canvas,.sheet{background:white;box-shadow:none;border:0;margin:0;max-width:none}.block{break-inside:avoid}}
+</style>
+<header><div class="brand"><span class="mark">BC</span>Book Studio</div><div class="flag">Rancangan interaktif · Terbit / Tata Letak · Data contoh</div></header>
+<main class="wrap">
+<div class="intro"><div><p class="eyebrow">Buku aktif · Jejak Air di Sekitar Kita</p><h1>Studio Tata Letak</h1><p class="muted">Susun halaman dan blok, periksa hasil cetak dan baca ulang di layar kecil.</p></div><div class="actions"><button id="undo">Urungkan</button><button id="redo">Ulangi</button><button id="reset">Reset contoh</button><button id="preview" class="primary" aria-pressed="false">Pratinjau bersih</button></div></div>
+<div class="grid">
+<aside class="panel sidebar"><h2>Halaman</h2><p class="muted">Bagian awal, isi, dan penutup buku.</p><div class="pages stack" id="pages"></div><div class="actions" style="margin-top:9px"><button id="page-up" aria-label="Naikkan halaman">↑</button><button id="page-down" aria-label="Turunkan halaman">↓</button></div><hr><h2>Tambah blok</h2><p class="muted">Klik untuk menambah, atau seret ke posisi yang diinginkan.</p><div class="stack" id="palette"></div></aside>
+<section class="canvas" aria-label="Kanvas desain buku"><div class="actions"><button id="print-mode" aria-pressed="true">Cetak</button><button id="flow-mode" aria-pressed="false">Baca ulang</button><label>Ukuran <select id="size"><option>A4</option><option>A5</option></select></label><span class="badge" id="view-badge">Simulasi cetak</span></div><div id="sheet" class="sheet"></div><p id="status" class="status" role="status"></p></section>
+<aside class="panel inspector"><h2>Properti blok</h2><p class="muted" id="selection">Pilih blok pada kanvas.</p><form id="properties">
+<label class="field">Isi contoh<textarea id="content" rows="3" maxlength="1500"></textarea></label>
+<label class="field" id="alt-field">Teks alternatif ilustrasi<input id="alt" maxlength="180"></label>
+<label class="field">Perataan<select id="align"><option value="left">Kiri</option><option value="center">Tengah</option></select></label>
+<label class="field">Lebar cetak<select id="width"><option value="full">Penuh</option><option value="narrow">Sempit</option></select></label>
+<button type="submit" class="primary">Terapkan</button>
+</form><hr><h3>Pindahkan blok</h3><label class="field">Halaman tujuan<select id="destination"></select></label><div class="actions"><button id="move-page">Pindah</button><button id="delete">Hapus blok</button></div><hr><h3>Pemeriksaan desain</h3><div id="checks"></div></aside>
+</div>
+<section class="panel notes"><h2>Landasan desain dan batas prototipe</h2><p>Rancangan ini mengusulkan dua lapis data. <strong>Snapshot editorial</strong> mengikat isi yang disetujui. <strong>Versi tata letak</strong> menyimpan urutan, penempatan, dan gaya dengan merujuk ID snapshot dan blok. Mengubah teks setelah persetujuan membuka revisi editorial baru. Tata letak dapat disimpan dan diurungkan tanpa menimpa isi yang sudah disetujui.</p>
+<details><summary>Riset yang mendasari keputusan</summary><ul>
+<li><a href="https://guide.pressbooks.com/chapter/organize/">Pressbooks · Organize</a> memisahkan bagian awal, isi, dan bagian akhir. Prototipe menampilkan struktur itu pada navigator.</li>
+<li><a href="https://helpx.adobe.com/indesign/desktop/create-and-organize-pages/create-and-manage-parent-pages/about-parent-pages.html">Adobe InDesign · Parent Pages</a> menunjukkan manfaat preset halaman untuk margin, kolom, dan elemen berulang. <a href="https://helpx.adobe.com/indesign/desktop/add-and-manage-text/add-and-import-text/thread-text-frames.html">Thread text frames</a> menjadi rujukan untuk aliran teks yang melintasi halaman. Prototipe belum memaginasi atau mengalirkan teks secara otomatis.</li>
+<li><a href="https://www.w3.org/TR/epub-33/">W3C · EPUB 3.3</a> membedakan reflowable dan fixed layout. Urutan baca dipertahankan, sementara lebar cetak diabaikan pada mode baca ulang. Mode ini bukan hasil ekspor EPUB.</li>
+<li><a href="https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements">W3C · WCAG 2.2 Dragging Movements</a> mendasari tombol tambah, naik, turun, dan pindah halaman sebagai alternatif seret.</li>
+</ul></details>
+<details><summary>Kontrak implementasi BC Book Studio</summary><p>Gunakan satu bookId, ID blok stabil, pemeriksaan versi saat autosave, audit, dan hak akses per tahap. Pada Review, cocokkan urutan baca, isi dan alt text dengan snapshot. Pada Terbit, validasi PDF cetak, DOCX yang bisa diedit, EPUB3, HTML dan Flipbook dari snapshot yang sama. Status rilis baru berubah setelah artefak aktual diperiksa.</p></details>
+<p class="muted">Prototipe menyimpan perubahan di browser bila penyimpanan tersedia. Isi, properti, dan indikator pemeriksaan memakai data contoh. Pemeriksaan ini hanya mengecek teks alternatif dan halaman kosong. Ekspor, persetujuan, pagination, dan akses database belum terhubung.</p></section>
+<style>
+.pub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:6px 16px}.pub-check{display:flex;align-items:flex-start;gap:9px;padding:7px 0;font-size:14px}.pub-check input{width:20px;height:20px;flex:none}.pub-box{margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:12px}.pub-box legend{font-weight:800}.pub-links{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+@media print{#publisher{display:none}}
+</style>
+<section id="publisher" class="panel notes" aria-labelledby="publisher-title">
+<p class="eyebrow">Terbit / Pemeriksaan penerbit</p>
+<h2 id="publisher-title">Metadata dan kesiapan terbit</h2>
+<p class="muted">Catat status per edisi dan format. Panel ini menyimpan data di browser. Tanda centang adalah catatan manual yang harus diperiksa terhadap bukti asli.</p>
+<form id="pub-form">
+<fieldset class="pub-box"><legend>Identitas buku</legend>
+<div class="pub-grid">
+<label class="field">Judul resmi<input name="title" maxlength="250"></label>
+<label class="field">Penulis atau kontributor dan perannya<input name="creators" maxlength="500" placeholder="Nama — penulis; Nama — ilustrator"></label>
+<label class="field">Penerbit atau imprint<input name="imprint" maxlength="200"></label>
+<label class="field">Edisi<input name="edition" maxlength="80" placeholder="Edisi pertama"></label>
+<label class="field">Bahasa<input name="language" maxlength="60" placeholder="id-ID"></label>
+<label class="field">Pemegang hak dan lisensi<input name="rights" maxlength="300"></label>
+<label class="field">Referensi snapshot editorial<input name="snapshot" maxlength="120" placeholder="ID snapshot atau bukti persetujuan"></label>
+
+</div>
+</fieldset>
+<fieldset class="pub-box"><legend>ISBN dan keluaran per format</legend>
+<p class="muted">ISBN dicatat hanya jika sudah ditetapkan lembaga berwenang. Pemeriksaan nomor hanya menilai awalan dan digit pemeriksa. Setiap produk atau format yang memerlukan ISBN sendiri harus dicatat terpisah.</p>
+<div class="pub-grid">
+<label class="field">Format yang diperiksa<select id="pub-format"><option value="print">Buku cetak / PDF produksi</option><option value="pdf">PDF digital</option><option value="epub">EPUB</option><option value="docx">DOCX</option><option value="html">HTML</option><option value="flipbook">Flipbook</option></select></label>
+<label class="field">Status ISBN<select name="isbnStatus"><option value="unassessed">Belum ditetapkan</option><option value="pending">Dalam pengajuan</option><option value="issued">Sudah diterbitkan lembaga ISBN</option><option value="na">Tidak berlaku untuk produk ini</option></select></label>
+<label class="field">ISBN-13 yang ditetapkan<input name="isbn" inputmode="numeric" maxlength="25" placeholder="978… atau 979…"></label>
+<label class="field">Referensi penetapan atau alasan status<input name="isbnEvidence" maxlength="500"></label>
+<label class="field">Tanggal penetapan ISBN<input name="issuedDate" type="date"></label>
+<label class="field">Tanggal terbit aktual format ini<input name="published" type="date"></label>
+<label class="field">Referensi KDT resmi bila tersedia<input name="kdt" maxlength="500"></label>
+<label class="field">Bukti pemeriksaan berkas<input name="formatEvidence" maxlength="500" placeholder="Laporan validator, versi, tanggal, atau ID artefak"></label>
+</div>
+<p id="pub-format-guide" class="muted"></p>
+<label class="pub-check"><input type="checkbox" name="checkedArtifact">Artefak format ini telah dibuka dan diperiksa terhadap snapshot yang disetujui.</label>
+</fieldset>
+<fieldset class="pub-box"><legend>Perpusnas · pengajuan, bukti terbit, dan serah simpan</legend>
+<label class="field">Jalur penerbitan<select name="profile"><option value="id">Penerbit Indonesia / Perpusnas</option><option value="other">Jalur lain / cek lembaga negara penerbit</option></select></label>
+<div id="pub-indonesia">
+<p class="muted">Gunakan daftar ini untuk menyiapkan dokumen yang berlaku. Pengajuan, konfirmasi terbit, dan serah simpan dilakukan melalui jalur resmi.</p>
+<div id="pub-documents"></div>
+<div class="pub-grid">
+<label class="field">Jenis sumber karya<select name="workType"><option value="original">Karya asli</option><option value="translation">Terjemahan</option><option value="transfer">Pengalihan penerbitan</option><option value="public">Domain publik</option></select></label>
+<label class="field">Tautan akses publik<input name="access" type="url" placeholder="https://"></label>
+<label class="field">Tanggal konfirmasi bukti terbit<input name="proofDate" type="date"></label>
+<label class="field">Referensi tanda terima serah simpan<input name="depositEvidence" maxlength="500"></label>
+</div>
+<label class="pub-check"><input type="checkbox" name="specialEvidence">Dokumen hak tambahan yang berlaku tersedia untuk karya ini.</label>
+<p class="muted">Peraturan Perpusnas No. 11 Tahun 2025 Pasal 18 menetapkan batas penerbitan setelah memperoleh ISBN, 20 hari kerja untuk karya cetak dan 10 hari kerja untuk karya rekam. Gunakan catatan penerbit untuk menentukan tenggat yang tepat.</p>
+</div></fieldset>
+<div class="actions"><button type="submit" class="primary">Simpan pemeriksaan</button><button type="button" id="pub-download">Unduh catatan JSON</button></div>
+</form>
+<p id="pub-status" class="status" role="status"></p>
+<div id="pub-results" aria-live="polite"></div>
+<div class="pub-links"><a href="https://peraturan.go.id/files/perpusnas-no-11-tahun-2025.pdf">Perpusnas No. 11 Tahun 2025</a><a href="https://isbn.perpusnas.go.id/">Portal ISBN Perpusnas</a><a href="https://peraturan.go.id/files/uu13-2018bt.pdf">UU No. 13 Tahun 2018</a><a href="https://grp.isbn-international.org/content/about-isbn/349">International ISBN Agency</a><a href="https://www.w3.org/TR/epub-33/">EPUB 3.3</a><a href="https://www.w3.org/TR/epub-a11y/">EPUB Accessibility 1.1</a></div>
+</section>
+<script>
+(()=>{
+const form=document.getElementById("pub-form"),format=document.getElementById("pub-format"),results=document.getElementById("pub-results"),status=document.getElementById("pub-status");
+const guides={
+ print:"Periksa ukuran trim, gutter dan margin, bleed bila diperlukan, font, penomoran, serta hasil proof cetak. Gunakan profil PDF/X bila diminta percetakan.",
+ pdf:"Periksa navigasi, font, kualitas gambar dan urutan baca. Gunakan PDF bertag dan pemeriksaan PDF/UA bila profil distribusi mensyaratkannya.",
+ epub:"Periksa paket dan navigasi dengan EPUBCheck, lalu periksa urutan baca, alt text, metadata aksesibilitas, dan tampilan di pembaca EPUB. Validasi paket dan evaluasi aksesibilitas merupakan pemeriksaan terpisah.",
+ docx:"Buka di pengolah kata. Periksa gaya judul, tabel dan gambar yang dapat diedit, daftar isi, teks alternatif, serta Unicode.",
+ html:"Periksa struktur heading, daftar isi, tautan, keyboard, fokus, dan tampilan responsif dengan target WCAG 2.2 AA.",
+ flipbook:"Periksa urutan halaman, navigasi sentuh dan keyboard, zoom, dan versi baca linear. Tentukan penerapan ISBN sesuai produk yang sebenarnya."
+};
+const docs={
+ request:"Surat permohonan resmi dengan tanda tangan pimpinan dan stempel",
+ front:"Halaman judul dan balik halaman judul, kata pengantar, serta daftar isi",
+ manuscript:"Naskah akhir bertanda air dalam PDF",
+ originality:"Pernyataan keaslian bermeterai untuk karya asli atau karya yang dialihkan"
+};
+const key="bc-layout-publisher-v1",specific=["isbnStatus","isbn","isbnEvidence","formatEvidence","checkedArtifact","issuedDate","published","kdt","access","proofDate","depositEvidence"];
+let data={metadata:{profile:"id",workType:"original"},formats:{}};try{const parsed=JSON.parse(localStorage.getItem(key));if(parsed?.metadata&&parsed?.formats)data=parsed}catch{}
+document.getElementById("pub-documents").replaceChildren(...Object.entries(docs).map(([name,label])=>{
+ const element=document.createElement("label");element.className="pub-check";
+ const input=document.createElement("input");input.type="checkbox";input.name=name;
+ element.append(input,document.createTextNode(label));return element;
+}));
+let current=format.value;
+function read(){for(const field of form.elements){if(!field.name)continue;const target=specific.includes(field.name)?(data.formats[current]??={}):data.metadata;target[field.name]=field.type==="checkbox"?field.checked:field.value.trim()}}
+function load(){for(const field of form.elements){if(!field.name)continue;const record=specific.includes(field.name)?data.formats[current]:data.metadata;const value=record?.[field.name];if(field.type==="checkbox")field.checked=!!value;else if(field.tagName==="SELECT")field.value=value??field.options[0].value;else field.value=value??""}
+document.getElementById("pub-format-guide").textContent=guides[current];}
+const digits=value=>(value??"").replace(/[\s-]/g,"");
+function validISBN(value){const n=digits(value);return /^97[89]\d{10}$/.test(n)&&[...n].reduce((sum,d,i)=>sum+Number(d)*(i%2?3:1),0)%10===0}
+function render(){const m=data.metadata,f=data.formats[current]??{};
+ document.getElementById("pub-indonesia").hidden=m.profile!=="id";
+ const metadata=Object.entries({title:"judul",creators:"kontributor",imprint:"penerbit",edition:"edisi",language:"bahasa",rights:"hak penggunaan",snapshot:"referensi snapshot"}).filter(([k])=>!m[k]).map(([,v])=>v);
+ const issues=[];
+ if(metadata.length)issues.push("Metadata belum lengkap · "+metadata.join(", ")+".");
+ if(f.isbn&&!validISBN(f.isbn))issues.push("ISBN-13 gagal pemeriksaan format atau digit pemeriksa.");
+ if(f.isbn&&Object.entries(data.formats).some(([k,v])=>k!==current&&digits(v.isbn)===digits(f.isbn)))issues.push("ISBN yang sama tercatat pada format lain. Periksa alokasi produk.");
+ if(f.isbnStatus==="issued"&&(!f.isbn||!f.isbnEvidence))issues.push("Catat nomor ISBN dan referensi penetapannya.");
+ if(f.isbnStatus==="na"&&!f.isbnEvidence)issues.push("Catat alasan ISBN tidak berlaku untuk produk ini.");
+ if(!f.isbnStatus||["pending","unassessed"].includes(f.isbnStatus))issues.push("Status ISBN produk masih terbuka.");
+ if(!f.formatEvidence||!f.checkedArtifact)issues.push("Pemeriksaan artefak format ini belum terdokumentasi.");
+ if(m.profile==="id"&&f.isbnStatus==="pending"){
+  const missing=Object.keys(docs).filter(k=>!(k==="originality"&&!["original","transfer"].includes(m.workType))&&!m[k]);
+  if(missing.length)issues.push("Berkas pengajuan belum lengkap · "+missing.map(k=>docs[k]).join("; ")+".");
+  if(m.workType!=="original"&&!m.specialEvidence)issues.push({translation:"Sertakan izin penerjemahan.",transfer:"Sertakan dokumen pengalihan penerbitan.",public:"Sertakan keterangan domain publik dan sumber karya."}[m.workType]);
+ }
+ if(m.profile==="id"&&f.published&&f.isbnStatus==="issued"){
+  if(!f.access||!f.proofDate)issues.push("Catat tautan akses publik permanen dan konfirmasi bukti terbit.");
+  if(!f.depositEvidence)issues.push("Catat bukti penerimaan serah simpan saat tersedia.");
+ }
+ results.replaceChildren(...(issues.length?issues:["Isian pemeriksaan untuk format ini lengkap. Verifikasi bukti asli sebelum menetapkan status terbit."]).map(message=>{const p=document.createElement("p");p.className=issues.length?"notice":"muted";p.textContent=message;return p}));
+}
+form.addEventListener("change",()=>{read();render()});
+format.addEventListener("change",()=>{read();current=format.value;load();render()});
+form.onsubmit=event=>{event.preventDefault();read();render();try{localStorage.setItem(key,JSON.stringify(data));status.textContent="Catatan pemeriksaan tersimpan di browser."}catch{status.textContent="Browser tidak dapat menyimpan. Unduh JSON untuk menyimpan catatan."}};
+document.getElementById("pub-download").onclick=()=>{if(!form.reportValidity())return;read();const blob=new Blob([JSON.stringify({schemaVersion:1,prototype:true,...data},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="bc-book-studio-catatan-penerbit.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+load();render();
+})();
+</script>
+
+</main>
+<script>
+const el=id=>document.getElementById(id), key="bc-layout-demo-v1";
+const types={heading:"Judul",text:"Paragraf",image:"Ilustrasi",exercise:"Latihan"};
+const defaultText={heading:"Judul bagian",text:"Tulis paragraf contoh di sini.",image:"Ilustrasi baru",exercise:"Apa yang bisa kamu amati?"};
+const seed={size:"A4",pages:[
+ {id:"front",title:"Sampul dalam",section:"Bagian awal",blocks:[{id:"f1",type:"heading",text:"Jejak Air di Sekitar Kita",align:"center",width:"full"}]},
+ {id:"body",title:"Siklus air",section:"Isi",blocks:[{id:"b1",type:"heading",text:"Dari genangan ke awan",align:"left",width:"full"},{id:"b2",type:"text",text:"Panas matahari membantu air menguap. Uap naik, mendingin, lalu membentuk butir air kecil di awan.",align:"left",width:"full"},{id:"b3",type:"image",text:"Penguapan → Kondensasi → Hujan",alt:"Tiga tahap yang ditunjukkan adalah penguapan, kondensasi, dan hujan.",align:"center",width:"full"},{id:"b4",type:"exercise",text:"Amati genangan setelah hujan. Apa yang berubah ketika matahari muncul?",align:"left",width:"narrow"}]},
+ {id:"back",title:"Glosarium",section:"Bagian akhir",blocks:[{id:"g1",type:"text",text:"Kondensasi adalah perubahan uap air menjadi air cair.",align:"left",width:"full"}]}]};
+let state=structuredClone(seed);try{const cached=JSON.parse(localStorage.getItem(key));if(cached?.pages?.length)state=cached}catch{}
+let pageId=state.pages.some(p=>p.id==="body")?"body":state.pages[0].id, selected=null, mode="print", clean=false, history=[], future=[];
+const page=()=>state.pages.find(p=>p.id===pageId);
+const block=()=>page()?.blocks.find(b=>b.id===selected);
+function make(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node}
+function button(text,callback){const node=make("button",text);node.type="button";node.onclick=callback;return node}
+function persist(message){let saved=false;try{localStorage.setItem(key,JSON.stringify(state));saved=true}catch{}render();el("status").textContent=message+" · "+(saved?"Tersimpan di browser":"Tersimpan selama sesi ini")}
+function change(mutator,message){history.push(structuredClone(state));if(history.length>40)history.shift();future=[];mutator();persist(message)}
+function navigation(delta){const from=state.pages.findIndex(p=>p.id===pageId),to=from+delta;if(to<0||to>=state.pages.length)return;change(()=>{const [item]=state.pages.splice(from,1);state.pages.splice(to,0,item)},"Urutan halaman diperbarui")}
+function add(type,before){if(!types[type])return;change(()=>{const b={id:globalThis.crypto?.randomUUID?.()??String(Date.now())+Math.random(),type,text:defaultText[type],alt:"",align:"left",width:"full"};const idx=page().blocks.findIndex(x=>x.id===before);page().blocks.splice(idx<0?page().blocks.length:idx,0,b);selected=b.id},"Blok ditambahkan")}
+function place(id,before){if(id===before)return;const from=page().blocks.findIndex(b=>b.id===id);if(from<0)return;change(()=>{const [item]=page().blocks.splice(from,1);const to=page().blocks.findIndex(b=>b.id===before);page().blocks.splice(to<0?page().blocks.length:to,0,item);selected=id},"Urutan blok diperbarui")}
+function shift(id,delta){const rows=page().blocks,from=rows.findIndex(b=>b.id===id),to=from+delta;if(from<0||to<0||to>=rows.length)return;change(()=>{const [item]=rows.splice(from,1);rows.splice(to,0,item);selected=id},"Urutan blok diperbarui");el("sheet").querySelector('[data-selected="true"] .select-block')?.focus()}
+function accept(event,before){event.preventDefault();event.stopPropagation();const data=event.dataTransfer.getData("text/plain");if(data.startsWith("add:"))add(data.slice(4),before);if(data.startsWith("block:"))place(data.slice(6),before)}
+function render(){
+ if(!page())pageId=state.pages[0].id;
+ const active=page(),current=block(),idx=state.pages.indexOf(active);
+ el("pages").replaceChildren(...state.pages.map((p,i)=>{const b=button((i+1)+". "+p.title,()=>{pageId=p.id;selected=null;render();el("pages").children[i].focus()});b.className="page-choice";b.title=p.section;b.setAttribute("aria-pressed",String(p.id===pageId));return b}));
+ el("page-up").disabled=idx===0;el("page-down").disabled=idx===state.pages.length-1;
+ el("undo").disabled=!history.length;el("redo").disabled=!future.length;
+ el("size").value=state.size;el("size").disabled=mode==="flow";
+ el("print-mode").setAttribute("aria-pressed",String(mode==="print"));el("flow-mode").setAttribute("aria-pressed",String(mode==="flow"));el("view-badge").textContent=mode==="print"?"Simulasi cetak":"Aliran baca · simulasi";
+ el("preview").setAttribute("aria-pressed",String(clean));el("preview").textContent=clean?"Kembali ke editor":"Pratinjau bersih";
+ const sheet=el("sheet");sheet.dataset.mode=mode;sheet.dataset.size=state.size;sheet.classList.toggle("preview",clean);
+ const heading=make("div",active.section+" / "+active.title,"sheet-head folio");
+ const nodes=active.blocks.map((b,i)=>{
+  const row=make("article",undefined,"block");row.dataset.selected=String(b.id===selected);row.dataset.width=b.width;row.dataset.align=b.align;
+  const actions=make("div",undefined,"block-actions");
+  const grip=make("button","⠿ Seret","handle");grip.type="button";grip.draggable=true;grip.title="Seret blok "+types[b.type];grip.ondragstart=e=>{e.dataTransfer.setData("text/plain","block:"+b.id);e.dataTransfer.effectAllowed="move"};
+  const select=button("Pilih "+types[b.type],()=>{selected=b.id;render();sheet.querySelector('[data-selected="true"] .select-block')?.focus()});select.className="select-block";select.setAttribute("aria-pressed",String(b.id===selected));
+  const up=button("↑",()=>shift(b.id,-1)),down=button("↓",()=>shift(b.id,1));up.disabled=i===0;down.disabled=i===active.blocks.length-1;up.setAttribute("aria-label","Naikkan "+types[b.type]);down.setAttribute("aria-label","Turunkan "+types[b.type]);
+  actions.append(grip,select,up,down);row.append(actions);
+  const body=make(b.type==="heading"?"h2":"p",b.text,b.type==="image"?"graphic":b.type==="exercise"?"exercise":"");
+  if(b.type==="image"){body.setAttribute("role","img");body.setAttribute("aria-label",b.alt||"Ilustrasi tanpa teks alternatif")}
+  row.append(body);
+  if(!clean){row.ondragover=e=>{e.preventDefault();row.classList.add("over")};row.ondragleave=()=>row.classList.remove("over");row.ondrop=e=>{row.classList.remove("over");accept(e,b.id)}}
+  return row;
+ });
+ sheet.replaceChildren(heading,...nodes,make("footer",mode==="print"?"Halaman contoh "+(idx+1):"Bagian "+(idx+1)+" · urutan baca"));
+ sheet.ondragover=clean?null:e=>e.preventDefault();sheet.ondrop=clean?null:e=>accept(e,null);
+ el("selection").textContent=current?types[current.type]+" dipilih":"Pilih blok pada kanvas.";
+ el("properties").hidden=!current;el("alt-field").hidden=current?.type!=="image";
+ if(current){el("content").value=current.text;el("alt").value=current.alt||"";el("width").value=current.width;el("align").value=current.align}
+ el("destination").replaceChildren(...state.pages.filter(p=>p.id!==pageId).map(p=>new Option(p.title,p.id)));
+ el("move-page").disabled=!current;el("delete").disabled=!current;
+ const missing=state.pages.flatMap(p=>p.blocks.filter(b=>b.type==="image"&&!b.alt?.trim()).map(()=>p.title+" · ilustrasi belum punya teks alternatif"));
+ const empty=state.pages.filter(p=>!p.blocks.length).map(p=>p.title+" · halaman kosong");
+ el("checks").replaceChildren(...[...missing,...empty].map(item=>make("p",item,"notice")));
+ if(!missing.length&&!empty.length)el("checks").append(make("p","Teks alternatif dan isi halaman lengkap.","muted"));
+}
+el("palette").replaceChildren(...Object.entries(types).map(([type,label])=>{const b=button("+ "+label,()=>add(type));b.draggable=true;b.ondragstart=e=>{e.dataTransfer.setData("text/plain","add:"+type);e.dataTransfer.effectAllowed="copy"};return b}));
+el("properties").onsubmit=e=>{e.preventDefault();const b=block();if(!b)return;change(()=>{b.text=el("content").value.trim();b.alt=el("alt").value.trim();b.align=el("align").value;b.width=el("width").value},"Properti diterapkan")};
+el("move-page").onclick=()=>{const b=block(),target=state.pages.find(p=>p.id===el("destination").value);if(!b||!target)return;change(()=>{page().blocks=page().blocks.filter(x=>x.id!==b.id);target.blocks.push(b);pageId=target.id},"Blok dipindah ke "+target.title)};
+el("delete").onclick=()=>{if(!block())return;change(()=>{page().blocks=page().blocks.filter(x=>x.id!==selected);selected=null},"Blok dihapus. Gunakan Urungkan untuk mengembalikan")};
+el("page-up").onclick=()=>navigation(-1);el("page-down").onclick=()=>navigation(1);
+el("undo").onclick=()=>{if(!history.length)return;future.push(structuredClone(state));state=history.pop();persist("Perubahan diurungkan")};
+el("redo").onclick=()=>{if(!future.length)return;history.push(structuredClone(state));state=future.pop();persist("Perubahan diulang")};
+el("reset").onclick=()=>{if(confirm("Kembalikan tata letak ke contoh awal?"))change(()=>{state=structuredClone(seed);pageId="body";selected=null},"Contoh direset")};
+el("size").onchange=()=>change(()=>{state.size=el("size").value},"Ukuran cetak diubah");
+el("print-mode").onclick=()=>{mode="print";render()};el("flow-mode").onclick=()=>{mode="flow";render()};el("preview").onclick=()=>{clean=!clean;render()};
+render();
+</script></html>

@@ -1,0 +1,102 @@
+"use client";
+import "./printing-workspace.css";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ClipboardCopy, ExternalLink, FileText, Pencil, Plus, Printer, RefreshCw, Trash2 } from "lucide-react";
+type Book = { id:string; title:string; isOwner?:boolean; author?:string; pageSize?:string; editorialStage?:string; status?:string; pagination?:{version:number;updatedAt:string}|null; publication?:{unpublishedAt:string|null;publishedAt?:string}|null };
+type Status = "DRAFT"|"QUOTED"|"APPROVED"|"IN_PRODUCTION"|"COMPLETED"|"CANCELLED";
+type Form = { bookId:string; printerName:string; contact:string; quantity:number; paper:string; binding:string; color:"BW"|"COLOR"|"MIXED";size:string;unitPrice:number;dueDate:string;notes:string;status:Status };
+type Order = Form & {id:string;title:string;updatedAt:string};
+const fresh=(bookId="",size="A5"):Form=>({bookId,printerName:"",contact:"",quantity:100,paper:"HVS 80 gsm",binding:"Perfect binding",color:"BW",size,unitPrice:0,dueDate:"",notes:"",status:"DRAFT"});
+const labels:Record<Status,string>={DRAFT:"Draf",QUOTED:"Penawaran",APPROVED:"Disetujui",IN_PRODUCTION:"Produksi",COMPLETED:"Selesai",CANCELLED:"Dibatalkan"};
+const transitions:Record<Status,Status[]>={DRAFT:["DRAFT","QUOTED","CANCELLED"],QUOTED:["QUOTED","DRAFT","APPROVED","CANCELLED"],APPROVED:["APPROVED","QUOTED","IN_PRODUCTION","CANCELLED"],IN_PRODUCTION:["IN_PRODUCTION","COMPLETED","CANCELLED"],COMPLETED:["COMPLETED"],CANCELLED:["CANCELLED","DRAFT"]};
+const money=(n:number)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
+const printChoices={
+ size:["A3","A4","A5","A6","B4","B5","B6","Letter","Legal","Executive","F4","148 x 210 mm","170 x 240 mm","190 x 260 mm","210 x 210 mm"],
+ paper:["HVS 70 gsm","HVS 75 gsm","HVS 80 gsm","HVS 90 gsm","HVS 100 gsm","HVS warm white uncoated 90 gsm","Bookpaper 55 gsm","Bookpaper 57 gsm","Bookpaper 70 gsm","Bookpaper 80 gsm","Offset uncoated 100 gsm","Matte paper 120 gsm","Art paper 100 gsm","Art paper 120 gsm","Art paper 150 gsm","Art carton 210 gsm","Art carton 230 gsm","Art carton 260 gsm","Art carton 310 gsm"],
+ binding:["Perfect binding","Perfect binding PUR","Jilid kawat tengah (saddle stitch)","Jahit benang","Hardcover","Hardcover jahit benang","Spiral plastik","Wire-O","Jilid lem panas EVA","Jilid staples samping","Loose leaf"]
+};
+function PrintChoice({label,value,choices,maxLength,onChange}:{label:string;value:string;choices:string[];maxLength:number;onChange:(value:string)=>void}){
+ const [custom,setCustom]=useState(false);
+ const isCustom=custom||!choices.includes(value);
+ return <div className="print-choice">
+  <label>{label}<select aria-label={label} value={isCustom?"custom":value} onChange={e=>{
+   const next=e.target.value;
+   setCustom(next==="custom");
+   if(next!=="custom")onChange(next);
+  }}>
+   {choices.map(choice=><option key={choice} value={choice}>{choice}</option>)}
+   <option value="custom">Spesifikasi khusus</option>
+  </select></label>
+  {isCustom&&<label>{label} khusus<input required maxLength={maxLength} value={value} onChange={e=>onChange(e.target.value)}/></label>}
+ </div>;
+}
+export default function PrintingWorkspace({initialBookId}:{initialBookId?:string}){
+ const [catalog,setCatalog]=useState<Book[]>([]),[rows,setRows]=useState<Order[]>([]),[form,setForm]=useState<Form>(()=>fresh(initialBookId||"")),[editing,setEditing]=useState<Order|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[filter,setFilter]=useState(initialBookId||""),[search,setSearch]=useState(""),[seeded,setSeeded]=useState(false);
+ const saving=useRef(false); const [touched,setTouched]=useState(false);
+ const owned=catalog;
+ const book=owned.find(b=>b.id===form.bookId);
+ const shown=useMemo(()=>rows.filter(row=>(!filter||row.bookId===filter)&&[row.title,row.printerName,row.status].join(" ").toLowerCase().includes(search.toLowerCase())),[rows,filter,search]);
+ const load=useCallback(async()=>{setLoading(true);setError("");try{const response=await fetch("/api/printing",{cache:"no-store"});const data=await response.json();if(!response.ok)throw Error(data.error||"Gagal memuat pesanan");setRows(data.orders||[]);setCatalog(data.books||[]);}catch(e){setError((e as Error).message);}finally{setLoading(false);}},[]);
+ useEffect(()=>{void load();},[load]);
+ useEffect(()=>{if(seeded||!catalog.length||editing)return;const selected=initialBookId?catalog.find(b=>b.id===initialBookId):catalog[0];if(selected)setForm(f=>({...f,bookId:selected.id,size:selected.pageSize||f.size}));else setForm(fresh());setSeeded(true);},[catalog,seeded,editing,form.bookId,initialBookId]);
+ function update<K extends keyof Form>(key:K,value:Form[K]){setForm(f=>({...f,[key]:value}));setTouched(true);setError("");setNotice("");}
+ function reset(bookId=form.bookId){setEditing(null);setTouched(false);setError("");setNotice("");setForm(fresh(bookId,owned.find(b=>b.id===bookId)?.pageSize||"A5"));}
+ const save=useCallback(async()=>{
+  if(saving.current)return;
+  saving.current=true;setBusy(true);setError("");setNotice("");
+  try{
+   const response=await fetch("/api/printing",{method:editing?"PATCH":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(editing?{...form,id:editing.id,expectedUpdatedAt:editing.updatedAt}:form)});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||"Tidak berhasil menyimpan");
+   const saved:Order=data.order;
+   setEditing(saved);
+   setRows(current=>[saved,...current.filter(row=>row.id!==saved.id)]);
+   setFilter(saved.bookId);setSearch("");
+   setNotice("Pesanan tersimpan di database.");
+  }catch(e){setError((e as Error).message);}
+  finally{saving.current=false;setBusy(false);}
+ },[editing,form]);
+ async function remove(row:Order){if(!window.confirm("Arsipkan pesanan ini dari daftar aktif?"))return;setBusy(true);setError("");try{const response=await fetch("/api/printing?id="+encodeURIComponent(row.id)+"&expectedUpdatedAt="+encodeURIComponent(row.updatedAt),{method:"DELETE"});const data=await response.json();if(!response.ok)throw Error(data.error||"Tidak dapat menghapus");if(editing?.id===row.id)reset();await load();setNotice("Pesanan diarsipkan.");}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
+ function edit(row:Order){setTouched(false);setError("");setNotice("");setEditing(row);setForm({bookId:row.bookId,printerName:row.printerName,contact:row.contact,quantity:row.quantity,paper:row.paper,binding:row.binding,color:row.color,size:row.size,unitPrice:row.unitPrice,dueDate:row.dueDate||"",notes:row.notes||"",status:row.status});document.getElementById("print-editor")?.scrollIntoView({behavior:"smooth",block:"start"});}
+ function specification(row:Form){const selected=owned.find(b=>b.id===row.bookId);return ["LEMBAR SPESIFIKASI CETAK — DRAF (belum merupakan PO)", "Judul: "+(selected?.title||"Buku"),"Penulis: "+(selected?.author||"-"),"Mitra: "+(row.printerName||"Belum ditentukan"),"Kontak: "+(row.contact||"-"),"Jumlah: "+row.quantity+" eksemplar","Trim: "+row.size,"Kertas: "+row.paper,"Jilid: "+row.binding,"Warna: "+({BW:"Hitam putih",COLOR:"Berwarna",MIXED:"Campuran"}[row.color]),"Harga satuan: "+money(row.unitPrice),"Estimasi: "+money(row.quantity*row.unitPrice),"Target selesai: "+(row.dueDate||"Belum diatur"),"Status internal: "+labels[row.status],"Catatan: "+(row.notes||"-"),"CATATAN: File siap cetak, proof, lisensi dan ISBN harus diverifikasi terpisah. Tidak ada pesanan yang otomatis dikirim ke vendor."].join("\n");}
+ async function copySpec(){try{await navigator.clipboard.writeText(specification(form));setNotice("Spesifikasi disalin. Periksa sebelum mengirim ke pihak percetakan.");}catch{setError("Clipboard tidak tersedia. Gunakan unduh spesifikasi.");}}
+ function downloadSpec(){const blob=new Blob([specification(form)],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="spesifikasi-percetakan-"+(form.bookId||"buku")+".txt";a.click();URL.revokeObjectURL(url);}
+ const statusCount=rows.filter(row=>row.status==="IN_PRODUCTION").length;
+ const estimatedTotal=form.quantity*form.unitPrice;
+ const isValidQuantity=Number.isInteger(form.quantity)&&form.quantity>=1&&form.quantity<=100000;
+ const isValidPrice=Number.isFinite(form.unitPrice)&&form.unitPrice>=0&&form.unitPrice<=1e9;
+ const sizeMismatch=Boolean(book?.pageSize&&form.size.trim().toUpperCase()!==book.pageSize.trim().toUpperCase());
+ const advancedStatus=["APPROVED","IN_PRODUCTION","COMPLETED"].includes(form.status);
+ const needsVendor=advancedStatus&&(!form.printerName.trim()||!form.contact.trim()||form.unitPrice<=0||!form.dueDate);
+ const formValid=Boolean(book&&form.paper.trim()&&form.binding.trim()&&form.size.trim()&&isValidQuantity&&isValidPrice&&!needsVendor);
+ const dirty=touched&&(!editing||Object.entries(form).some(([key,value])=>editing[key as keyof Form]!== (typeof value==="string"&&key!=="notes"?value.trim():value)));
+ useEffect(()=>{
+  if(!dirty||!formValid||busy||loading||error)return;
+  const timer=window.setTimeout(()=>{void save();},850);
+  return()=>window.clearTimeout(timer);
+ },[dirty,formValid,busy,loading,error,save]);
+ const cautions=[...(sizeMismatch?["Ukuran cetak berbeda dengan ukuran sumber. Periksa layout dan ekspor PDF final."]:[]),...(needsVendor?["Untuk persetujuan atau produksi, isi mitra, kontak, harga positif, dan tanggal target."]:[]),...(!isValidQuantity?["Jumlah eksemplar harus bilangan bulat 1–100.000."]:[]),...(!isValidPrice?["Harga satuan harus berada pada Rp0 sampai Rp1 miliar."]:[])];
+ return <main className="print-workspace">
+  <header className="print-heading"><div><div className="print-eyebrow"><Printer size={16}/> PRODUKSI BUKU FISIK</div><h1>Percetakan</h1><p>Spesifikasi cetak, penawaran mitra, persetujuan dan progres produksi dalam satu tempat. Isian valid tersimpan otomatis setelah Anda berhenti mengetik.</p></div><div className="print-metrics"><div><strong>{rows.length}</strong><span>Total pesanan</span></div><div><strong>{statusCount}</strong><span>Dalam produksi</span></div></div></header>
+  {error&&<div className="print-message print-error" role="alert">{error}<button type="button" onClick={()=>setError("")} aria-label="Tutup kesalahan">×</button></div>}{notice&&<div className="print-message print-success" role="status">{notice}<button type="button" onClick={()=>setNotice("")} aria-label="Tutup pemberitahuan">×</button></div>}
+  <div className="print-context"><div><strong>Data dari stage sebelumnya</strong><p>Judul, penulis, dan ukuran halaman diambil dari data buku. Periksa kesesuaian ukuran dan PDF final sebelum menerbitkan purchase order.</p></div>{book&&<div className="print-context-meta"><span>{book.title}</span><span>Ukuran sumber: <b>{book.pageSize||"Belum ada"}</b></span><span>Stage: <b>{book.editorialStage||"Draf"}</b></span><span>Pagination: <b>{book.pagination?"v"+book.pagination.version:"Belum diatur"}</b></span></div>}</div>
+  <section className="print-readiness" aria-label="Pemeriksaan kesiapan cetak"><div><strong>Persiapan produksi</strong><p>Simulasi biaya dan status operasional berdasarkan isian saat ini; bukan bukti siap cetak atau konfirmasi dari vendor.</p></div><div className="print-readiness-items"><span>Ukuran sumber: <b>{book?.pageSize||"Belum diketahui"}</b></span><span>Estimasi: <b>{money(Number.isFinite(estimatedTotal)?estimatedTotal:0)}</b></span><span>Status: <b>{labels[form.status]}</b></span></div>{cautions.length>0&&<ul>{cautions.map(item=><li key={item}>{item}</li>)}</ul>}</section>
+  <div className="print-columns"><section className="panel print-editor" id="print-editor"><div className="print-section-heading"><div><span className="print-kicker">01 / FORM PRODUKSI</span><h2>{editing?"Edit pesanan":"Buat pesanan baru"}</h2></div><button type="button" className="secondary-button" onClick={()=>reset()} disabled={busy}><Plus size={15}/> Baru</button></div>
+  <form className="print-form" onSubmit={e=>{e.preventDefault();void save()}}><label>Buku sumber<select required value={form.bookId} disabled={!!editing||busy} onChange={e=>{const id=e.target.value;setForm(f=>({...f,bookId:id,size:owned.find(b=>b.id===id)?.pageSize||f.size}));}}><option value="">Pilih buku</option>{owned.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></label>
+  <div className="print-divider-label">Mitra percetakan</div><div className="print-pair"><label>Nama percetakan<input value={form.printerName} maxLength={160} onChange={e=>update("printerName",e.target.value)} placeholder="Nama perusahaan mitra"/></label><label>Kontak vendor<input value={form.contact} maxLength={160} onChange={e=>update("contact",e.target.value)} placeholder="Email / WhatsApp"/></label></div>
+  <div className="print-divider-label">Spesifikasi fisik</div><div className="print-pair"><PrintChoice key={(editing?.id||form.bookId)+":size"} label="Ukuran trim" value={form.size} choices={printChoices.size} maxLength={60} onChange={value=>update("size",value)}/><PrintChoice key={(editing?.id||form.bookId)+":paper"} label="Kertas isi" value={form.paper} choices={printChoices.paper} maxLength={80} onChange={value=>update("paper",value)}/></div>
+  {sizeMismatch&&<p className="print-warning" role="alert">Ukuran cetak ({form.size}) berbeda dari ukuran buku sebelumnya ({book?.pageSize}). Pastikan penyesuaian layout dan PDF final sebelum produksi.</p>}
+  <div className="print-pair"><PrintChoice key={(editing?.id||form.bookId)+":binding"} label="Jenis jilid" value={form.binding} choices={printChoices.binding} maxLength={80} onChange={value=>update("binding",value)}/><label>Warna isi<select value={form.color} onChange={e=>update("color",e.target.value as Form["color"])}><option value="BW">Hitam putih</option><option value="COLOR">Berwarna</option><option value="MIXED">Campuran</option></select></label></div>
+  <div className="print-divider-label">Anggaran dan jadwal</div><div className="print-pair"><label>Jumlah eksemplar<input required type="number" min="1" max="100000" value={form.quantity} onChange={e=>update("quantity",Number(e.target.value))}/></label><label>Harga per eksemplar (Rp)<input required type="number" min="0" step="1" value={form.unitPrice} onChange={e=>update("unitPrice",Number(e.target.value))}/></label></div>
+  <div className="print-pair"><label>Target selesai<input type="date" value={form.dueDate} onChange={e=>update("dueDate",e.target.value)}/></label><label>Status produksi<select value={form.status} onChange={e=>update("status",e.target.value as Status)}>{(editing?transitions[editing.status]:["DRAFT"] as Status[]).map(status=><option key={status} value={status}>{labels[status]}</option>)}</select></label></div>
+  <label>Instruksi produksi dan bukti koordinasi<textarea rows={4} maxLength={3000} value={form.notes} onChange={e=>update("notes",e.target.value)} placeholder="Bleed, margin, sampul, proof warna, finishing, pengiriman, nomor penawaran..."/></label>
+  {advancedStatus&&<p className="print-warning">Persetujuan atau produksi membutuhkan nama dan kontak mitra, harga satuan lebih besar dari nol, serta target selesai. Status ini tidak berarti vendor sudah menerima pesanan.</p>}
+  <div className="print-total"><div><span>Estimasi total biaya</span><strong>{money(Number.isFinite(estimatedTotal)?estimatedTotal:0)}</strong></div><small>Belum termasuk pajak, ongkos kirim, dan biaya tambahan vendor.</small></div>
+  <p className="print-footnote" role="status">{busy?"Menyimpan ke database...":error?"Belum tersimpan. Periksa pesan kesalahan.":dirty?(formValid?"Menunggu simpan otomatis...":"Lengkapi isian agar bisa disimpan."):editing?"Tersimpan di database.":"Isi draf untuk memulai simpan otomatis."}</p><div className="print-actions print-form-actions"><button type="submit" className="primary-button" disabled={busy||!formValid}>{busy?"Menyimpan...":editing?"Simpan perubahan":"Simpan pesanan"}</button>{editing&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>reset()}>Batal edit</button>}</div></form>
+  <div className="print-vendor"><div><strong><FileText size={17}/> Lembar spesifikasi untuk pihak luar</strong><p>Tinjau rincian, lalu salin atau unduh untuk dikirim manual. Belum ada koneksi otomatis ke vendor, ekspedisi, atau layanan pembayaran.</p></div><div className="print-actions"><button type="button" className="secondary-button" onClick={()=>void copySpec()}><ClipboardCopy size={15}/> Salin</button><button type="button" className="secondary-button" onClick={downloadSpec}><ExternalLink size={15}/> Unduh TXT</button></div></div>
+  </section>
+  <section className="panel print-history"><div className="print-section-heading"><div><span className="print-kicker">02 / MONITORING</span><h2>Pesanan tersimpan</h2></div><button type="button" aria-label="Muat ulang pesanan" className="secondary-button" disabled={loading} onClick={()=>void load()}><RefreshCw size={16}/></button></div><div className="print-filters"><input aria-label="Cari pesanan" placeholder="Cari buku atau percetakan..." value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filter berdasarkan buku" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Semua buku</option>{owned.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></div>
+  {loading?<p role="status">Memuat pesanan dari database...</p>:shown.length===0?<div className="print-empty">Belum ada pesanan untuk filter ini. Isi Form Produksi untuk membuat draf atau ubah filter untuk melihat pesanan lain.</div>:<div className="print-list">{shown.map(row=><article className="print-order" key={row.id}><div className="print-order-top"><strong>{row.title}</strong><span data-status={row.status}>{labels[row.status]}</span></div><p>{row.printerName||"Mitra belum ditentukan"} · {row.quantity.toLocaleString("id-ID")} eksemplar</p><div className="print-order-details"><span>{row.size}</span><span>{row.paper}</span><span>{row.binding}</span></div><div className="print-order-bottom"><strong>{money(row.quantity*row.unitPrice)}</strong><small>{new Date(row.updatedAt).toLocaleDateString("id-ID")}</small></div><div className="print-actions"><button type="button" className="secondary-button" disabled={busy} onClick={()=>edit(row)}><Pencil size={15}/> Ubah</button><button type="button" className="secondary-button" disabled={busy||["IN_PRODUCTION","COMPLETED"].includes(row.status)} title={["IN_PRODUCTION","COMPLETED"].includes(row.status)?"Data produksi disimpan untuk audit":""} onClick={()=>void remove(row)}><Trash2 size={15}/> Arsipkan</button></div></article>)}</div>}
+  <p className="print-footnote">Perubahan status adalah catatan internal, bukan konfirmasi vendor. Bukti proof, ISBN, pembayaran, dan logistik perlu diverifikasi sebelum produksi.</p></section></div>
+ </main>;
+}

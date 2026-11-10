@@ -1,0 +1,134 @@
+/* Dedicated reading window: use the available viewport, with one scrolling canvas. */
+.live-book-preview-shell {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  padding: clamp(10px, 1.2vw, 20px);
+  overflow: hidden;
+}
+.live-book-preview-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  padding: clamp(10px, 1vw, 18px);
+  background: var(--bg, #f5f6f8);
+}
+.live-book-preview-shell:fullscreen > .writing-preview-paper,
+.live-book-preview-shell:fullscreen > .panel {
+  min-height: 0;
+  height: 100%;
+}
+.live-book-preview-shell > .live-book-preview-header,
+.live-book-preview-shell > .live-book-preview-footer {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+.live-book-preview-shell > .writing-preview-paper,
+.live-book-preview-shell > .panel,
+.live-book-preview-shell > [role="alert"] {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+  margin: 0;
+  padding: clamp(16px, 2vw, 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.live-book-preview-shell .writing-preview-paper .book-chapter {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin-inline: 0;
+  padding: clamp(8px, 1.5vw, 24px);
+  box-shadow: none;
+}
+.live-book-preview-shell .writing-preview-paper { position: relative; }
+.live-book-preview-shell .live-preview-drop-hint {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 12px;
+  padding: 8px 13px;
+  border: 1px dashed #7894d1;
+  border-radius: 999px;
+  background: #edf3ff;
+  color: #294b83;
+  font: 650 12px/1.4 "DM Sans Variable", sans-serif;
+  text-align: center;
+  opacity: .82;
+}
+.live-book-preview-shell .writing-preview-paper:not(.is-component-drop-target) .live-preview-drop-hint { opacity: .62; }
+.live-book-preview-shell .writing-preview-paper.is-component-drop-target {
+  outline: 3px dashed #456de6;
+  outline-offset: -7px;
+  background: #f4f7ff;
+}
+.live-book-preview-shell .writing-preview-paper.is-component-drop-target .live-preview-drop-hint {
+  opacity: 1;
+  background: #dce8ff;
+  border-style: solid;
+}
+.live-book-preview-shell .live-preview-drop-status {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: var(--panel, #fff);
+  color: var(--ink, #17202b);
+  font-size: 12px;
+}
+:root[data-theme="dark"] .live-book-preview-shell .live-preview-drop-hint { background: #1d3154; color: #dbeafe; border-color: #7796d2; }
+.live-book-preview-shell .writing-preview-paper:focus-visible {
+  outline: 3px solid #6488db;
+  outline-offset: -3px;
+}
+.live-book-preview-shell .live-book-preview-footer {
+  font-size: .78rem;
+  line-height: 1.4;
+}
+@media (max-width: 600px) {
+  .live-book-preview-shell { gap: 8px; }
+  .live-book-preview-shell .live-book-preview-header { gap: 8px; }
+  .live-book-preview-shell .live-book-preview-header p { display: none; }
+  .live-book-preview-shell .live-book-preview-actions { gap: 6px; }
+  .live-book-preview-shell .live-book-preview-actions button { padding: 8px 10px; }
+  .live-book-preview-shell .live-preview-fullscreen-button { flex: 1 1 auto; }
+}
+@media print {
+  .live-book-preview-shell { display: block; height: auto; overflow: visible; padding: 0; }
+  .live-book-preview-shell > .writing-preview-paper { height: auto; overflow: visible; }
+  .live-book-preview-shell > .live-book-preview-header,
+  .live-book-preview-shell > .live-book-preview-footer { display: none; }
+}
+
+/* Keep the shared theme switch in the toolbar instead of over the manuscript. */
+body:has(.live-book-preview-shell) > .public-theme-switch {
+  top: clamp(10px, 1.2vw, 20px);
+  right: clamp(10px, 1.2vw, 20px);
+}
+.live-book-preview-shell > .live-book-preview-header {
+  box-sizing: border-box;
+  padding-inline-end: 112px;
+}
+@media (max-width: 640px) {
+  .live-book-preview-shell > .live-book-preview-header { padding-inline-end: 50px; }
+}
+@media print {
+  body:has(.live-book-preview-shell) > .public-theme-switch { display: none; }
+}

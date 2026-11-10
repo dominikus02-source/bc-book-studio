@@ -1,0 +1,25 @@
+{
+  "id": "grade_11",
+  "grade": 11,
+  "schoolLevel": "SMA",
+  "status": "draft",
+  "curriculumFrameworkVersion": null,
+  "languageComplexity": {
+    "vocabularyBand": null,
+    "sentenceLengthBand": null,
+    "readingComplexityBand": null,
+    "abstractionBand": null
+  },
+  "instructionDesign": {
+    "stepsPerInstruction": null,
+    "visualSupport": "adaptive",
+    "activityTypes": [],
+    "assessmentTypes": []
+  },
+  "validation": {
+    "reviewedByExpert": false,
+    "sources": [],
+    "reviewedAt": null
+  },
+  "note": "Parameter kuantitatif wajib ditetapkan melalui validasi ahli dan sumber kurikulum yang berlaku; jangan gunakan nilai tebakan."
+}

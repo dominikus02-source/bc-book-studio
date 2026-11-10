@@ -1,0 +1,73 @@
+"use strict";
+const assert=require("node:assert/strict"),fs=require("node:fs"),{PrismaClient}=require("@prisma/client"),{randomBytes,createHash}=require("node:crypto"),{chromium}=require("playwright");
+const target=new URL(process.env.DATABASE_URL||"");assert.equal(target.host+target.pathname,"127.0.0.1:55999/bookstudio_import_qa");
+const db=new PrismaClient(),origin="http://127.0.0.1:32979";let user,book,browser;
+async function main(){
+ user=await db.studioUser.create({data:{role:"EDITOR",name:"Bulk UI QA",active:true,email:randomBytes(10).toString("hex")+"@example.invalid"}});
+ const token=randomBytes(32).toString("hex");await db.studioSession.create({data:{userId:user.id,tokenHash:createHash("sha256").update(token).digest("hex"),expiresAt:new Date(Date.now()+600000)}});
+ book=await db.book.create({data:{ownerId:user.id,title:"Uji Bulk UI",grade:"7",subject:"Semua Genre",editorialStage:"OUTLINE",description:"Fixture pengujian bulk multi bab dengan 25 subbagian."}});
+ browser=await chromium.launch();
+ const context=await browser.newContext({viewport:{width:390,height:900},acceptDownloads:true});
+ await context.addCookies([{name:"bcstudio_session",value:token,url:origin}]);
+ const page=await context.newPage();const errors=[];page.on("pageerror",e=>errors.push(e.message));page.on("dialog",d=>d.accept());
+ await page.goto(origin+"/studio?module=Rancang&bookId="+book.id);
+ const outline=page.getByRole("region",{name:"Tahap Rancang"});await outline.waitFor({timeout:30000});
+ const expander=outline.locator("details.stage-transfer-panel").filter({has:page.getByText("Impor massal hingga 200 subbagian pada satu buku")}).first();
+ await expander.locator("summary").first().click();
+ const bulk=page.getByRole("region",{name:"Bulk CRUD bab dan subbagian"});
+ await bulk.waitFor();
+ await bulk.getByRole("button",{name:"Muat 25 dummy"}).click();
+ assert.equal(await db.chapter.count({where:{bookId:book.id}}),0,"Preview must not persist");
+ await bulk.locator('input[aria-label="Nama subbagian baris 1"]').fill("Bagian Aetheria Revisi");
+ await bulk.locator('input[aria-label="Nama subbagian baris 1"]').press("Tab");
+ await bulk.getByText("Prompt AI sesuai data bulk", {exact:false}).click();
+ await bulk.getByRole("button",{name:"Selaraskan bab dan subbagian"}).click();
+ const bulkPrompt=await bulk.getByRole("textbox",{name:"Pratinjau prompt bulk"}).inputValue();
+ assert(bulkPrompt.includes("Bagian Aetheria Revisi")&&bulkPrompt.includes("koherensi")&&bulkPrompt.includes("Judul Bab"));
+ await bulk.getByRole("button",{name:"Perbaiki EYD"}).click();
+ const eydPrompt=await bulk.getByRole("textbox",{name:"Pratinjau prompt bulk"}).inputValue();
+ assert(eydPrompt.includes("EYD")&&eydPrompt!==bulkPrompt);
+ console.log("BULK_CONTEXTUAL_AI_PROMPTS_PASS");
+ await page.waitForFunction(()=>document.querySelector('input[aria-label="Nama subbagian baris 1"]')?.value==="Bagian Aetheria Revisi");
+ let downloadPromise=page.waitForEvent("download");
+ await bulk.getByRole("button",{name:"Unduh XLSX"}).click();
+ const xlsx=await downloadPromise;const xbytes=fs.readFileSync(await xlsx.path());assert(xbytes.length>1000);
+ await bulk.locator('input[type="file"]').setInputFiles({name:"bulk25.xlsx",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",buffer:xbytes});
+ await bulk.getByText("25 baris siap ditinjau",{exact:false}).waitFor({timeout:12000});
+ await bulk.getByRole("button",{name:"Simpan bulk (25 baris)"}).click();
+ await bulk.getByText(/Berhasil: 5 bab baru, 25 subbagian baru/).waitFor({timeout:20000});
+ assert.equal(await db.chapter.count({where:{bookId:book.id}}),5);
+ assert.equal(await db.outlineSection.count({where:{bookId:book.id,archivedAt:null}}),25);
+ const saved=await db.outlineSection.findFirst({where:{bookId:book.id,title:"Bagian Aetheria Revisi"}});assert(saved);
+ console.log("BULK_BROWSER_XLSX_PASS: download, upload, preview, edit and 25 persisted");
+ downloadPromise=page.waitForEvent("download");
+ await bulk.getByRole("button",{name:"Unduh MD"}).click();
+ const mdFile=await downloadPromise;let md=fs.readFileSync(await mdFile.path(),"utf8");
+ assert(md.includes("Bagian Aetheria Revisi"));md=md.replace("Bagian Aetheria Revisi","Bagian Aetheria Revisi");md=md.replace("Di Aetheria, perjalanan","Di Aetheria, perjalanan baru");
+ await bulk.locator('input[type="file"]').setInputFiles({name:"bulk-revisi.md",mimeType:"text/markdown",buffer:Buffer.from(md)});
+ await bulk.getByRole("button",{name:"Simpan bulk (25 baris)"}).click();
+ await bulk.getByText(/Berhasil: 0 bab baru, 0 subbagian baru/).waitFor({timeout:20000});
+ assert.equal(await db.outlineSection.count({where:{bookId:book.id,archivedAt:null}}),25);
+ assert((await db.outlineSection.findUniqueOrThrow({where:{id:saved.id}})).content.includes("perjalanan baru"));
+ console.log("BULK_BROWSER_MD_UPDATE_PASS: upsert no duplicates, editable content persisted");
+ await bulk.getByText(/Kelola arsip subbagian tersimpan/).click();
+ await bulk.getByRole("button",{name:"Arsipkan"}).first().click();
+ await bulk.getByRole("button",{name:"Pulihkan"}).first().waitFor({timeout:15000});
+ assert.equal(await db.outlineSection.count({where:{bookId:book.id,archivedAt:null}}),24);
+ await bulk.getByRole("button",{name:"Pulihkan"}).first().click();
+ await bulk.getByText(/Kelola arsip subbagian tersimpan \(0\)/).waitFor({timeout:15000});
+ assert.equal(await db.outlineSection.count({where:{bookId:book.id,archivedAt:null}}),25);
+ console.log("BULK_BROWSER_ARCHIVE_RESTORE_PASS");
+ for(const theme of ["light","dark"]){
+  await page.evaluate(mode=>{localStorage.setItem("bcstudio-theme",mode);document.documentElement.dataset.theme=mode},theme);await page.reload();
+  await page.waitForFunction(mode=>document.documentElement.dataset.theme===mode,theme);
+  for(const width of [320,375,390,768,1024,1440]){
+   await page.setViewportSize({width,height:900});
+   const res=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth>innerWidth+1,theme:document.documentElement.dataset.theme}));
+   assert.equal(res.overflow,false,theme+" width "+width);assert.equal(res.theme,theme);
+  }
+ }
+ assert.deepEqual(errors,[]);
+ console.log("BULK_BROWSER_UI_PASS: 12 light/dark viewport combinations, no overflow or JS error");
+}
+main().catch(e=>{console.error("BULK_BROWSER_FAIL",e);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();if(book)await db.book.deleteMany({where:{id:book.id}}).catch(e=>console.error("CLEANUP",e.message));if(user)await db.studioUser.deleteMany({where:{id:user.id}}).catch(()=>{});await db.$disconnect()});

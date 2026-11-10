@@ -1,0 +1,66 @@
+.fullscreen-writing-editor{
+ --surface:var(--panel);--background:var(--bg);--card:var(--panel);--foreground:var(--ink);--border:var(--line);
+ box-sizing:border-box;min-height:100dvh;width:100%;max-width:none;padding:clamp(10px,1.2vw,20px);background:var(--bg);color:var(--ink);font-family:"DM Sans Variable",sans-serif
+}
+.fullscreen-writing-header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px;padding-inline-end:120px;margin-bottom:16px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px}
+.fullscreen-writing-header>div{min-width:0;flex:1 1 240px;overflow-wrap:anywhere}
+.fullscreen-writing-header p{margin:5px 0 0;color:var(--muted);line-height:1.5}
+.fullscreen-writing-header nav{display:flex;gap:8px;flex-wrap:wrap;min-width:0}
+body:has(.fullscreen-writing-editor)>.public-theme-switch{position:absolute;top:24px;right:24px;z-index:21;max-width:100px}
+.fullscreen-writing-content,.fullscreen-writing-content>.writing-workspace{width:100%;max-width:none;min-width:0;margin:0}
+.fullscreen-writing-content .writing-workspace{padding:clamp(12px,1.5vw,24px);background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.fullscreen-writing-editor .writing-studio-shell,
+.fullscreen-writing-editor .writing-studio-shell.is-split,
+.fullscreen-writing-editor .writing-studio-shell.is-focused.is-split{display:grid;width:100%;max-width:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.fullscreen-writing-editor .writing-studio-shell:not(.is-split){grid-template-columns:minmax(0,1fr)}
+.fullscreen-writing-editor .writing-studio-shell:not(.is-split)>.writing-studio-preview{grid-column:auto}
+.fullscreen-writing-editor .writing-component-sidebar{display:none;grid-column:1/-1;position:static;max-height:320px;width:100%;max-width:100%;overflow:auto;background:var(--panel);color:var(--ink)}
+.fullscreen-writing-editor.has-component-library .writing-component-sidebar{display:block}
+.fullscreen-writing-editor .writing-studio-shell.is-focused .writing-component-sidebar{display:none}
+.fullscreen-writing-editor .writing-component-sidebar .writing-palette-contents{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;overflow:visible;align-items:start}
+.fullscreen-writing-editor .writing-component-sidebar .writing-palette-contents>details,
+.fullscreen-writing-editor .writing-component-sidebar .writing-palette-contents>.draft-palette-grid{min-width:0;max-width:none;width:100%;margin:0}
+.fullscreen-writing-editor .draft-palette-item{display:flex;gap:8px;min-width:0;max-width:100%;padding:8px}
+.fullscreen-writing-editor .draft-palette-item>span:not(.draft-palette-grip){flex:1;min-width:0;overflow-wrap:anywhere}
+.fullscreen-writing-editor .draft-palette-item>button{flex:none}
+.fullscreen-writing-editor .writing-studio-editor{min-width:0;max-width:100%}
+.fullscreen-writing-editor .writing-studio-preview{grid-column:auto;position:sticky;top:12px;min-width:0;max-width:100%;max-height:calc(100dvh - 24px);overflow:auto;background:var(--panel)}
+.fullscreen-writing-editor .writing-preview-paper{max-height:none;overflow:visible;min-width:0}
+.fullscreen-writing-editor .writing-preview-toolbar{background:var(--panel);color:var(--ink)}
+.fullscreen-writing-editor .book-editing-status{padding:10px 12px}
+.fullscreen-writing-editor .book-layout-canvas{display:grid;gap:16px;list-style:none;padding:5px;margin:12px 0;min-width:0;max-width:100%;width:100%}
+.fullscreen-writing-editor .book-layout-canvas>li.draft-block-status{display:block;position:relative;min-width:0;max-width:100%;width:100%;margin:0;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)!important;color:var(--ink)!important;box-shadow:none}
+.fullscreen-writing-editor .writing-block-item,.fullscreen-writing-editor fieldset,.fullscreen-writing-editor .studio-field{min-width:0;max-width:100%}
+.fullscreen-writing-editor .writing-block-item>summary{flex-wrap:wrap;gap:8px;line-height:1.5}
+.fullscreen-writing-editor .writing-block-excerpt{min-width:0;max-width:100%;flex:1 1 140px}
+.fullscreen-writing-editor .chapter-sort-heading,.fullscreen-writing-editor .layout-format-tabs,.fullscreen-writing-editor .draft-word-toolbar,.fullscreen-writing-editor .draft-word-toolbar-group{min-width:0;max-width:100%;flex-wrap:wrap;gap:8px}
+.fullscreen-writing-editor .writing-studio-editor :is(input,select,textarea){box-sizing:border-box;min-width:0;max-width:100%}
+.fullscreen-writing-editor .writing-studio-editor .studio-field>span{color:var(--ink)}
+.fullscreen-writing-editor .writing-studio-editor .panel{margin-block:12px;padding:16px;border:1px solid var(--line);background:var(--panel);color:var(--ink);box-shadow:none}
+.fullscreen-writing-editor .writing-studio-editor .draft-word-toolbar{overflow-x:auto}
+.fullscreen-writing-editor .writing-studio-toolbar{gap:12px;background:var(--panel)}
+.fullscreen-writing-editor .writing-studio-toolbar :is(button,a){white-space:normal;text-align:center}
+@media(max-width:1000px){
+ .fullscreen-writing-editor .writing-studio-shell,.fullscreen-writing-editor .writing-studio-shell.is-split,.fullscreen-writing-editor .writing-studio-shell.is-focused.is-split{display:flex;flex-direction:column;gap:16px}
+ .fullscreen-writing-editor .writing-studio-shell>*{width:100%;min-width:0}
+ .fullscreen-writing-editor .writing-studio-preview{position:static;max-height:75dvh;overflow:auto}
+}
+@media(max-width:700px){
+ .fullscreen-writing-header{padding:14px}
+ .fullscreen-writing-header>div{padding-inline-end:80px;flex-basis:100%}
+ .fullscreen-writing-header nav{width:100%}
+ .fullscreen-writing-header nav>*{flex:1 1 130px;text-align:center;min-width:0}
+ body:has(.fullscreen-writing-editor)>.public-theme-switch{top:20px;right:20px;padding:8px 12px}
+ .fullscreen-writing-editor .draft-word-toolbar-group{width:100%;border-right:0}
+ .fullscreen-writing-editor .writing-preview-toolbar select{min-width:0;max-width:100%;flex:1 1 110px}
+ .fullscreen-writing-editor .book-layout-canvas>li.draft-block-status{padding:10px}
+}
+
+/* Explicit paired tokens for the standalone editor (global dark styles do not redefine --panel). */
+.fullscreen-writing-editor{--bg:#f4f6fa;--panel:#fff;--ink:#172033;--muted:#4b586d;--line:#d7deea}
+:root[data-theme="dark"] .fullscreen-writing-editor{--bg:#0f172a;--panel:#1e293b;--ink:#f1f5f9;--muted:#cbd5e1;--line:#64748b}
+
+.fullscreen-writing-editor .writing-studio-shell:not(.is-split)>.writing-studio-editor[hidden]+.writing-studio-preview{grid-column:1}
+.fullscreen-writing-editor.has-component-library .writing-studio-shell.is-focused>.writing-component-sidebar{display:block}
+
+.fullscreen-writing-editor .writing-preview-paper .book-preview-block{margin-block:18px}
