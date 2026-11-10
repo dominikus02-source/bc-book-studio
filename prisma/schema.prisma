@@ -171,6 +171,7 @@ enum StudioRole {
   EDITOR
   REVIEWER
   ADMIN
+  SUPERADMIN
 }
 model StudioUser {
   id String @id @default(cuid())
