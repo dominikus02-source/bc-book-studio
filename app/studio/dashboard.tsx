@@ -8,6 +8,7 @@ import ReviewerWorkspace from "@/app/reviewer/reviewer-workspace";
 import BlankBookForm from "@/components/blank-book-form";
 import PrintingWorkspace from "@/components/printing-workspace";
 import StudioUserGuide from "@/components/studio-user-guide";
+import AccountManagement from "@/components/account-management";
 import {
   Activity, BookOpen, Bot, Boxes, BrainCircuit, ChevronRight, Clock3,
   FlaskConical, FolderOpen, GraduationCap, Image, LayoutTemplate, Library,
@@ -29,6 +30,7 @@ const navigation = [
   { label: "Tata Letak", icon: LayoutTemplate, group: "MUTU & TERBIT" },
   { label: "Penerbitan", icon: Library, group: "MUTU & TERBIT" },
   { label: "Pengaturan", icon: Settings2, group: "PENGELOLAAN" },
+  { label: "Manajemen Akun", icon: ShieldCheck, group: "PENGELOLAAN" },
   { label: "ISBN & Legalitas", icon: ShieldCheck, group: "PENGELOLAAN" },
   { label: "Percetakan", icon: Printer, group: "PENGELOLAAN" },
   { label: "Petunjuk Penggunaan", icon: BookMarked, group: "PENGELOLAAN" },
@@ -44,10 +46,10 @@ const modules = [
   { title: "Tata Letak & Terbit", desc: "Siapkan PDF, EPUB, dan edisi digital.", icon: BookOpen, target: "Tata Letak" },
 ];
 
-export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
+export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"|"SUPERADMIN"}) {
   const { books, error: booksError, loading, refresh } = useBooks();
-  const visibleNavigation=navigation.filter(item=>(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
-  const primaryNavigation=[{label:"Dasbor",title:"Beranda",icon:Boxes},{label:"Buat Buku",title:"Buat Buku Baru",icon:BookOpen},{label:"Proyek Buku",title:"Buku Saya",icon:FolderOpen},{label:"Tata Letak",title:"Tata Letak",icon:LayoutTemplate},{label:"Review Naskah",title:"Review & Persetujuan",icon:ShieldCheck},{label:"Pengaturan",title:"Pengaturan",icon:Settings2},{label:"ISBN & Legalitas",title:"ISBN & Legalitas Penerbit",icon:ShieldCheck},{label:"Percetakan",title:"Percetakan",icon:Printer},{label:"Petunjuk Penggunaan",title:"Petunjuk Penggunaan",icon:BookMarked}].filter(item=>(item.label!=="ISBN & Legalitas"||role==="ADMIN"));
+  const visibleNavigation=navigation.filter(item=>(item.label!=="ISBN & Legalitas"||(role==="ADMIN"||role==="SUPERADMIN"))&&(item.label!=="Manajemen Akun"||role==="SUPERADMIN"));
+  const primaryNavigation=[{label:"Dasbor",title:"Beranda",icon:Boxes},{label:"Buat Buku",title:"Buat Buku Baru",icon:BookOpen},{label:"Proyek Buku",title:"Buku Saya",icon:FolderOpen},{label:"Tata Letak",title:"Tata Letak",icon:LayoutTemplate},{label:"Review Naskah",title:"Review & Persetujuan",icon:ShieldCheck},{label:"Pengaturan",title:"Pengaturan",icon:Settings2},{label:"Manajemen Akun",title:"Manajemen Akun",icon:ShieldCheck},{label:"ISBN & Legalitas",title:"ISBN & Legalitas Penerbit",icon:ShieldCheck},{label:"Percetakan",title:"Percetakan",icon:Printer},{label:"Petunjuk Penggunaan",title:"Petunjuk Penggunaan",icon:BookMarked}].filter(item=>(item.label!=="ISBN & Legalitas"||(role==="ADMIN"||role==="SUPERADMIN"))&&(item.label!=="Manajemen Akun"||role==="SUPERADMIN"));
   const workflow=[{name:"Ide",modules:["Proyek Buku","Idea Lab"]},{name:"Rancang",modules:["Rancang","Kurikulum"]},{name:"Tulis",modules:["Studio Penulisan","Studio Latihan","Studio Visual"]},{name:"Review",modules:["Penyuntingan","Review Naskah"]},{name:"Terbit",modules:["Tata Letak","Penerbitan"]}];
   const [workflowOpen,setWorkflowOpen]=useState(false);
   const [layoutView,setLayoutView]=useState<"editor"|"formats">("formats");
@@ -145,13 +147,13 @@ export default function Home({role}:{role:"EDITOR"|"REVIEWER"|"ADMIN"}) {
         </>}
       </section>}
 
-      {active==="Percetakan"?<PrintingWorkspace key={workflowBookId} initialBookId={workflowBookId}/>:active==="Petunjuk Penggunaan"?<StudioUserGuide navigate={navigateTo} bookId={workflowBook?.id} role={role}/>:active==="Review Naskah"?<ReviewerWorkspace initialBookId={workflowBookId} onSelectBook={id=>navigateTo("Review Naskah",id)} onNavigate={navigateTo}/>:active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Mulai dari gagasan sederhana. Rincian buku dapat Anda lengkapi sambil berjalan.</p></div><BlankBookForm onCreated={created=>{setWorkflowBookId(created.id);void refresh();navigateTo("Proyek Buku",created.id);}}/></>:active==="Dasbor"?<>
+      {active==="Manajemen Akun"&&role==="SUPERADMIN"?<AccountManagement/>:active==="Percetakan"?<PrintingWorkspace key={workflowBookId} initialBookId={workflowBookId}/>:active==="Petunjuk Penggunaan"?<StudioUserGuide navigate={navigateTo} bookId={workflowBook?.id} role={role}/>:active==="Review Naskah"?<ReviewerWorkspace initialBookId={workflowBookId} onSelectBook={id=>navigateTo("Review Naskah",id)} onNavigate={navigateTo}/>:active==="Buat Buku"?<><div style={{marginBottom:20}}><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Mulai dari gagasan sederhana. Rincian buku dapat Anda lengkapi sambil berjalan.</p></div><BlankBookForm onCreated={created=>{setWorkflowBookId(created.id);void refresh();navigateTo("Proyek Buku",created.id);}}/></>:active==="Dasbor"?<>
         <div style={{marginBottom:21}}><h1 className="page-title">Selamat datang di ruang penerbitan</h1><p className="page-sub">Rancang, tulis, periksa, dan terbitkan buku dalam satu alur kerja.</p></div>
         <section className="welcome"><div><div className="eyebrow">PUSAT KENDALI PENERBITAN</div><h2>Dari gagasan menjadi karya bermutu.</h2><p>Kelola brief, kerangka, naskah, pemeriksaan editorial, tata letak, dan publikasi dengan jejak penyimpanan serta kendali editor manusia.</p></div><div className="welcome-mark">BC</div></section>
         <div className="stats">{[["Proyek buku",String(books.length),"Buku milik Anda",FolderOpen],["Sedang ditinjau",String(books.filter(b=>b.status==="REVIEW").length),"Buku menunggu keputusan reviewer",ShieldCheck],["Naskah disetujui",String(books.filter(b=>b.status==="APPROVED").length),"Persetujuan editorial",BookOpen],["Draf aktif",String(books.filter(b=>b.status==="DRAFT").length),"Proyek yang masih dapat diedit",PenLine]].map(([label,value,note,Icon])=>{const I=Icon as typeof Activity;return <div className="stat" key={label as string}><div className="stat-top"><span>{label as string}</span><span className="stat-icon"><I size={15}/></span></div><div className="stat-value" style={{fontSize:(value as string).length>5?17:24}}>{value as string}</div><div className="stat-note">{note as string}</div></div>;})}</div>
         <div className="section-head"><h3>Mulai atau lanjutkan buku</h3><span>5 tahap terarah</span></div><div className="module-grid">{workflow.map((step,i)=><button className="module-card" key={step.name} disabled={!stageAllowed(i)} title={!stageAllowed(i)?stageChecks[i-1]?.missing:undefined} onClick={()=>openStage(i)}><span className="module-symbol">{i+1}</span><strong>{step.name}</strong><p>{["Kembangkan gagasan buku","Tentukan struktur dan sasaran","Tulis bab, latihan, dan visual","Periksa mutu dan persetujuan","Atur layout dan ekspor"][i]}</p></button>)}</div><div style={{display:"flex",gap:10,flexWrap:"wrap",marginTop:14}}><button className="primary-button" onClick={()=>navigateTo("Buat Buku")}>+ Buat Buku Baru</button><button className="secondary-button" onClick={()=>navigateTo("Proyek Buku")}>Lanjutkan Buku Saya</button></div>
         <div className="section-head"><h3>Aktivitas ruang kerja</h3><span>{books.length} buku</span></div><div className="panel"><div style={{display:"flex",alignItems:"center",gap:12}}><Clock3 size={18} color="#8b95a5"/><div><div style={{fontSize:12,fontWeight:600}}>Buku terbaru: {books[0]?.title || "Belum ada buku"}</div><div style={{fontSize:11,color:"#536173",marginTop:4}}>Data diambil dari perpustakaan pribadi Anda.</div></div></div></div>
-      </>:<>{active!=="Studio Penulisan"&&active!=="ISBN & Legalitas"&&<div style={{marginBottom:20}}><h1 className="page-title">{active}</h1><p className="page-sub">Pilih buku dan lanjutkan pekerjaan yang tersimpan di database.</p></div>}{!["Proyek Buku","Rancang","Studio Penulisan","Penyuntingan","Tata Letak","Penerbitan","ISBN & Legalitas"].includes(active)&&<StudioWorkspace active={active}/>}{active==="ISBN & Legalitas"&&role==="ADMIN"&&<IsbnOfficeDashboard/>}</>}
+      </>:<>{active!=="Studio Penulisan"&&active!=="ISBN & Legalitas"&&<div style={{marginBottom:20}}><h1 className="page-title">{active}</h1><p className="page-sub">Pilih buku dan lanjutkan pekerjaan yang tersimpan di database.</p></div>}{!["Proyek Buku","Rancang","Studio Penulisan","Penyuntingan","Tata Letak","Penerbitan","ISBN & Legalitas"].includes(active)&&<StudioWorkspace active={active}/>}{active==="ISBN & Legalitas"&&(role==="ADMIN"||role==="SUPERADMIN")&&<IsbnOfficeDashboard/>}</>}
       {active === "Tata Letak" && (
         <section className="panel" aria-labelledby="layout-prototype-title" style={{marginBottom:16}}>
           <h2 id="layout-prototype-title" className="panel-title">Ruang kerja Tata Letak</h2>
