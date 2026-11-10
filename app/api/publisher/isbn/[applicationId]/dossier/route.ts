@@ -18,7 +18,7 @@ function attachment(bytes:Uint8Array,name:string,mime:string){
  return new NextResponse(new Uint8Array(bytes),{headers:{...headers,"Content-Type":mime,"Content-Disposition":'attachment; filename="'+name+'"',"X-Content-Type-Options":"nosniff"}});
 }
 export async function GET(req:NextRequest,{params}:C){
- const actor=await sessionUser(req);if(!actor)return deny();if(actor.role!=="ADMIN")return error("Forbidden",403);
+ const actor=await sessionUser(req);if(!actor)return deny();if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return error("Forbidden",403);
  const {applicationId}=await params,app=await dossierContext(applicationId);if(!app||app.book.archivedAt)return error("Pengajuan/buku tidak ditemukan",404);
  const mode=req.nextUrl.searchParams.get("mode")||"draft";
  const kinds=DRAFT_KINDS.filter(k=>k==="membership_letter"||k==="title_pages"||requiredForBasis(app.rightsBasis).includes(k));
@@ -56,7 +56,7 @@ export async function GET(req:NextRequest,{params}:C){
  return NextResponse.json({kind,text,version:saved.version,defaultText:defaultDocument(app,kind),bookId:app.bookId},{headers});
 }
 export async function POST(req:NextRequest,{params}:C){
- const actor=await sessionUser(req);if(!actor)return deny();if(actor.role!=="ADMIN")return error("Forbidden",403);
+ const actor=await sessionUser(req);if(!actor)return deny();if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return error("Forbidden",403);
  if(!safeMutation(req))return error("Origin/content type tidak diizinkan",403);
  const parsed=input.safeParse(await req.json().catch(()=>null));if(!parsed.success)return error("Isian dokumen tidak valid");
  const p=parsed.data,{applicationId}=await params,app=await dossierContext(applicationId);if(!app||app.book.archivedAt)return error("Pengajuan tidak ditemukan",404);
