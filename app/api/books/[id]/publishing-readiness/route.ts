@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {isAdminRole} from "../../../../../lib/rbac";
 import {approvedManuscript} from "../../../../../lib/approval-snapshot";
 import {storedLayout} from "../../../../../lib/book-layout";
 import {PUBLISHING_EVIDENCE_KINDS,RELEASE_FORMATS,publicationReadiness,validIsbn13} from "../../../../../lib/publishing-readiness";
@@ -31,7 +32,7 @@ export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;const data=await load(id);if(!data)return fail("Buku tidak ditemukan.",404);
  if(data.book.ownerId!==actor.id&&!(await db.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}})))return fail("Buku tidak ditemukan.",404);
- return NextResponse.json({readiness:data.readiness,history:data.book.publishingEvidence,permissions:{canSubmit:data.book.ownerId===actor.id,canReview:actor.role==="ADMIN"&&actor.id!==data.book.ownerId&&Boolean(await db.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}}))}},{headers});
+ return NextResponse.json({readiness:data.readiness,history:data.book.publishingEvidence,permissions:{canSubmit:data.book.ownerId===actor.id,canReview:isAdminRole(actor.role)&&actor.id!==data.book.ownerId&&Boolean(await db.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}}))}},{headers});
 }
 export async function POST(req:NextRequest,{params}:Ctx){
  const actor=await sessionUser(req);if(!actor)return deny();
@@ -48,7 +49,7 @@ export async function POST(req:NextRequest,{params}:Ctx){
   const layout=await storedLayout(tx,id,book.approvedAt,manuscript.chapters);
   if(input.layoutVersion!==layout.version||!layout.settings)return fail("Tata letak berubah atau belum disimpan. Muat ulang.",409);
   const reviewed=input.status!=="SUBMITTED";
-  if(reviewed&&(actor.role!=="ADMIN"||actor.id===book.ownerId||!(await tx.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}}))))return fail("Hanya ADMIN yang ditugaskan dan independen dapat memeriksa bukti.",403);
+  if(reviewed&&(!isAdminRole(actor.role)||actor.id===book.ownerId||!(await tx.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}}))))return fail("Hanya ADMIN yang ditugaskan dan independen dapat memeriksa bukti.",403);
   if(!reviewed&&actor.id!==book.ownerId)return fail("Hanya pemilik buku dapat mengajukan bukti.",403);
   if(input.status==="NOT_APPLICABLE"&&input.kind!=="ISBN")return fail("Tidak berlaku hanya digunakan untuk ISBN.",400);
   if(input.isbn&&!validIsbn13(input.isbn))return fail("Checksum ISBN-13 tidak valid; ini bukan bukti penetapan.",400);

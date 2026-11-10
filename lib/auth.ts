@@ -2,6 +2,7 @@ import { db } from "./db";
 import { createHash } from "node:crypto";
 import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { isAdminRole, isReviewerRole } from "./rbac";
 function matches(given: string, expected?: string): boolean {
   if (!expected || expected.length < 24) return false;
   const a = Buffer.from(expected);
@@ -15,7 +16,7 @@ export async function authorized(req: NextRequest): Promise<boolean> {
 }
 export async function reviewerAuthorized(req: NextRequest): Promise<boolean> {
   const user = await sessionUser(req);
-  if (user && (user.role === "REVIEWER" || (user.role === "ADMIN" || user.role === "SUPERADMIN"))) return true;
+  if (user && isReviewerRole(user.role)) return true;
   const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const editor = process.env.STUDIO_API_KEY;
   const reviewer = process.env.STUDIO_REVIEWER_API_KEY;
@@ -38,5 +39,5 @@ export async function identity(req: NextRequest): Promise<string|null>{
 }
 export async function administrator(req: NextRequest): Promise<string|null>{
  const user=await sessionUser(req);
- return (user?.role==="ADMIN" || user?.role==="SUPERADMIN") ? user.id : null;
+ return user && isAdminRole(user.role) ? user.id : null;
 }

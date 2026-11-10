@@ -70,24 +70,8 @@ Untuk kembali ke gerbang Access, set `BC_BOOK_STUDIO_ACCESS_MODE=access` (atau h
 
 ## Promosi SUPERADMIN untuk akun EDITOR yang sudah ada
 
-`scripts/provision-superadmin.cjs` menolak akun yang sudah ada dengan role berbeda. API Superadmin juga tidak mempromosikan ke `SUPERADMIN`. Perubahan role akun EDITOR yang sudah aktif hanya boleh dilakukan operator berwenang setelah verifikasi identitas, dengan transaksi SQL yang diaudit. Contoh (ganti email hanya setelah identitas dikonfirmasi):
+`scripts/provision-superadmin.cjs` menolak akun yang sudah ada dengan role berbeda. API Superadmin juga tidak mempromosikan ke `SUPERADMIN`. Perubahan role akun EDITOR yang sudah aktif hanya boleh dilakukan operator berwenang setelah verifikasi identitas, dengan transaksi SQL yang diaudit.
 
-```sql
--- 1. Periksa baris yang akan diubah (harus tepat satu, role EDITOR, aktif).
-SELECT id, email, role, active, "updatedAt"
-FROM "StudioUser"
-WHERE email = 'srphysics04@gmail.com';
+Gunakan `docs/ops/promote-superadmin.sql` (dan rollback `docs/ops/rollback-superadmin.sql`). Perintah VPS, backup `pg_dump` ke `backups/manual/`, dan cara seed draf `[DEMO]` ada di `docs/ops/README.md`. Jangan jalankan SQL atau seed itu sebelum ada konfirmasi operator.
 
--- 2. Terapkan hanya jika pemeriksaan di atas sesuai.
-BEGIN;
-UPDATE "StudioUser"
-SET role = 'SUPERADMIN', "updatedAt" = NOW()
-WHERE email = 'srphysics04@gmail.com'
-  AND role = 'EDITOR'
-  AND active = TRUE
-RETURNING id, email, role, active, "updatedAt";
--- Pastikan RETURNING tepat 1 baris. Jika 0 baris, ROLLBACK.
-COMMIT;
-```
-
-Catat approver, operator, waktu (zona Asia/Jakarta), dan alasan di tiket/log operasional. Pengguna harus keluar dan masuk kembali agar sesi merespons role baru. Jangan menaruh kredensial database di Git atau di pesan chat.
+Transaksi promosi mengunci baris, menolak jika bukan tepat satu akun aktif ber-role `EDITOR`, memutakhirkan role ke `SUPERADMIN`, menghapus sesi akun tersebut, dan menulis jejak `RAISE NOTICE` (skema tidak memiliki tabel audit role). Salin NOTICE, approver, operator, waktu Asia/Jakarta, dan alasan ke tiket operasional. `lib/auth.ts` membaca role dari `StudioUser` setiap permintaan, jadi role baru sudah berlaku pada sesi lama; penghapusan sesi tetap memaksa masuk ulang setelah kenaikan wewenang. Jangan menaruh kredensial database di Git atau di pesan chat.
