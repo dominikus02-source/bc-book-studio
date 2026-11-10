@@ -12,8 +12,27 @@ exec 9>.bookstudio-deploy.lock
 flock -n 9 || { echo 'A Book Studio deployment is already running'; exit 2; }
 compose=(docker compose -p bc-book-studio-runtime -f compose.yml)
 [[ ! -f compose.edge.yml ]] || compose+=(-f compose.edge.yml)
-compose+=(-f compose.release.yml)
+compose+=(-f compose.resources.yml -f compose.release.yml)
+# Refuse to operate on a newly created or different Compose database.
+expected_project=bc-book-studio-runtime
+expected_volume=bc-book-studio-runtime_bookstudio_pg
+existing_db=$(docker ps -q --filter "name=^/bc-book-studio-runtime-db-1$" --filter "status=running")
+[[ -n "$existing_db" ]] || { echo 'Existing production database container is not running'; exit 2; }
+actual_project=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project"}}')
+actual_workdir=$(docker inspect "$existing_db" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}')
+[[ "$actual_project" == "$expected_project" && "$actual_workdir" == "/opt/bc-book-studio-runtime/source" ]] || { echo 'Database Compose identity mismatch'; exit 2; }
+docker inspect "$existing_db" --format '{{range .Mounts}}{{println .Name}}{{end}}' | grep -qxF "$expected_volume" || { echo 'Existing production database volume mismatch'; exit 2; }
+[[ -f compose.resources.yml ]] || { echo 'Existing database resource Compose file missing'; exit 2; }
+# The active database uses compose.resources.yml; include it to preserve volume bindings.
 "${compose[@]}" config --quiet
+resolved_db=$("${compose[@]}" ps -q db)
+[[ -n "$resolved_db" && "$resolved_db" == "$existing_db" ]] || { echo 'Compose resolves to a different database container'; exit 2; }
+ACCESS_MODE="${BC_BOOK_STUDIO_ACCESS_MODE:-access}"
+case "$ACCESS_MODE" in
+  access|public) ;;
+  *) echo "Invalid BC_BOOK_STUDIO_ACCESS_MODE: use access or public"; exit 2 ;;
+esac
+if [[ "$ACCESS_MODE" == access ]]; then
 : "${BC_BOOK_STUDIO_EXPECTED_AUD:?Set the production Access application AUD}"
 "${compose[@]}" config --format json | python3 -c '
 import json,re,sys
@@ -23,6 +42,19 @@ assert env.get("CF_ACCESS_AUD")==sys.argv[1], "Access AUD does not match the tar
 assert len(env.get("STUDIO_REVIEWER_API_KEY",""))>=24, "Missing separate reviewer credential"
 print("PASS target Access configuration and reviewer credential")
 ' "$BC_BOOK_STUDIO_EXPECTED_AUD"
+else
+echo 'WARN ACCESS_MODE=public: Cloudflare Access check skipped by explicit operator choice'
+"${compose[@]}" config --format json | python3 -c '
+import json,sys
+env=json.load(sys.stdin)["services"]["web"]["environment"]
+aud=(env.get("CF_ACCESS_AUD") or "").strip()
+team=(env.get("CF_ACCESS_TEAM_DOMAIN") or "").strip()
+if aud or team:
+    print("WARN CF_ACCESS_AUD and/or CF_ACCESS_TEAM_DOMAIN are set while ACCESS_MODE=public; Access checks are still skipped")
+assert len(env.get("STUDIO_REVIEWER_API_KEY",""))>=24, "Missing separate reviewer credential"
+print("PASS public mode reviewer credential")
+'
+fi
 web=$("${compose[@]}" ps -q web)
 db=$("${compose[@]}" ps -q db)
 [[ -n "$web" && -n "$db" ]] || { echo 'Existing web/database not found; no changes made'; exit 2; }

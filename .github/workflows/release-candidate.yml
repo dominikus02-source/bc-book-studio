@@ -145,6 +145,7 @@ jobs:
           WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
           MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
           REVISION: ${{ github.sha }}
+          RUNTIME_DIR: ${{ vars.BC_BOOK_STUDIO_RUNTIME_DIR }}
         run: |
           set -euo pipefail
           umask 077
@@ -152,13 +153,14 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          test "$RUNTIME_DIR" = "/opt/bc-book-studio-runtime/source" || { echo "::error::Invalid runtime directory"; exit 1; }
           scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            scripts/migrate-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/migrate-release.sh"
+            scripts/migrate-release.sh "$DEPLOY_USER@$DEPLOY_HOST:$RUNTIME_DIR/scripts/migrate-release.sh"
           # No password authentication or host-key bypass. VPS account must have
           # access to Docker and the pre-provisioned isolated runtime directory.
           ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /opt/bc-book-studio-runtime && \
+            "cd $RUNTIME_DIR && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
@@ -188,11 +190,19 @@ jobs:
           DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
           EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+          ACCESS_MODE: ${{ vars.BC_BOOK_STUDIO_ACCESS_MODE || 'access' }}
         run: |
           set -euo pipefail
-          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS" "$EXPECTED_AUD"; do
+          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS"; do
             test -n "$value" || { echo "::error::Missing production deployment secret"; exit 1; }
           done
+          case "${ACCESS_MODE:-access}" in
+            access)
+              test -n "$EXPECTED_AUD" || { echo "::error::Missing production deployment secret"; exit 1; }
+              ;;
+            public) ;;
+            *) echo "::error::Invalid BC_BOOK_STUDIO_ACCESS_MODE: use access or public"; exit 1 ;;
+          esac
           test -n "${{ needs.image.outputs.web_digest }}"
           test -n "${{ needs.image.outputs.migrator_digest }}"
       - name: Deploy using pinned images and existing guarded VPS runbook
@@ -202,9 +212,11 @@ jobs:
           DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
           EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+          ACCESS_MODE: ${{ vars.BC_BOOK_STUDIO_ACCESS_MODE || 'access' }}
           WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
           MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
           REVISION: ${{ github.sha }}
+          RUNTIME_DIR: ${{ vars.BC_BOOK_STUDIO_RUNTIME_DIR }}
         run: |
           set -euo pipefail
           umask 077
@@ -212,20 +224,23 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          test "$RUNTIME_DIR" = "/opt/bc-book-studio-runtime/source" || { echo "::error::Invalid runtime directory"; exit 1; }
           scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            scripts/deploy-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/deploy-release.sh"
+            scripts/deploy-release.sh "$DEPLOY_USER@$DEPLOY_HOST:$RUNTIME_DIR/scripts/deploy-release.sh"
           # No password authentication or host-key bypass. VPS account must have
           # access to Docker and the pre-provisioned isolated runtime directory.
           ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /opt/bc-book-studio-runtime && \
+            "cd $RUNTIME_DIR && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
              BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             BC_BOOK_STUDIO_ACCESS_MODE='$ACCESS_MODE' \
              bash scripts/deploy-release.sh --check && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
              BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             BC_BOOK_STUDIO_ACCESS_MODE='$ACCESS_MODE' \
              bash scripts/deploy-release.sh --apply"
