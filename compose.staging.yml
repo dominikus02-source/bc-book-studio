@@ -1,7 +1,7 @@
-﻿name: bc-book-studio-staging
+name: bc-book-studio-staging
 x-export-environment: &export-environment
   DATABASE_URL: postgresql://bookstudio:${STAGING_DB_PASSWORD:?Required}@db:5432/bookstudio
-  QUARTO_WORKER_URL: http://quarto.internal:39319/render
+  QUARTO_WORKER_URL: http://quarto.internal:39319/
   QUARTO_WORKER_TOKEN: ${STAGING_QUARTO_TOKEN:?Required}
   EXPORT_ARTIFACT_DIR: /var/bookstudio/artifacts
   EXPORT_WORKER_ENABLED: "true"
