@@ -5,7 +5,7 @@ import {LETTER_KINDS,makeLetter,letterPdf,letterDocx} from "../../../../../../..
 export const runtime="nodejs";
 type C={params:Promise<{applicationId:string;kind:string}>};
 export async function GET(req:NextRequest,{params}:C){
- const user=await sessionUser(req);if(!user)return deny();if(user.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ const user=await sessionUser(req);if(!user)return deny();if((user.role!=="ADMIN"&&user.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const {applicationId,kind}=await params; if(!LETTER_KINDS.some(x=>x===kind))return NextResponse.json({error:"Unknown letter template"},{status:404});
  const ext=req.nextUrl.searchParams.get("format");if(ext!=="docx"&&ext!=="pdf")return NextResponse.json({error:"format=docx or pdf"},{status:400});
  const [app,publisher]=await Promise.all([db.isbnApplication.findFirst({where:{id:applicationId,archivedAt:null}}),db.publisherProfile.findUnique({where:{id:"bci-publisher"}})]);
