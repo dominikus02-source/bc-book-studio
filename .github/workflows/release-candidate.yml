@@ -110,9 +110,67 @@ jobs:
             echo "No VPS, DNS, Access policy or database was changed by this workflow."
           } >> "$GITHUB_STEP_SUMMARY"
 
+  migrate:
+    name: Migrate production database
+    needs: image
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.BC_BOOK_STUDIO_AUTO_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    concurrency:
+      group: bc-book-studio-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check production migration configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS"; do
+            test -n "$value" || { echo "::error::Missing production deployment secret"; exit 1; }
+          done
+          test -n "${{ needs.image.outputs.web_digest }}"
+          test -n "${{ needs.image.outputs.migrator_digest }}"
+      - name: Apply pending production migrations with a pre-migrate backup
+        env:
+          DEPLOY_HOST: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
+          WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
+          MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            scripts/migrate-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/migrate-release.sh"
+          # No password authentication or host-key bypass. VPS account must have
+          # access to Docker and the pre-provisioned isolated runtime directory.
+          ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd /opt/bc-book-studio-runtime && \
+             BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
+             BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
+             BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
+             bash scripts/migrate-release.sh --check && \
+             BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
+             BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
+             BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
+             bash scripts/migrate-release.sh --apply"
+
   deploy:
     name: Deploy verified images to VPS
-    needs: image
+    needs: [image, migrate]
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.BC_BOOK_STUDIO_AUTO_DEPLOY == 'true' }}
     runs-on: ubuntu-latest
     environment: production
