@@ -145,6 +145,7 @@ jobs:
           WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
           MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
           REVISION: ${{ github.sha }}
+          RUNTIME_DIR: ${{ vars.BC_BOOK_STUDIO_RUNTIME_DIR }}
         run: |
           set -euo pipefail
           umask 077
@@ -152,13 +153,14 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          test "$RUNTIME_DIR" = "/opt/bc-book-studio-runtime/source" || { echo "::error::Invalid runtime directory"; exit 1; }
           scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            scripts/migrate-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/migrate-release.sh"
+            scripts/migrate-release.sh "$DEPLOY_USER@$DEPLOY_HOST:$RUNTIME_DIR/scripts/migrate-release.sh"
           # No password authentication or host-key bypass. VPS account must have
           # access to Docker and the pre-provisioned isolated runtime directory.
           ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /opt/bc-book-studio-runtime && \
+            "cd $RUNTIME_DIR && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
@@ -214,6 +216,7 @@ jobs:
           WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
           MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
           REVISION: ${{ github.sha }}
+          RUNTIME_DIR: ${{ vars.BC_BOOK_STUDIO_RUNTIME_DIR }}
         run: |
           set -euo pipefail
           umask 077
@@ -221,13 +224,14 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          test "$RUNTIME_DIR" = "/opt/bc-book-studio-runtime/source" || { echo "::error::Invalid runtime directory"; exit 1; }
           scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            scripts/deploy-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/deploy-release.sh"
+            scripts/deploy-release.sh "$DEPLOY_USER@$DEPLOY_HOST:$RUNTIME_DIR/scripts/deploy-release.sh"
           # No password authentication or host-key bypass. VPS account must have
           # access to Docker and the pre-provisioned isolated runtime directory.
           ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd /opt/bc-book-studio-runtime && \
+            "cd $RUNTIME_DIR && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
