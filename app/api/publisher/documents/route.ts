@@ -6,13 +6,13 @@ export const runtime="nodejs";
 const kinds=["LEGAL_CERTIFICATE","NIB_KBLI","DEED","ISBN_MEMBERSHIP_SIGNED","CATALOG_EVIDENCE"] as const;
 export async function GET(req:NextRequest){
  const actor=await sessionUser(req);if(!actor)return deny();
- if(actor.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  const documents=await db.publisherDocument.findMany({where:{publisherId:"bci-publisher",archivedAt:null},select:{id:true,kind:true,filename:true,size:true,sha256:true,createdAt:true},orderBy:{createdAt:"desc"}});
  return NextResponse.json({documents},{headers:{"Cache-Control":"private, no-store"}});
 }
 export async function POST(req:NextRequest){
  const actor=await sessionUser(req);if(!actor)return deny();
- if(actor.role!=="ADMIN")return NextResponse.json({error:"Forbidden"},{status:403});
+ if((actor.role!=="ADMIN"&&actor.role!=="SUPERADMIN"))return NextResponse.json({error:"Forbidden"},{status:403});
  if(Number(req.headers.get("content-length")||0)>9*1024*1024)return NextResponse.json({error:"PDF max 8 MB"},{status:413});
  const form=await req.formData().catch(()=>null),file=form?.get("file"),kind=form?.get("kind");
  if(!(file instanceof File)||typeof kind!=="string"||!kinds.includes(kind as typeof kinds[number]))return NextResponse.json({error:"PDF and document type required"},{status:400});
