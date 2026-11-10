@@ -2,6 +2,7 @@ name: Release candidate
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['bookstudio-rc-*']
   pull_request:
 permissions:
@@ -13,6 +14,9 @@ jobs:
   verify:
     uses: ./.github/workflows/ci.yml
   image:
+    outputs:
+      web_digest: ${{ steps.published.outputs.web_digest }}
+      migrator_digest: ${{ steps.published.outputs.migrator_digest }}
     needs: verify
     runs-on: ubuntu-latest
     permissions:
@@ -92,13 +96,75 @@ jobs:
         env:
           WEB_IMAGE: ghcr.io/${{ github.repository }}:sha-${{ steps.rev.outputs.sha }}
           MIGRATOR_IMAGE: ghcr.io/${{ github.repository }}-migrator:sha-${{ steps.rev.outputs.sha }}
+        id: published
         run: |
           set -euo pipefail
           docker push "$WEB_IMAGE"
           docker push "$MIGRATOR_IMAGE"
+          echo "web_digest=$(docker image inspect "$WEB_IMAGE" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_OUTPUT"
+          echo "migrator_digest=$(docker image inspect "$MIGRATOR_IMAGE" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_OUTPUT"
           {
             echo "### Verified image digests"
             docker image inspect "$WEB_IMAGE" --format '{{index .RepoDigests 0}}'
             docker image inspect "$MIGRATOR_IMAGE" --format '{{index .RepoDigests 0}}'
             echo "No VPS, DNS, Access policy or database was changed by this workflow."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy verified images to VPS
+    needs: image
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.BC_BOOK_STUDIO_AUTO_DEPLOY == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    concurrency:
+      group: bc-book-studio-production
+      cancel-in-progress: false
+    steps:
+      - name: Check production deployment configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
+          EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+        run: |
+          set -euo pipefail
+          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS" "$EXPECTED_AUD"; do
+            test -n "$value" || { echo "::error::Missing production deployment secret"; exit 1; }
+          done
+          test -n "${{ needs.image.outputs.web_digest }}"
+          test -n "${{ needs.image.outputs.migrator_digest }}"
+      - name: Deploy using pinned images and existing guarded VPS runbook
+        env:
+          DEPLOY_HOST: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_USER }}
+          DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
+          EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+          WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
+          MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
+          REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          # No password authentication or host-key bypass. VPS account must have
+          # access to Docker and the pre-provisioned isolated runtime directory.
+          ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd /opt/bc-book-studio-runtime && \
+             BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
+             BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
+             BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
+             BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             bash scripts/deploy-release.sh --check && \
+             BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
+             BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
+             BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
+             BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             bash scripts/deploy-release.sh --apply"
