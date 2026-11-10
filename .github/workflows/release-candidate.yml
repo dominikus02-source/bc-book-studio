@@ -122,6 +122,7 @@ jobs:
       group: bc-book-studio-production
       cancel-in-progress: false
     steps:
+      - uses: actions/checkout@v4
       - name: Check production deployment configuration
         env:
           DEPLOY_HOST: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_HOST }}
@@ -153,6 +154,8 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/bookstudio_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/bookstudio_deploy ~/.ssh/known_hosts
+          scp -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            scripts/deploy-release.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/bc-book-studio-runtime/scripts/deploy-release.sh"
           # No password authentication or host-key bypass. VPS account must have
           # access to Docker and the pre-provisioned isolated runtime directory.
           ssh -i ~/.ssh/bookstudio_deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
