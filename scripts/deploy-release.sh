@@ -25,6 +25,8 @@ docker inspect "$existing_db" --format '{{range .Mounts}}{{println .Name}}{{end}
 [[ -f compose.resources.yml ]] || { echo 'Existing database resource Compose file missing'; exit 2; }
 # The active database uses compose.resources.yml; include it to preserve volume bindings.
 "${compose[@]}" config --quiet
+resolved_db=$("${compose[@]}" ps -q db)
+[[ -n "$resolved_db" && "$resolved_db" == "$existing_db" ]] || { echo 'Compose resolves to a different database container'; exit 2; }
 ACCESS_MODE="${BC_BOOK_STUDIO_ACCESS_MODE:-access}"
 case "$ACCESS_MODE" in
   access|public) ;;
