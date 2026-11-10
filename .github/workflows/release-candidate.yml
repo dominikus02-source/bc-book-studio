@@ -188,11 +188,19 @@ jobs:
           DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
           EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+          ACCESS_MODE: ${{ vars.BC_BOOK_STUDIO_ACCESS_MODE || 'access' }}
         run: |
           set -euo pipefail
-          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS" "$EXPECTED_AUD"; do
+          for value in "$DEPLOY_HOST" "$DEPLOY_USER" "$DEPLOY_KEY" "$KNOWN_HOSTS"; do
             test -n "$value" || { echo "::error::Missing production deployment secret"; exit 1; }
           done
+          case "${ACCESS_MODE:-access}" in
+            access)
+              test -n "$EXPECTED_AUD" || { echo "::error::Missing production deployment secret"; exit 1; }
+              ;;
+            public) ;;
+            *) echo "::error::Invalid BC_BOOK_STUDIO_ACCESS_MODE: use access or public"; exit 1 ;;
+          esac
           test -n "${{ needs.image.outputs.web_digest }}"
           test -n "${{ needs.image.outputs.migrator_digest }}"
       - name: Deploy using pinned images and existing guarded VPS runbook
@@ -202,6 +210,7 @@ jobs:
           DEPLOY_KEY: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS }}
           EXPECTED_AUD: ${{ secrets.BC_BOOK_STUDIO_EXPECTED_AUD }}
+          ACCESS_MODE: ${{ vars.BC_BOOK_STUDIO_ACCESS_MODE || 'access' }}
           WEB_DIGEST: ${{ needs.image.outputs.web_digest }}
           MIGRATOR_DIGEST: ${{ needs.image.outputs.migrator_digest }}
           REVISION: ${{ github.sha }}
@@ -223,9 +232,11 @@ jobs:
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
              BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             BC_BOOK_STUDIO_ACCESS_MODE='$ACCESS_MODE' \
              bash scripts/deploy-release.sh --check && \
              BC_BOOK_STUDIO_IMAGE='$WEB_DIGEST' \
              BC_BOOK_STUDIO_MIGRATOR_IMAGE='$MIGRATOR_DIGEST' \
              BC_BOOK_STUDIO_VERIFIED_SHA='$REVISION' \
              BC_BOOK_STUDIO_EXPECTED_AUD='$EXPECTED_AUD' \
+             BC_BOOK_STUDIO_ACCESS_MODE='$ACCESS_MODE' \
              bash scripts/deploy-release.sh --apply"

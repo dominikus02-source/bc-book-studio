@@ -14,6 +14,12 @@ compose=(docker compose -p bc-book-studio-runtime -f compose.yml)
 [[ ! -f compose.edge.yml ]] || compose+=(-f compose.edge.yml)
 compose+=(-f compose.release.yml)
 "${compose[@]}" config --quiet
+ACCESS_MODE="${BC_BOOK_STUDIO_ACCESS_MODE:-access}"
+case "$ACCESS_MODE" in
+  access|public) ;;
+  *) echo "Invalid BC_BOOK_STUDIO_ACCESS_MODE: use access or public"; exit 2 ;;
+esac
+if [[ "$ACCESS_MODE" == access ]]; then
 : "${BC_BOOK_STUDIO_EXPECTED_AUD:?Set the production Access application AUD}"
 "${compose[@]}" config --format json | python3 -c '
 import json,re,sys
@@ -23,6 +29,19 @@ assert env.get("CF_ACCESS_AUD")==sys.argv[1], "Access AUD does not match the tar
 assert len(env.get("STUDIO_REVIEWER_API_KEY",""))>=24, "Missing separate reviewer credential"
 print("PASS target Access configuration and reviewer credential")
 ' "$BC_BOOK_STUDIO_EXPECTED_AUD"
+else
+echo 'WARN ACCESS_MODE=public: Cloudflare Access check skipped by explicit operator choice'
+"${compose[@]}" config --format json | python3 -c '
+import json,sys
+env=json.load(sys.stdin)["services"]["web"]["environment"]
+aud=(env.get("CF_ACCESS_AUD") or "").strip()
+team=(env.get("CF_ACCESS_TEAM_DOMAIN") or "").strip()
+if aud or team:
+    print("WARN CF_ACCESS_AUD and/or CF_ACCESS_TEAM_DOMAIN are set while ACCESS_MODE=public; Access checks are still skipped")
+assert len(env.get("STUDIO_REVIEWER_API_KEY",""))>=24, "Missing separate reviewer credential"
+print("PASS public mode reviewer credential")
+'
+fi
 web=$("${compose[@]}" ps -q web)
 db=$("${compose[@]}" ps -q db)
 [[ -n "$web" && -n "$db" ]] || { echo 'Existing web/database not found; no changes made'; exit 2; }

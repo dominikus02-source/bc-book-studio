@@ -14,7 +14,8 @@ Dokumentasi awal di `docs/DEPLOYMENT.md` merujuk ke runbook ini untuk rilis prod
    - `BC_BOOK_STUDIO_DEPLOY_KNOWN_HOSTS`
    - `BC_BOOK_STUDIO_EXPECTED_AUD` (AUD aplikasi Cloudflare Access produksi; dipakai `scripts/deploy-release.sh`)
 3. Set Actions variable `BC_BOOK_STUDIO_AUTO_DEPLOY` ke `true`. Selama variable ini belum `true`, job migrasi dan deploy tidak berjalan.
-4. Pastikan VPS sudah memiliki direktori runtime terisolasi `/opt/bc-book-studio-runtime` berisi `compose.yml`, `compose.release.yml`, `.env` server, Docker Compose, dan akses tarik image GHCR. File `compose.edge.yml` bersifat opsional.
+4. Mode akses (opsional). Variable `BC_BOOK_STUDIO_ACCESS_MODE` default-nya `access` (Cloudflare Access wajib, secret `BC_BOOK_STUDIO_EXPECTED_AUD` harus terisi). Untuk situs internal tim tanpa Access, set `BC_BOOK_STUDIO_ACCESS_MODE=public`. Dalam mode `public`, `BC_BOOK_STUDIO_EXPECTED_AUD` tidak diperlukan dan pemeriksaan AUD/domain Access dilewati. Login sesi studio dan RBAC aplikasi tetap berlaku sama persis. Disarankan aturan rate-limit Cloudflare pada `/api/auth/login`. Nilai lain selain `access` atau `public` membuat deploy gagal.
+5. Pastikan VPS sudah memiliki direktori runtime terisolasi `/opt/bc-book-studio-runtime` berisi `compose.yml`, `compose.release.yml`, `.env` server, Docker Compose, dan akses tarik image GHCR. File `compose.edge.yml` bersifat opsional.
 
 `workflow_dispatch` hanya membangun dan mem-publish image. Deploy otomatis hanya dipicu oleh **push ke `main`** setelah variable di atas aktif.
 
@@ -52,6 +53,20 @@ bash scripts/deploy-release.sh --apply
 - Rollback container web dilakukan oleh `scripts/deploy-release.sh` jika health check gagal; skema database **tidak** dikembalikan oleh skrip itu.
 - Rollback database: pulihkan dump custom-format yang dicatat `migrate-release.sh` (`backups/release/<stamp>.pre-migrate.dump`) ke database `bookstudio` selama jendela pemeliharaan, misalnya dengan `pg_restore`, lalu periksa `migrate status` dan kesehatan aplikasi. Jangan menyunting tabel `_prisma_migrations` secara manual.
 - Setelah rollback web atau database, konfirmasi sesi pengguna nyata sebelum mengumumkan rilis.
+
+
+## Mode akses publik (tanpa Cloudflare Access)
+
+Set variable repositori `BC_BOOK_STUDIO_ACCESS_MODE=public` jika produksi akan dilayani tanpa Cloudflare Access. Secret `BC_BOOK_STUDIO_EXPECTED_AUD` tidak diperlukan dalam mode ini. Workflow akan meneruskan `BC_BOOK_STUDIO_ACCESS_MODE` ke `scripts/deploy-release.sh`. Job migrasi tidak memeriksa Access.
+
+Perilaku aplikasi tidak berubah karena mode ini: login memakai sesi `bcstudio_session`, dan RBAC/CRUD untuk SUPERADMIN, ADMIN, EDITOR, serta REVIEWER tetap merujuk `StudioUser.role` di `lib/auth.ts` dan rute API terkait. Mode `public` hanya memengaruhi preflight deploy VPS.
+
+Catatan keamanan:
+- Endpoint autentikasi dan API buku tetap menolak permintaan tanpa sesi (biasanya 401).
+- Karena tepi Access tidak lagi menjadi gerbang, perkuat perlindungan aplikasi: wajibkan HTTPS, batasi laju permintaan ke `/api/auth/login` (misalnya aturan rate-limit Cloudflare), pantau percobaan login gagal, dan jangan menonaktifkan pemeriksaan kredensial reviewer (`STUDIO_REVIEWER_API_KEY`, minimal 24 karakter) yang tetap diwajibkan di kedua mode.
+- Jika `CF_ACCESS_AUD` atau `CF_ACCESS_TEAM_DOMAIN` masih terisi di `.env` saat mode `public`, skrip hanya memperingatkan; pemeriksaan Access tetap dilewati. Bersihkan variabel itu jika Access memang tidak dipakai, agar tidak ada konfigurasi setengah jadi.
+
+Untuk kembali ke gerbang Access, set `BC_BOOK_STUDIO_ACCESS_MODE=access` (atau hapus variable agar default `access`) dan isi `BC_BOOK_STUDIO_EXPECTED_AUD`.
 
 ## Promosi SUPERADMIN untuk akun EDITOR yang sudah ada
 
