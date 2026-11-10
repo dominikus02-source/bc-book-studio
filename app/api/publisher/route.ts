@@ -21,7 +21,7 @@ const schema=z.object({
  perpusnasReference:z.string().max(600),
  approvalNote:z.string().max(2000)
 }).strict();
-async function admin(req:NextRequest){const actor=await sessionUser(req);return actor?.role==="ADMIN"?actor:null}
+async function admin(req:NextRequest){const actor=await sessionUser(req);return (actor?.role==="ADMIN"||actor?.role==="SUPERADMIN")?actor:null}
 export async function GET(req:NextRequest){
  const actor=await admin(req);if(!actor)return (await sessionUser(req))?NextResponse.json({error:"Only publisher ADMIN can access legal records"},{status:403}):deny();
  const profile=await db.publisherProfile.findUnique({where:{id:"bci-publisher"}});
