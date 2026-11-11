@@ -29,12 +29,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const book = await tx.book.findFirst({ where: { id, ownerId, archivedAt:null }, include: { chapters: { where:{archivedAt:null}, orderBy: { position: "desc" }, take: 1 } } });
       if (!book) throw new Error("NOT_FOUND");
       if (book.status !== "DRAFT") throw new Error("LOCKED");
-      if("outlineObjective" in input && !["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))throw new Error("LOCKED");
+      if("outlineObjective" in input && !["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))throw new Error("STAGE");
       return tx.chapter.create({ data: { bookId: id, position: (book.chapters[0]?.position ?? 0) + 1, content:"", ...input } });
     });
     return NextResponse.json({ chapter }, { status: 201 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "";
-    return NextResponse.json(msg === "NOT_FOUND" ? { error: "Book not found" } : msg === "LOCKED" ? { error: "Return book to draft before editing" } : badInput(error), { status: msg === "NOT_FOUND" ? 404 : msg === "LOCKED" ? 409 : 400 });
+    const status = msg === "NOT_FOUND" ? 404 : msg === "LOCKED" || msg === "STAGE" ? 409 : 400;
+    const errorText = msg === "NOT_FOUND" ? "Book not found" : msg === "LOCKED" ? "Return book to draft before editing" : msg === "STAGE" ? "Selesaikan Ide dan lanjut ke Rancang sebelum menambah bab berkerangka. Gunakan Mulai menulis pada Buat Buku untuk membuka bab pertama." : undefined;
+    return NextResponse.json(errorText ? { error: errorText } : badInput(error), { status });
   }
 }

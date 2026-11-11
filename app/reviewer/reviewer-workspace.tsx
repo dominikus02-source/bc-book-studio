@@ -3,6 +3,7 @@ import AiVoiceControls from "../../components/ai-voice-controls";
 import ReviewerPromptTemplates from "./reviewer-prompt-templates";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {checkpointsFor} from "../../lib/editorial";
+import {openReviewQueue,reviewNextStep} from "../../lib/review-queue";
 import ReviewerTransfer from "./reviewer-transfer";
 import "./reviewer.css";
 
@@ -61,11 +62,14 @@ function ReviewProgress({book}:{book:Book}){
  const resolved=book.reviewNotes.filter(note=>note.status==="RESOLVED").length;
  const critical=book.reviewNotes.filter(note=>note.status==="OPEN"&&["MAJOR","CRITICAL"].includes(note.severity)).length;
  const decision=book.status==="APPROVED"?"Review selesai. Naskah disetujui.":book.status==="REVIEW"?"Review sedang berjalan.":latest?.decision==="reject"?"Review selesai. Naskah dikembalikan untuk revisi.":"Naskah belum diajukan untuk review.";
+ const queue=openReviewQueue(book.reviewNotes);
+ const step=reviewNextStep({role:book.isOwner?"owner":book.canReview?"reviewer":"reader",status:book.status,openCritical:queue.filter(note=>note.severity==="CRITICAL").length,openMajor:queue.filter(note=>note.severity==="MAJOR").length,openSuggestions:queue.filter(note=>note.severity==="SUGGESTION").length});
  const note=latest&&latest.decision!=="submit"?latest.note.replace(/\s*\[Reviewer: [^\]]+\]$/,"").trim():"";
  return <section className="reviewer-panel review-progress" aria-label="Laporan progres reviewer">
   <h2>Laporan progres reviewer</h2>
   <div role="status" aria-live="polite">
    <strong>{decision}</strong>
+   <p>{step.headline} {step.detail}</p>
    {latest&&<p><time dateTime={latest.createdAt}>{new Date(latest.createdAt).toLocaleString("id-ID")}</time>{note&&<> · {note}</>}</p>}
    <p>{open} temuan terbuka · {resolved} selesai · {critical} temuan mayor atau kritis terbuka</p>
    {book.isOwner&&book.status==="APPROVED"&&<p>Langkah berikutnya: buka Tata Letak untuk menyiapkan pratinjau.</p>}
@@ -114,7 +118,7 @@ function BookReview({book,viewer,refresh,navigate}:{book:Book;viewer:Viewer;refr
  {error&&<div role="alert" className="reviewer-error"><p>{error}</p><button type="button" onClick={()=>void refresh()}>Muat versi terbaru</button>{draft.editId&&<button type="button" onClick={()=>{const n=book.reviewNotes.find(n=>n.id===draft.editId);if(n&&confirm("Ganti draf lokal dengan catatan terbaru dari server?"))edit(n)}}>Gunakan versi server</button>}</div>}
  {info&&<p role="status" className="review-feedback">{info}</p>}
  {panel==="Persiapan"&&book.isOwner&&<ReviewPreparation book={book} busy={busy} act={act} setInfo={setInfo}/>}
- {panel==="Naskah"&&<section className="reviewer-panel"><h3>Naskah dan daftar isi</h3>{!book.chapters.length&&<p>Belum ada bab. Lengkapi Ide dan Rancang, lalu tulis isi naskah.</p>}{book.chapters.map((c,i)=><details key={c.id} className="reviewer-chapter"><summary>{i+1}. {c.title}</summary><article className="reviewer-chapter-content">{c.content}</article></details>)}</section>}
+ {panel==="Naskah"&&<section className="reviewer-panel"><h3>Naskah dan daftar isi</h3><p className="reviewer-help">Catatan terbuka tampil di bab yang bersangkutan supaya revisi tidak tercecer.</p>{!book.chapters.length&&<p>Belum ada bab. Lengkapi Ide dan Rancang, lalu tulis isi naskah.</p>}{book.chapters.map((c,i)=>{const notes=book.reviewNotes.filter(n=>n.status==="OPEN"&&n.chapterId===c.id);return <details key={c.id} className="reviewer-chapter"><summary>{i+1}. {c.title}{notes.length?` · ${notes.length} catatan terbuka`:""}</summary>{notes.map(n=><p key={n.id} className={n.severity==="SUGGESTION"?undefined:"reviewer-error"}><strong>{priorities[n.severity]||n.severity} · {categories[n.category]||n.category}.</strong> {n.content}</p>)}<article className="reviewer-chapter-content">{c.content}</article></details>})}{book.reviewNotes.some(n=>n.status==="OPEN"&&!n.chapterId)&&<div><h4>Catatan untuk seluruh buku</h4>{book.reviewNotes.filter(n=>n.status==="OPEN"&&!n.chapterId).map(n=><p key={n.id}><strong>{priorities[n.severity]||n.severity}.</strong> {n.content}</p>)}</div>}</section>}
  {panel==="Catatan"&&<>
  <ReviewerPromptTemplates onSelection={(stage,product)=>{setAiStage(stage);setAiProduct(product)}}/>
  <section className="reviewer-panel"><div className="reviewer-panel-heading"><h3>Catatan pemeriksaan</h3><button type="button" className="reviewer-primary" disabled={busy||!canEdit} onClick={()=>{if(draft.content&&!confirm("Ganti draf yang belum disimpan?"))return;reset();setShowForm(true)}}>+ Tambah catatan</button></div>

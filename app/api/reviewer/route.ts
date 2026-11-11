@@ -7,8 +7,10 @@ export const runtime="nodejs";
 export async function GET(req:NextRequest){
  const actor=await sessionUser(req);if(!actor)return deny();
  const reviewer=["REVIEWER","ADMIN"].includes(actor.role);
+ const bookId=req.nextUrl.searchParams.get("bookId");
+ if(bookId&&(bookId.length>80||!/^[\w-]+$/.test(bookId)))return NextResponse.json({error:"Identitas buku tidak valid."},{status:400});
  const books=await db.book.findMany({
-  where:{archivedAt:null,OR:[{ownerId:actor.id},...(reviewer?[{assignedReviewers:{some:{reviewerId:actor.id}}}]:[])]},
+  where:{archivedAt:null,...(bookId?{id:bookId}:{}),OR:[{ownerId:actor.id},...(reviewer?[{assignedReviewers:{some:{reviewerId:actor.id}}}]:[])]},
   orderBy:{updatedAt:"desc"},
   include:{
    chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},

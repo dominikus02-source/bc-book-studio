@@ -4,7 +4,7 @@ import DraftBlockCanvas from "../../../components/draft-block-canvas";
 import "./editor.css";
 
 type Chapter={id:string;title:string;content:string;updatedAt:string};
-type Book={id:string;title:string;description:string;subject:string;grade:string;status:string;isOwner?:boolean;chapters:Chapter[]};
+type Book={id:string;title:string;description:string;subject:string;grade:string;status:string;language?:string;editorialStage?:string;isOwner?:boolean;chapters:Chapter[]};
 export default function FullscreenWritingEditor({bookId,chapterId}:{bookId:string;chapterId:string}){
  const [book,setBook]=useState<Book|null>(null);
  const [error,setError]=useState("");
@@ -33,6 +33,6 @@ export default function FullscreenWritingEditor({bookId,chapterId}:{bookId:strin
    </nav>
   </header>
   {loading?<p role="status">Memuat naskah dari database...</p>:error?<section role="alert"><p>{error}</p><button className="secondary-button" onClick={()=>void refresh()}>Coba lagi</button></section>:book?.status!=="DRAFT"||book.isOwner===false?<p role="alert">Editor hanya tersedia untuk pemilik buku berstatus draf.</p>:book?
-   <div className="fullscreen-writing-content"><DraftBlockCanvas bookId={book.id} chapters={book.chapters} initialChapterId={chapterId} bookContext={`Judul buku: ${book.title}; Mata pelajaran: ${book.subject}; Kelas: ${book.grade}; Brief: ${book.description?.slice(0,3500)||""}.`} onChanged={refresh}/></div>:null}
+   <div className="fullscreen-writing-content"><DraftBlockCanvas bookId={book.id} chapters={book.chapters} initialChapterId={chapterId} editorialStage={book.editorialStage} language={book.language} bookContext={`Judul buku: ${book.title}; Mata pelajaran: ${book.subject}; Kelas: ${book.grade}; Brief: ${book.description?.slice(0,3500)||""}.`} onChanged={refresh}/></div>:null}
  </main>;
 }

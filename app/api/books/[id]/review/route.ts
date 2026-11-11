@@ -6,6 +6,7 @@ import {checkpointsFor} from "../../../../../lib/editorial";
 import {briefMissing} from "../../../../../lib/workflow";
 import {referencedAssets} from "../../../../../lib/approval-snapshot";
 import {resolvedPublishingPackage,publishingSequence} from "../../../../../lib/publishing-package";
+import {bookLanguage} from "../../../../../lib/book-language";
 export const runtime="nodejs";
 const fail=(error:string,status:number)=>NextResponse.json({error},{status});
 export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -26,11 +27,11 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    if(missing.length)return fail("Lengkapi Ide: "+missing.join("; "),409);
    const chapters=await tx.chapter.findMany({where:{bookId:id,archivedAt:null},select:{content:true,outlineObjective:true}});
    if(chapters.some(chapter=>!chapter.outlineObjective.trim()))return fail("Lengkapi tujuan setiap bab di Rancang.",409);
-   if(chapters.some(chapter=>chapter.content.trim().length<20))return fail("Complete manuscript content for each chapter before review",409);
+   if(chapters.some(chapter=>chapter.content.trim().length<20))return fail("Lengkapi isi setiap bab sebelum review. Complete manuscript content for each chapter before review",409);
    const checks=(book.editorialChecks||{}) as Record<string,unknown>;
-   if(checkpointsFor(book.bookType).some(item=>checks[item.key]!==true))return fail("Missing editorial checkpoints",409);
+   if(checkpointsFor(book.bookType).some(item=>checks[item.key]!==true))return fail("Checklist editorial belum lengkap.",409);
    const assignmentCount=await tx.bookReviewer.count({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:["REVIEWER","ADMIN"]}}}});
-   if(!assignmentCount)return fail("Assign independent reviewer",409);
+   if(!assignmentCount)return fail("Tugaskan peninjau independen yang bukan penulis.",409);
   }else{
    if(!["REVIEWER","ADMIN"].includes(actor.role)||actor.id===book.ownerId)return fail("Not authorized",403);
    const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:["REVIEWER","ADMIN"]}},select:{id:true}});
@@ -38,7 +39,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    const assigned=await tx.bookReviewer.findUnique({where:{bookId_reviewerId:{bookId:id,reviewerId:actor.id}}});
    if(!assigned)return fail("Not authorized",403);
    if(book.status!=="REVIEW")return fail("Invalid transition",409);
-   if(!note.trim())return fail("Review note required",400);
+   if(!note.trim())return fail("Catatan keputusan wajib diisi.",400);
    if(action==="approve"&&await tx.reviewerNote.count({where:{bookId:id,severity:{in:["CRITICAL","MAJOR"]},status:"OPEN"}}))return fail("Selesaikan semua temuan MAJOR dan CRITICAL sebelum persetujuan akhir.",409);
   }
   const status=action==="submit"?"REVIEW":action==="approve"?"APPROVED":"DRAFT";
@@ -48,13 +49,13 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
     where: {bookId:id,archivedAt:null}, orderBy: {position:"asc"},
     select: {title:true, content:true, position:true},
    });
-   if (!chapters.length||chapters.some(chapter=>chapter.content.trim().length<20)) return fail("Approval requires complete chapter content",409);
+   if (!chapters.length||chapters.some(chapter=>chapter.content.trim().length<20)) return fail("Persetujuan memerlukan isi bab yang lengkap.",409);
    const packageRow=await tx.studioFormDraft.findFirst({where:{ownerId:book.ownerId,module:"PUBLISHING_PACKAGE:"+id},orderBy:{updatedAt:"desc"}});
    const publishingPackage=resolvedPublishingPackage(book,packageRow?.payload);
    const refs = referencedAssets(publishingSequence(publishingPackage,chapters));
-   if (refs.length > 20) return fail("Too many embedded images",409);
+   if (refs.length > 20) return fail("Terlalu banyak gambar tertanam.",409);
    const files = refs.length ? await tx.bookAsset.findMany({where:{bookId:id,id:{in:refs}}}) : [];
-   if (files.length !== refs.length) return fail("Restore missing images before approval",409);
+   if (files.length !== refs.length) return fail("Pulihkan gambar yang hilang sebelum persetujuan.",409);
    const assets = files.map(({id,mime,bytes,altText,license,sourceUrl}) => ({
     id,mime,data:Buffer.from(bytes).toString("base64"),altText,license,sourceUrl,
    }));
@@ -65,7 +66,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    if (!updated.count) return fail("Invalid transition",409);
    await tx.bookApprovalSnapshot.create({data:{
     bookId:id,approvedAt,reviewerId:actor.id,
-    manuscript:{schemaVersion:2,language:"id",publishingPackage,title,author,subject,grade,description,bookType,genre,pageSize,chapters,assets},
+    manuscript:{schemaVersion:2,language:bookLanguage(book.language),publishingPackage,title,author,subject,grade,description,bookType,genre,pageSize,chapters,assets},
    }});
   } else {
    const updated = await tx.book.updateMany({

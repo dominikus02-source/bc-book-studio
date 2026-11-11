@@ -30,6 +30,7 @@ model Book {
   bookType String @default("NONFICTION")
   genre String @default("REFERENCE")
   pageSize String @default("A4")
+  language String @default("id")
   author String @default("BC Book Studio")
   editorialStage String @default("BRIEF")
   editorialChecks Json @default("{}")

@@ -3,7 +3,8 @@ import { db } from "../../../lib/db";
 import { identity, deny, sessionUser } from "../../../lib/auth";
 import { createBook, badInput } from "../../../lib/validation";
 import { canCreateBook, quotaDenied } from "../../../lib/usage";
-import {stageReadiness} from "../../../lib/workflow";
+import {briefMissing,stageReadiness,transition} from "../../../lib/workflow";
+import {starterChapter} from "../../../lib/guided-book";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const user = await sessionUser(req);
@@ -19,8 +20,24 @@ export async function POST(req: NextRequest) {
   if (!ownerId) return deny();
   try {
     const input = createBook.parse(await req.json());
+    const {startWriting, ...fields} = input;
     if (!await canCreateBook(ownerId)) return quotaDenied();
-    const book = await db.book.create({ data: { ...input, ownerId }, include: { chapters: true, reviews: true } });
-    return NextResponse.json({ book }, { status: 201 });
+    if (startWriting) {
+      const missing = briefMissing(fields);
+      if (missing.length) return NextResponse.json({ error: "Lengkapi isian awal sebelum mulai menulis.", missing }, { status: 400 });
+    }
+    const created = await db.book.create({ data: { ...fields, ownerId }, include: { chapters: true, reviews: true } });
+    if (!startWriting) return NextResponse.json({ book: created }, { status: 201 });
+    try {
+      const toOutline = await transition(created.id, "OUTLINE", {id: ownerId});
+      if (toOutline.status !== 200) return NextResponse.json({ book: created, startedWriting: false, error: "Buku tersimpan. Lengkapi Ide sebelum menulis." }, { status: 201 });
+      const starter = starterChapter(fields.language);
+      await db.chapter.create({ data: { bookId: created.id, position: 1, ...starter } });
+      const toWriting = await transition(created.id, "WRITING", {id: ownerId});
+      const book = await db.book.findUniqueOrThrow({ where: { id: created.id }, include: { chapters: { orderBy: { position: "asc" } }, reviews: true } });
+      return NextResponse.json({ book, startedWriting: toWriting.status === 200 }, { status: 201 });
+    } catch {
+      return NextResponse.json({ book: created, startedWriting: false, error: "Buku tersimpan, tetapi bab awal belum dibuat. Lanjutkan dari Ide." }, { status: 201 });
+    }
   } catch (error) { return NextResponse.json(badInput(error), { status: 400 }); }
 }

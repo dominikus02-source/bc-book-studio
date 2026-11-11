@@ -1,8 +1,9 @@
 "use client";
 import {useState} from "react";
 import FormTransfer, {type TransferField,type TransferRecord} from "./form-transfer";
+import GuidedBookStart from "./guided-book-start";
 
-type CreatedBook={id:string};
+type CreatedBook={id:string;startAt?:"write"|"brief"};
 const fields:readonly TransferField[]=[
  {key:"title",label:"Judul buku",required:true,maxLength:180,example:"Judul buku"},
  {key:"subject",label:"Kategori / mata pelajaran",required:true,maxLength:100,example:"Fisika"},
@@ -11,11 +12,12 @@ const fields:readonly TransferField[]=[
  {key:"genre",label:"Genre",options:["REFERENCE","TEXTBOOK","GUIDE","WORKBOOK","NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]},
  {key:"grade",label:"Jenjang",options:["Referensi","1","2","3","4","5","6","7","8","9","10","11","12"]},
  {key:"pageSize",label:"Ukuran halaman",options:["A4","A5","B5"]},
+ {key:"language",label:"Bahasa",options:["id","en"]},
  {key:"description",label:"Brief / deskripsi buku",maxLength:12000},
  {key:"targetAudience",label:"Pembaca sasaran",maxLength:300},
  {key:"writingGoal",label:"Tujuan penulisan",maxLength:1500}
 ];
-const initial={title:"",subject:"",author:"",bookType:"NONFICTION",genre:"REFERENCE",grade:"Referensi",pageSize:"A4",description:"",targetAudience:"",writingGoal:""};
+const initial={title:"",subject:"",author:"",bookType:"NONFICTION",genre:"REFERENCE",grade:"Referensi",pageSize:"A4",language:"id",description:"",targetAudience:"",writingGoal:""};
 type Data=typeof initial;
 const fiction=new Set(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]);
 export default function BlankBookForm({onCreated}:{onCreated:(book:CreatedBook)=>void}){
@@ -52,25 +54,30 @@ export default function BlankBookForm({onCreated}:{onCreated:(book:CreatedBook)=
   }catch(e){const message=e instanceof Error?e.message:"Gagal menyimpan buku";setError(message);throw e;}
   finally{setBusy(false);}
  }
+ const genreLabel:Record<string,string>={REFERENCE:"Referensi",TEXTBOOK:"Buku ajar",GUIDE:"Panduan",WORKBOOK:"Buku latihan",NOVEL:"Novel",SHORT_STORY:"Cerita pendek",ANTHOLOGY:"Antologi",POETRY:"Puisi"};
  return <div className="workspace-stack">
-  <form className="panel" aria-label="Formulir proyek buku baru" onSubmit={event=>{event.preventDefault();void create(data).catch(()=>{});}}>
+  <GuidedBookStart onCreated={onCreated}/>
+  <details className="panel">
+  <summary>Isian lengkap, template, dan impor</summary>
+  <form aria-label="Formulir proyek buku baru" onSubmit={event=>{event.preventDefault();void create(data).catch(()=>{});}}>
    <h2>Buat buku baru - draf mandiri</h2>
    <p>Identitas awal disimpan sebagai buku baru tanpa bab atau naskah. Setelah tersimpan, semua field dapat diubah pada Stage 1 dan diteruskan ke Stage 2-5.</p>
    <label className="studio-field"><span>Judul buku *</span><input required minLength={2} maxLength={180} value={data.title} onChange={e=>change("title",e.target.value)} /></label>
    <label className="studio-field"><span>Kategori / mata pelajaran *</span><input required minLength={2} maxLength={100} value={data.subject} onChange={e=>change("subject",e.target.value)}/></label>
    <label className="studio-field"><span>Penulis</span><input maxLength={180} value={data.author} onChange={e=>change("author",e.target.value)} placeholder="Isi nama penulis yang benar"/></label>
    <label className="studio-field"><span>Jenis buku</span><select value={data.bookType} onChange={e=>change("bookType",e.target.value)}><option value="NONFICTION">Nonfiksi</option><option value="FICTION">Fiksi</option></select></label>
-   <label className="studio-field"><span>Genre</span><select value={data.genre} onChange={e=>change("genre",e.target.value)}>{(data.bookType==="FICTION"?["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]:["REFERENCE","TEXTBOOK","GUIDE","WORKBOOK"]).map(g=><option key={g} value={g}>{g.replaceAll("_"," ")}</option>)}</select></label>
+   <label className="studio-field"><span>Genre</span><select value={data.genre} onChange={e=>change("genre",e.target.value)}>{(data.bookType==="FICTION"?["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]:["REFERENCE","TEXTBOOK","GUIDE","WORKBOOK"]).map(g=><option key={g} value={g}>{genreLabel[g]||g}</option>)}</select></label>
    <label className="studio-field"><span>Jenjang</span><select value={data.grade} onChange={e=>change("grade",e.target.value)}>{["Referensi","1","2","3","4","5","6","7","8","9","10","11","12"].map(g=><option key={g}>{g}</option>)}</select></label>
    <label className="studio-field"><span>Ukuran halaman</span><select value={data.pageSize} onChange={e=>change("pageSize",e.target.value)}>{["A4","A5","B5"].map(g=><option key={g}>{g}</option>)}</select></label>
+   <label className="studio-field"><span>Bahasa naskah</span><select value={data.language} onChange={e=>change("language",e.target.value)}><option value="id">Indonesia (id)</option><option value="en">English (en)</option></select></label>
    <label className="studio-field"><span>Brief / deskripsi</span><textarea rows={5} maxLength={12000} value={data.description} onChange={e=>change("description",e.target.value)}/></label>
    <label className="studio-field"><span>Pembaca sasaran</span><input maxLength={300} value={data.targetAudience} onChange={e=>change("targetAudience",e.target.value)}/></label>
    <label className="studio-field"><span>Tujuan penulisan</span><textarea rows={3} maxLength={1500} value={data.writingGoal} onChange={e=>change("writingGoal",e.target.value)}/></label>
    {error&&<p role="alert">{error}</p>}
    {notice&&<p role="status">{notice}</p>}
-   <button className="primary-button" type="submit" disabled={busy||data.title.trim().length<2||data.subject.trim().length<2}>{busy?"Menyimpan...":"Simpan buku dan buka Stage 1"}</button>
+   <button className="primary-button" type="submit" disabled={busy||data.title.trim().length<2||data.subject.trim().length<2}>{busy?"Menyimpan...":"Simpan buku dan buka Ide"}</button>
   </form>
-  <section className="panel" aria-label="Impor template dan AI buku baru">
+  <section aria-label="Impor template dan AI buku baru">
    <h2>Isi otomatis dengan template atau AI</h2>
    <p>Unduh template XLSX atau Markdown, isi, lalu unggah. Setelah lolos validasi, data langsung dibuat sebagai draf baru di database. Tidak ada buku lama yang ditimpa.</p>
    <label className="studio-field"><span>Prompt untuk menyusun buku</span><textarea rows={5} maxLength={4000} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Contoh: Buku fisika untuk siswa kelas 9, fokus listrik dinamis, pendekatan kontekstual, lengkap dengan latihan bertingkat." /></label>
@@ -84,5 +91,6 @@ export default function BlankBookForm({onCreated}:{onCreated:(book:CreatedBook)=
     autoApplyNotice="Data impor valid dan draf buku tersimpan. Membuka Stage 1."
    />
   </section>
+  </details>
  </div>;
 }

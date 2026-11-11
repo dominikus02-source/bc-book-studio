@@ -8,8 +8,10 @@ export const createBook = z.object({
   writingGoal: z.string().trim().max(1500).default(""),
   bookType: z.enum(["FICTION","NONFICTION"]).default("NONFICTION"),
   pageSize: z.enum(["A4","A5","B5"]).default("A4"),
+  language: z.enum(["id","en"]).default("id"),
   author: z.string().trim().min(2).max(180).default("BC Book Studio"),
-  genre: z.enum(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY","TEXTBOOK","REFERENCE","GUIDE","WORKBOOK"]).default("REFERENCE")
+  genre: z.enum(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY","TEXTBOOK","REFERENCE","GUIDE","WORKBOOK"]).default("REFERENCE"),
+  startWriting: z.boolean().optional()
 }).superRefine((data,ctx)=>{
  const fiction=["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"].includes(data.genre);
  if((data.bookType==="FICTION")!==fiction)ctx.addIssue({code:"custom",path:["genre"],message:"Book type and genre must match"});
