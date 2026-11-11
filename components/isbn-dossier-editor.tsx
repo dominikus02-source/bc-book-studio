@@ -1,8 +1,10 @@
 "use client";
 import {useEffect,useState} from "react";
+import {formatActiveModel,useActiveAiModel} from "./use-active-ai-model";
 const labels:Record<string,string>={membership_letter:"Pernyataan anggota ISBN",application_letter:"Permohonan ISBN",authenticity:"SPKK bermeterai",translation_permission:"Izin penerjemahan",transfer_letter:"Pengalihan penerbitan",public_domain_statement:"Keterangan domain publik",title_pages:"Halaman awal buku"};
 export default function IsbnDossierEditor({applicationId,requirements,editable,bookId}:{applicationId:string;requirements:string[];editable:boolean;bookId:string}){
  const [kind,setKind]=useState("application_letter"),[text,setText]=useState(""),[saved,setSaved]=useState(""),[defaults,setDefaults]=useState(""),[version,setVersion]=useState<string|null>(null);
+ const aiModel=useActiveAiModel();
  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[proposal,setProposal]=useState<{text:string;proposalId:string;provider:string;model:string}|null>(null),[accepted,setAccepted]=useState<string|undefined>();
  const base="/api/publisher/isbn/"+applicationId+"/dossier",dirty=text!==saved;
  async function read(url:string,init?:RequestInit){const r=await fetch(url,{cache:"no-store",...init});const data=await r.json();if(!r.ok)throw Error(data.error||"Gagal memproses dokumen");return data}
@@ -39,7 +41,7 @@ export default function IsbnDossierEditor({applicationId,requirements,editable,b
  return <section aria-label="Penyusun dokumen ISBN">
  <h3>Siapkan dokumen pengajuan</h3><p>Templat mengambil metadata dan urutan bab buku ini. Lengkapi bagian bertanda kurung, lalu simpan dan unduh. Identitas legal, izin, tanda tangan dan meterai harus berasal dari pihak berwenang.</p>
  <div className="isbn-actions"><label className="isbn-field">Dokumen yang disunting<select value={kind} disabled={busy} onChange={e=>{if(!dirty||window.confirm("Ada perubahan belum tersimpan. Pindah dokumen?"))setKind(e.target.value)}}>{Object.entries(labels).filter(([k])=>k==="membership_letter"||requirements.includes(k)).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label><button className="secondary-button" disabled={busy||!editable} onClick={()=>{if(!dirty||window.confirm("Ganti isian editor dengan templat default?")){setText(defaults);setAccepted(undefined);setNotice("Templat dimuat. Simpan untuk menerapkan.")}}}>Isi dari templat</button><button className="secondary-button" disabled={busy||!editable} onClick={()=>void action("generate")}>Bantu susun dengan AI</button></div>
- <p><small>AI menggunakan provider aktif di Pengaturan; isi editor dikirim saat tombol AI dipilih. Hasil tetap perlu ditinjau.</small></p>
+ <p><small>AI menggunakan provider aktif di Pengaturan; isi editor dikirim saat tombol AI dipilih. Hasil tetap perlu ditinjau. Model aktif: {formatActiveModel(aiModel)}.</small></p>
  <label className="isbn-field"><span>Isi draf dokumen</span><textarea aria-label="Isi draf dokumen" rows={14} value={text} disabled={busy||!editable} onChange={e=>setText(e.target.value)}/></label>
  <p role="status">{busy?"Memproses…":dirty?"Ada perubahan belum disimpan":"Draf siap ditinjau"} {notice}</p>{error&&<p role="alert" className="isbn-error">{error}</p>}
  {proposal&&<div className="panel"><h4>Usulan AI · {proposal.provider} / {proposal.model}</h4><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{proposal.text}</pre><div className="isbn-actions"><button className="secondary-button" onClick={()=>{setText(proposal.text);setAccepted(proposal.proposalId);setProposal(null);setNotice("Usulan diterapkan ke editor. Simpan setelah ditinjau.")}}>Terapkan ke editor</button><button className="secondary-button" onClick={()=>setProposal(null)}>Abaikan usulan</button></div></div>}

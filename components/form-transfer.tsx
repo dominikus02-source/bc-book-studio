@@ -5,6 +5,7 @@ import {Download,Upload,FileSpreadsheet,CheckCircle2} from "lucide-react";
 import {makeFormWorkbook,parseFormWorkbook} from "../lib/xlsx-transfer";
 import AiVoiceControls from "./ai-voice-controls";
 import {makeStagePrompt,type PromptGoal} from "../lib/ai-prompt-presets";
+import {formatActiveModel,useActiveAiModel} from "./use-active-ai-model";
 
 export type TransferField={key:string;label:string;hint?:string;example?:string;required?:boolean;type?:"text"|"boolean";maxLength?:number;options?:string[]};
 export type TransferValue=string|boolean;
@@ -52,7 +53,8 @@ export default function FormTransfer({name,fields,values,onApply,disabled=false,
  const [promptSelection,setPromptSelection]=useState<{goal:PromptGoal;fieldKey?:string}|null>({goal:"complete"});
  const [voiceInstruction,setVoiceInstruction]=useState("");
  const [aiBusy,setAiBusy]=useState(false),[aiDraft,setAiDraft]=useState<TransferRecord|null>(null);
- const [provider,setProvider]=useState<{configured:boolean;provider?:{name?:string;provider:string;label:string;model:string}|null}|null>(null);
+ const providerState=useActiveAiModel();
+ const modelLabel=formatActiveModel(providerState);
  const resolvedContext=[voiceInstruction.trim()?"Instruksi tambahan pengguna: "+voiceInstruction.trim():"",aiContext||defaultStageContext(name,fields,values)].filter(Boolean).join("\n");
  const agent=stageAgentFor(name),sensitive=isSensitiveStage(name);
  const shouldAutoApply=autoApply&&!sensitive;
@@ -60,7 +62,6 @@ export default function FormTransfer({name,fields,values,onApply,disabled=false,
  const base=cleanFileName(name);
  const aiPrompt=promptSelection?makeStagePrompt({name,fields,values,context:resolvedContext,goal:promptSelection.goal,fieldKey:promptSelection.fieldKey}):"";
  useEffect(()=>{setAiDraft(null);setVoiceInstruction("")},[name,bookId]);
- async function loadProvider(){try{const response=await fetch("/api/studio/ai-form",{cache:"no-store"});const data=await response.json();if(response.ok)setProvider(data);else setProvider({configured:false});}catch{setProvider({configured:false})}}
  async function generateAi(){
   if(sensitive){setError("Persetujuan, penugasan, atau konfigurasi API key tidak dapat diisi otomatis oleh AI.");return}
   setAiBusy(true);setError("");setAiDraft(null);setNotice("");
@@ -132,10 +133,18 @@ export default function FormTransfer({name,fields,values,onApply,disabled=false,
    <label className="secondary-button form-transfer-upload"><Upload size={15}/> Unggah XLSX / MD<input ref={fileRef} type="file" accept=".xlsx,.md" disabled={disabled||busy} onChange={e=>void processFile(e.currentTarget.files?.[0])}/></label>
   </div>
   <p className="form-transfer-caption">{hint||"Edit file di luar aplikasi, lalu unggah kembali. Isian dipetakan berdasarkan field_id, bukan posisi kolom."} Maksimal 1 MB. File asli tidak disimpan di server.</p>
-  <details className="ai-prompt-choice" aria-label={"Pilihan prompt AI "+name} onToggle={e=>{if(e.currentTarget.open&&!provider)void loadProvider()}}>
+  <div className="stage-ai-bar" aria-label={"Generate AI "+name}>
+   <div>
+    <strong>Generate AI — {agent.agent}</strong>
+    <p className="form-transfer-caption">Konteks: {agent.stage}. Model berasal dari Pengaturan; API key tidak pernah dibaca oleh browser.</p>
+    <p className="form-transfer-caption" data-ai-model-status={providerState.status} data-ai-configured={providerState.configured?"true":"false"}>Model aktif: {modelLabel}. <a href="/studio?module=Pengaturan">Buka Pengaturan AI</a></p>
+   </div>
+   {!sensitive&&<button type="button" className="primary-button" disabled={disabled||busy||aiBusy||providerState.status==="loading"||providerState.configured!==true} onClick={()=>void generateAi()}>{aiBusy?"Menghubungi AI…":providerState.status==="loading"?"Memuat model…":"✨ Isi formulir dengan AI aktif"}</button>}
+  </div>
+  <details className="ai-prompt-choice" aria-label={"Pilihan prompt AI "+name}>
    <summary>Generate prompt dan bantuan AI — {agent.agent}</summary>
    <p className="form-transfer-caption">Konteks default: {agent.stage}. Agent: {agent.agent}. Model berasal dari Pengaturan; API key tidak pernah dibaca oleh browser.</p>
-   <p className="form-transfer-caption">Model aktif: {provider?.configured?(provider.provider?.label+" · "+provider.provider?.model):"Belum dikonfigurasi / periksa Pengaturan"}. <a href="/studio?module=Pengaturan">Buka Pengaturan AI</a></p>
+   <p className="form-transfer-caption">Model aktif: {modelLabel}. <a href="/studio?module=Pengaturan">Buka Pengaturan AI</a></p>
    <p className="form-transfer-caption">Pilih bantuan yang Anda perlukan. Setiap prompt menggunakan data formulir saat ini dan konteks proyek. Anda juga dapat mengisi semuanya secara manual. Tidak ada data yang dikirim ke AI secara otomatis.</p>
    <div className="ai-prompt-actions" role="group" aria-label="Alternatif prompt AI">
     {([{goal:"complete",label:"Lengkapi isian"},{goal:"improve",label:"Perbaiki EYD dan gaya"},{goal:"coherence",label:"Periksa koherensi"},{goal:"accessibility",label:"Tingkatkan keterbacaan"}] as const).map(item=><button type="button" key={item.goal} className="secondary-button" disabled={disabled||busy} aria-pressed={promptSelection?.goal===item.goal} onClick={()=>choosePrompt(item.goal)}>{item.label}</button>)}
@@ -144,7 +153,7 @@ export default function FormTransfer({name,fields,values,onApply,disabled=false,
    <div className="ai-prompt-actions" role="group" aria-label="Prompt AI per isian">
     {fields.map(field=><button type="button" className="secondary-button" key={field.key} disabled={disabled||busy} aria-pressed={promptSelection?.goal==="field"&&promptSelection.fieldKey===field.key} onClick={()=>choosePrompt("field",field.key)}>Bantu: {field.label}</button>)}
    </div>
-   {!sensitive&&<button type="button" className="primary-button" disabled={disabled||busy||aiBusy||provider?.configured!==true} onClick={()=>void generateAi()}>{aiBusy?"Menghubungi AI…":"✨ Isi formulir dengan AI aktif"}</button>}
+   {!sensitive&&<button type="button" className="primary-button" disabled={disabled||busy||aiBusy||providerState.status==="loading"||providerState.configured!==true} onClick={()=>void generateAi()}>{aiBusy?"Menghubungi AI…":"✨ Isi formulir dengan AI aktif"}</button>}
    <label className="studio-field">Instruksi tambahan AI<textarea rows={2} maxLength={1000} value={voiceInstruction} onChange={event=>setVoiceInstruction(event.target.value)}/></label>
    <AiVoiceControls key={name+":"+bookId} disabled={disabled||aiBusy} onTranscript={text=>setVoiceInstruction(value=>(value+" "+text).trim().slice(0,1000))} response={aiDraft?fields.filter(field=>aiDraft[field.key]!==undefined).map(field=>field.label+". "+String(aiDraft[field.key])).join("\n"):""}/>
    {aiDraft&&<div className="form-transfer-preview"><strong>Pratinjau hasil AI (belum disimpan)</strong><dl>{fields.filter(f=>aiDraft[f.key]!==undefined).map(f=><div key={f.key}><dt>{f.label}</dt><dd>{String(aiDraft[f.key]).slice(0,300)}</dd></div>)}</dl><div className="form-transfer-actions"><button type="button" className="primary-button" disabled={disabled||busy||aiBusy} onClick={()=>void applyAi()}>Terapkan isian AI ke form</button><button type="button" className="secondary-button" onClick={()=>setAiDraft(null)}>Batalkan</button></div></div>}

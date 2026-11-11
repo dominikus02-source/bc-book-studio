@@ -2,6 +2,7 @@
 import "./printing-workspace.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipboardCopy, ExternalLink, FileText, Pencil, Plus, Printer, RefreshCw, Trash2 } from "lucide-react";
+import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
 type Book = { id:string; title:string; isOwner?:boolean; author?:string; pageSize?:string; editorialStage?:string; status?:string; pagination?:{version:number;updatedAt:string}|null; publication?:{unpublishedAt:string|null;publishedAt?:string}|null };
 type Status = "DRAFT"|"QUOTED"|"APPROVED"|"IN_PRODUCTION"|"COMPLETED"|"CANCELLED";
 type Form = { bookId:string; printerName:string; contact:string; quantity:number; paper:string; binding:string; color:"BW"|"COLOR"|"MIXED";size:string;unitPrice:number;dueDate:string;notes:string;status:Status };
@@ -93,6 +94,24 @@ export default function PrintingWorkspace({initialBookId}:{initialBookId?:string
   {advancedStatus&&<p className="print-warning">Persetujuan atau produksi membutuhkan nama dan kontak mitra, harga satuan lebih besar dari nol, serta target selesai. Status ini tidak berarti vendor sudah menerima pesanan.</p>}
   <div className="print-total"><div><span>Estimasi total biaya</span><strong>{money(Number.isFinite(estimatedTotal)?estimatedTotal:0)}</strong></div><small>Belum termasuk pajak, ongkos kirim, dan biaya tambahan vendor.</small></div>
   <p className="print-footnote" role="status">{busy?"Menyimpan ke database...":error?"Belum tersimpan. Periksa pesan kesalahan.":dirty?(formValid?"Menunggu simpan otomatis...":"Lengkapi isian agar bisa disimpan."):editing?"Tersimpan di database.":"Isi draf untuk memulai simpan otomatis."}</p><div className="print-actions print-form-actions"><button type="submit" className="primary-button" disabled={busy||!formValid}>{busy?"Menyimpan...":editing?"Simpan perubahan":"Simpan pesanan"}</button>{editing&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>reset()}>Batal edit</button>}</div></form>
+  <div className="print-ai">
+   <h3>Generate AI — spesifikasi cetak</h3>
+   <p>AI mengusulkan kertas, jilid, dan instruksi berdasarkan data buku. Tinjau hasilnya sebelum menyimpan pesanan. Usulan ini bukan purchase order dan tidak dikirim ke vendor.</p>
+   <FormTransfer
+     name="Spesifikasi percetakan"
+     bookId={form.bookId||undefined}
+     fields={[{key:"printerName",label:"Nama percetakan",maxLength:160},{key:"contact",label:"Kontak vendor",maxLength:160},{key:"paper",label:"Kertas isi",maxLength:80},{key:"binding",label:"Jenis jilid",maxLength:80},{key:"notes",label:"Instruksi produksi",maxLength:3000}] satisfies TransferField[]}
+     values={{printerName:form.printerName,contact:form.contact,paper:form.paper,binding:form.binding,notes:form.notes}}
+     autoApply={false}
+     disabled={busy||!form.bookId}
+     onApply={(record:TransferRecord)=>{
+       const text=(key:keyof Form)=>typeof record[key]==="string"?String(record[key]):form[key];
+       setForm(current=>({...current,printerName:String(text("printerName")),contact:String(text("contact")),paper:String(text("paper")),binding:String(text("binding")),notes:String(text("notes"))}));
+       setTouched(true);
+     }}
+     aiContext={`Judul: ${book?.title||"Belum dipilih"}; Penulis: ${book?.author||"-"}; Ukuran sumber: ${book?.pageSize||form.size}; Status editorial: ${book?.editorialStage||"-"}. Usulkan spesifikasi cetak yang wajar. Jangan mengarang harga vendor, ISBN, atau konfirmasi produksi.`}
+   />
+  </div>
   <div className="print-vendor"><div><strong><FileText size={17}/> Lembar spesifikasi untuk pihak luar</strong><p>Tinjau rincian, lalu salin atau unduh untuk dikirim manual. Belum ada koneksi otomatis ke vendor, ekspedisi, atau layanan pembayaran.</p></div><div className="print-actions"><button type="button" className="secondary-button" onClick={()=>void copySpec()}><ClipboardCopy size={15}/> Salin</button><button type="button" className="secondary-button" onClick={downloadSpec}><ExternalLink size={15}/> Unduh TXT</button></div></div>
   </section>
   <section className="panel print-history"><div className="print-section-heading"><div><span className="print-kicker">02 / MONITORING</span><h2>Pesanan tersimpan</h2></div><button type="button" aria-label="Muat ulang pesanan" className="secondary-button" disabled={loading} onClick={()=>void load()}><RefreshCw size={16}/></button></div><div className="print-filters"><input aria-label="Cari pesanan" placeholder="Cari buku atau percetakan..." value={search} onChange={e=>setSearch(e.target.value)}/><select aria-label="Filter berdasarkan buku" value={filter} onChange={e=>setFilter(e.target.value)}><option value="">Semua buku</option>{owned.map(b=><option key={b.id} value={b.id}>{b.title}</option>)}</select></div>

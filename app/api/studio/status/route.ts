@@ -6,7 +6,7 @@ export async function GET(req:NextRequest){
  if(!await identity(req))return deny();
  try{
   await db.$queryRaw`SELECT 1`;
-  const provider=await db.providerCredential.findFirst({where:{active:true},select:{model:true}});
-  return NextResponse.json({database:"connected",authentication:"Studio account",canManageProviders:Boolean(await administrator(req)),agentCount:11,orchestrator:"not_connected",exports:["pdf","epub","docx"],ai:{configured:Boolean(provider),model:provider?.model||null}},{headers:{"Cache-Control":"no-store"}});
+  const provider=await db.providerCredential.findFirst({where:{active:true},select:{provider:true,label:true,model:true}});
+  return NextResponse.json({database:"connected",authentication:"Studio account",canManageProviders:Boolean(await administrator(req)),agentCount:11,orchestrator:"not_connected",exports:["pdf","epub","docx"],ai:{configured:Boolean(provider),provider:provider?.provider||null,label:provider?.label||null,model:provider?.model||null}},{headers:{"Cache-Control":"no-store"}});
  }catch{return NextResponse.json({error:"Database unavailable"},{status:503})}
 }
