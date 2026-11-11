@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {REVIEWER_ROLES,isReviewerRole} from "../../../../../lib/rbac";
 import {reviewInput,badInput} from "../../../../../lib/validation";
 import {checkpointsFor} from "../../../../../lib/editorial";
 import {briefMissing} from "../../../../../lib/workflow";
@@ -29,11 +30,11 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    if(chapters.some(chapter=>chapter.content.trim().length<20))return fail("Complete manuscript content for each chapter before review",409);
    const checks=(book.editorialChecks||{}) as Record<string,unknown>;
    if(checkpointsFor(book.bookType).some(item=>checks[item.key]!==true))return fail("Missing editorial checkpoints",409);
-   const assignmentCount=await tx.bookReviewer.count({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:["REVIEWER","ADMIN"]}}}});
+   const assignmentCount=await tx.bookReviewer.count({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:[...REVIEWER_ROLES]}}}});
    if(!assignmentCount)return fail("Assign independent reviewer",409);
   }else{
-   if(!["REVIEWER","ADMIN"].includes(actor.role)||actor.id===book.ownerId)return fail("Not authorized",403);
-   const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:["REVIEWER","ADMIN"]}},select:{id:true}});
+   if(!isReviewerRole(actor.role)||actor.id===book.ownerId)return fail("Not authorized",403);
+   const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:[...REVIEWER_ROLES]}},select:{id:true}});
    if(!eligible)return fail("Reviewer is no longer active",403);
    const assigned=await tx.bookReviewer.findUnique({where:{bookId_reviewerId:{bookId:id,reviewerId:actor.id}}});
    if(!assigned)return fail("Not authorized",403);
