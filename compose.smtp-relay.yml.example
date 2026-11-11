@@ -1,0 +1,11 @@
+# Host-local Compose override for the IPv6 SMTP forwarder.
+# Copy to compose.smtp-relay.yml on the VPS and set the IPv4 gateway of
+# the bc-book-studio-runtime_default network. The host unit
+# bc-smtp-v6-relay.service must listen on <gateway>:587 and forward to
+# smtp.gmail.com:587 over IPv6. This keeps TLS hostname verification as
+# smtp.gmail.com. deploy-release.sh and migrate-release.sh include the
+# file automatically when it is present.
+services:
+  web:
+    extra_hosts:
+      - "smtp.gmail.com:172.29.0.1"
