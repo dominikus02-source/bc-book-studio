@@ -37,8 +37,15 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           set -euo pipefail
+          # Apt hangs on GitHub runners do not fail the command, so the retry
+          # loop never ran. Bound each attempt and try a no-apt install first.
           for attempt in 1 2 3 4; do
-            if npx playwright install --with-deps chromium; then
+            if [ "$attempt" -eq 1 ]; then
+              cmd=(timeout --kill-after=15 90 npx playwright install chromium)
+            else
+              cmd=(timeout --kill-after=30 180 npx playwright install --with-deps chromium)
+            fi
+            if "${cmd[@]}"; then
               exit 0
             fi
             echo "Playwright install failed on attempt ${attempt}; retrying after a short delay."
