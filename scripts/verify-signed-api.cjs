@@ -75,9 +75,8 @@ if(publicMode){
  const created=await Promise.all(Array.from({length:25},()=>call("POST","/api/books",c,{title:"Quota concurrency",grade:"7",subject:"Test"},null).catch(e=>{throw e})));
  const codes=created.map(r=>r.status);assert.equal(codes.filter(x=>x===201).length,20);assert.equal(codes.filter(x=>x===429).length,5);
  const qb=(await created.find(r=>r.status===201).json()).book;
- for(let i=0;i<5;i++)await call("POST","/api/books/"+qb.id+"/generate",c,{topic:"Uji limit",learningGoals:"Memastikan pembatasan permintaan AI."},502);
- await call("POST","/api/books/"+qb.id+"/generate",c,{topic:"Uji limit",learningGoals:"Memastikan pembatasan permintaan AI."},429);
- console.log("PASS atomic concurrent book quota and AI failed-attempt quota");
+ for(let i=0;i<6;i++)await call("POST","/api/books/"+qb.id+"/generate",c,{topic:"Uji limit",learningGoals:"Memastikan generate tanpa batas harian studio."},502);
+ console.log("PASS atomic concurrent book quota; AI daily caps default to unlimited");
  await call("DELETE",endpoint+"/"+cid,a,undefined,200,{"Content-Type":"application/json"});
  assert.equal((await (await call("GET",endpoint,a)).json()).providers.length,0);
  assert.equal((await (await call("GET","/api/studio/status",a)).json()).ai.configured,false);
