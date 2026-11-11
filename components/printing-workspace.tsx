@@ -50,8 +50,10 @@ export default function PrintingWorkspace({initialBookId}:{initialBookId?:string
    if(!response.ok)throw Error(data.error||"Tidak berhasil menyimpan");
    const saved:Order=data.order;
    setEditing(saved);
+   setForm({bookId:saved.bookId,printerName:saved.printerName,contact:saved.contact,quantity:saved.quantity,paper:saved.paper,binding:saved.binding,color:saved.color,size:saved.size,unitPrice:saved.unitPrice,dueDate:saved.dueDate||"",notes:saved.notes||"",status:saved.status});
    setRows(current=>[saved,...current.filter(row=>row.id!==saved.id)]);
    setFilter(saved.bookId);setSearch("");
+   setTouched(false);
    setNotice("Pesanan tersimpan di database.");
   }catch(e){setError((e as Error).message);}
   finally{saving.current=false;setBusy(false);}
