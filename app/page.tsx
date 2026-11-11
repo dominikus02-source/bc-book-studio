@@ -1,10 +1,123 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import LandingEffects from "./landing-effects";
-const features=[{icon:"✦",name:"AI Writing Assistant",desc:"Ubah ide dan tujuan pembelajaran menjadi draf bab yang siap kamu sempurnakan."},{icon:"▦",name:"Editorial Workspace",desc:"Kelola naskah, susunan bab, catatan, dan alur review secara lebih terstruktur."},{icon:"◈",name:"Quality & Review",desc:"Setiap buku melalui persetujuan editorial sebelum siap untuk diterbitkan."},{icon:"↗",name:"Export & Publish",desc:"Ekspor karya yang telah disetujui ke PDF atau EPUB untuk dibagikan."}];
-export default function Home(){return <div className="site"><LandingEffects/><nav className="topbar"><Link href="/" className="brand"><span className="brand-icon">✦</span><span>BC <b>BOOK STUDIO</b><small>BY BAHASA CERDAS</small></span></Link><div className="nav-items"><a href="#fitur">Fitur</a><a href="#alur">Cara kerja</a><a href="#tentang">Tentang</a><Link href="/progress">Progres Lokal</Link></div><div className="nav-actions"><Link className="nav-login" href="/login">Login</Link><Link className="btn btn-sm" href="/activate">Aktivasi Akun <span>↗</span></Link></div></nav>
-<section className="hero"><div className="hero-copy"><div className="hero-pill"><span>✦</span> A NEW CHAPTER IN CREATIVE LEARNING</div><h1>Setiap ide punya cerita.<br/><em>Wujudkan jadi buku.</em></h1><p>Ruang kreatif untuk guru, penulis, dan kreator pembelajaran. Dari inspirasi pertama, penyusunan naskah, hingga buku siap dibaca — semua dalam satu studio yang intuitif.</p><div className="hero-ctas"><Link href="/activate" className="btn">Mulai Berkarya <span>↗</span></Link><Link href="/login" className="btn secondary">Masuk ke Studio <span>→</span></Link></div><div className="hero-stats"><span><strong>01</strong><small>Ide & Inspirasi</small></span><span><strong>02</strong><small>Kolaborasi Editorial</small></span><span><strong>03</strong><small>Terbitkan Karya</small></span></div></div><div className="hero-art" aria-label="Ilustrasi meja kerja editorial dan sampul buku"><div className="art-glow"></div><div className="floating-star star-one">✧</div><div className="floating-star star-two">✳</div><div className="book-shadow"></div><div className="book-back"></div><div className="book-cover"><div className="book-cover-top">BAHASA CERDAS PRESENTS</div><div className="book-orbit orb-a"></div><div className="book-orbit orb-b"></div><div className="book-orbit orb-c"></div><div className="book-title">THE ART<br/>OF <i>IDEAS</i><span>✦</span></div><div className="book-cover-bottom">CREATE • LEARN • INSPIRE</div></div><div className="art-note"><span>✦</span><div><b>Your next great book</b><small>starts with one idea.</small></div></div></div></section>
-<section className="partners"><span>CREATED FOR THE CURIOUS MINDS OF</span><strong>EDUCATORS</strong><b>✦</b><strong>WRITERS</strong><b>✦</b><strong>LEARNING CREATORS</strong></section>
-<section className="features section" id="fitur"><div className="section-heading"><span className="eyebrow">DISCOVER YOUR CREATIVE SPACE</span><h2>Semua yang kamu butuhkan<br/>untuk <i>menciptakan sesuatu.</i></h2><p>Teknologi membantu mempercepat proses. Kamu tetap menjadi penentu kualitas dan kreativitas setiap karya.</p></div><div className="feature-grid">{features.map((f,i)=><article className="feature-card" key={f.name}><div className="feature-num">0{i+1}</div><div className="feature-icon">{f.icon}</div><h3>{f.name}</h3><p>{f.desc}</p><span className="feature-arrow">↗</span></article>)}</div></section>
-<section className="steps section" id="alur"><div><span className="eyebrow">A SIMPLER WAY TO CREATE</span><h2>Dari sebuah ide,<br/><i>menjadi sebuah karya.</i></h2><p>Kami merancang proses berkarya agar lebih sederhana, tanpa mengorbankan ketelitian editorial.</p><Link href="/activate" className="btn">Mulai perjalananmu ↗</Link></div><div className="step-list"><div><span>01</span><section><h3>Bangun idemu</h3><p>Tentukan judul, mata pelajaran, kelas, dan tujuan karyamu.</p></section></div><div><span>02</span><section><h3>Tulis dan kembangkan</h3><p>Susun bab sendiri atau gunakan AI sebagai pendamping menyusun draf.</p></section></div><div><span>03</span><section><h3>Review dan ekspor</h3><p>Lewati persetujuan editorial, lalu unduh buku yang telah disetujui.</p></section></div></div></section>
-<section className="banner section" id="tentang"><div className="banner-ornament">✳</div><span className="eyebrow">YOUR STORY STARTS HERE</span><h2>Karya hebat dimulai<br/>dari <i>langkah pertama.</i></h2><p>Jadikan gagasan pembelajaranmu lebih hidup bersama BC Book Studio.</p><div><Link className="btn light" href="/activate">Aktivasi Akun ↗</Link><Link className="btn outline-light" href="/login">Sudah punya akun? Login</Link></div></section>
-<footer><Link href="/" className="brand"><span className="brand-icon">✦</span><span>BC <b>BOOK STUDIO</b><small>BY BAHASA CERDAS</small></span></Link><p>Ruang untuk ide yang pantas menjadi karya.</p><div><Link href="/login">Login</Link><Link href="/activate">Aktivasi</Link><Link href="/forgot-password">Lupa password</Link><a href="https://www.bahasacerdas.com">Bahasa Cerdas</a></div><small>© 2026 BC Book Studio. All rights reserved.</small><Link href="/syarat-ketentuan">Syarat dan Ketentuan</Link></footer></div>}
+import { ArrowDown, ArrowRight, BookOpen, ClipboardCheck, LayoutList, Lightbulb, PenLine, Printer, ShieldCheck } from "lucide-react";
+import styles from "./landing.module.css";
+
+export const metadata: Metadata = {
+  title: "BC Book Studio | Dari Ide hingga Terbit",
+  description: "Kelola proyek buku dalam lima tahap: Ide, Rancang, Tulis, Review, dan Terbit.",
+};
+
+const stages = [
+  { name: "Ide", icon: Lightbulb, modules: "Proyek Buku · Idea Lab", description: "Tentukan pembaca sasaran, tujuan penulisan, dan sinopsis sebagai dasar proyek buku." },
+  { name: "Rancang", icon: LayoutList, modules: "Rancang · Kurikulum", description: "Susun urutan bab dan tujuan tiap bab. Untuk buku pembelajaran, petakan materi ke kurikulum yang digunakan." },
+  { name: "Tulis", icon: PenLine, modules: "Studio Penulisan · Studio Latihan · Studio Visual", description: "Kembangkan isi bab, latihan, dan ilustrasi. Gunakan bantuan AI bila diperlukan, lalu periksa dan sunting hasilnya." },
+  { name: "Review", icon: ClipboardCheck, modules: "Penyuntingan · Review Naskah", description: "Sunting naskah, lengkapi pemeriksaan editorial, dan ajukan naskah kepada peninjau yang berbeda dari penulis." },
+  { name: "Terbit", icon: BookOpen, modules: "Tata Letak · Penerbitan", description: "Setelah naskah disetujui, atur tata letak, periksa pratinjau, lalu siapkan ekspor atau publikasi." },
+];
+
+function Brand() {
+  return <Link className={styles.brand} href="/"><span><BookOpen size={22} aria-hidden="true" /></span>BC Book Studio</Link>;
+}
+
+export default function Home() {
+  return (
+    <div className={styles.site}>
+      <a className={styles.skip} href="#konten">Lewati ke konten</a>
+      <header className={styles.header}>
+        <div className={styles.navbar}>
+          <Brand />
+          <nav aria-label="Navigasi utama">
+            <a href="#alur">Alur kerja</a>
+            <a href="#produksi">Produksi buku</a>
+            <Link href="/login">Masuk <ArrowRight size={16} aria-hidden="true" /></Link>
+          </nav>
+        </div>
+      </header>
+
+      <main id="konten" tabIndex={-1} className={styles.main}>
+        <section className={styles.hero} aria-labelledby="judul">
+          <div>
+            <p className={styles.kicker}>Studio editorial Bahasa Cerdas</p>
+            <h1 id="judul">Dari ide hingga <em>buku terbit.</em></h1>
+            <p className={styles.intro}>Kelola naskah, peninjauan editorial, dan persiapan penerbitan dalam satu proyek buku. Dirancang untuk penulis, pendidik, dan tim penerbitan.</p>
+            <div className={styles.actions}>
+              <Link className={styles.primary} href="/login">Masuk ke Studio <ArrowRight size={18} aria-hidden="true" /></Link>
+              <a className={styles.secondary} href="#alur">Lihat alur kerja <ArrowDown size={17} aria-hidden="true" /></a>
+            </div>
+          </div>
+
+          <div className={styles.scene} aria-hidden="true">
+            <div className={styles.spread}>
+              <div className={styles.cover}>
+                <span>BC BOOK STUDIO</span>
+                <div className={styles.coverLines}><i /><i /><i /></div>
+                <strong>Proyek<br />Buku</strong>
+                <BookOpen size={24} strokeWidth={1.5} />
+              </div>
+              <div className={styles.proof}>
+                <span>ALUR EDITORIAL</span>
+                {stages.map(({ name, icon: Icon }) => <div key={name}><Icon size={17} strokeWidth={1.7} />{name}</div>)}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section} id="alur" aria-labelledby="judul-alur">
+          <div className={styles.sectionHeading}>
+            <h2 id="judul-alur">Lima tahap dalam satu proyek</h2>
+          </div>
+          <ol className={styles.timeline}>
+            {stages.map(({ name, icon: Icon, modules, description }, index) => (
+              <li key={name}>
+                <span className={styles.stepIcon}><Icon size={22} strokeWidth={1.7} aria-hidden="true" /></span>
+                <h3><span className={styles.number} aria-hidden="true">{index + 1}.</span> {name}</h3>
+                <p className={styles.modules}>{modules}</p>
+                <p>{description}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className={styles.section} id="produksi" aria-labelledby="judul-produksi">
+          <div className={styles.sectionHeading}>
+            <h2 id="judul-produksi">Persiapan produksi dan penerbitan</h2>
+            <p>Gunakan modul pendukung sesuai kebutuhan buku dan hak akses tim Anda.</p>
+          </div>
+          <div className={styles.production}>
+            <article>
+              <Printer size={26} strokeWidth={1.7} aria-hidden="true" />
+              <h3>Percetakan</h3>
+              <p>Catat spesifikasi cetak, penawaran mitra, estimasi biaya, dan progres produksi. Unduh spesifikasi untuk dibagikan kepada percetakan.</p>
+            </article>
+            <article>
+              <ShieldCheck size={26} strokeWidth={1.7} aria-hidden="true" />
+              <h3>ISBN &amp; Legalitas</h3>
+              <p>Administrator penerbit dapat menyiapkan dokumen per edisi dan mencatat status pengajuan ISBN ke Perpusnas.</p>
+            </article>
+          </div>
+        </section>
+
+        <section className={styles.callout} aria-labelledby="judul-akses">
+          <div>
+            <h2 id="judul-akses">Siap membuka ruang kerja?</h2>
+            <p>Masuk dengan akun studio, atau gunakan undangan untuk mengaktifkan akun Anda.</p>
+          </div>
+          <div className={styles.actions}>
+            <Link className={styles.primary} href="/login">Masuk ke Studio <ArrowRight size={18} aria-hidden="true" /></Link>
+            <Link className={styles.secondary} href="/activate">Aktivasi Akun</Link>
+          </div>
+        </section>
+      </main>
+
+      <footer className={styles.footer}>
+        <Brand />
+        <nav aria-label="Tautan bantuan">
+          <Link href="/forgot-password">Lupa kata sandi</Link>
+          <Link href="/syarat-ketentuan">Syarat dan Ketentuan</Link>
+          <a href="https://www.bahasacerdas.com/">Bahasa Cerdas</a>
+        </nav>
+      </footer>
+    </div>
+  );
+}
