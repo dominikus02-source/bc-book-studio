@@ -4,6 +4,7 @@ import { sessionUser } from "@/lib/auth";
 import { createOneTimeToken, sendAccountEmail } from "@/lib/account";
 import { StudioRole } from "@prisma/client";
 import {z} from "zod";
+import {activationEmailAllowed} from "@/lib/account-email";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
   if(!validEmail(email)||name.length<2||name.length>120||!validRole(body.role)||body.role==="SUPERADMIN")return respond({error:"Invalid account details"},400);
   try {
     const user=await db.studioUser.create({data:{email,name,role:body.role,active:false},select:{id:true,email:true,name:true,role:true,active:true}});
+    if (!activationEmailAllowed(user.email)) return respond({user,warning:"Akun dibuat. Alamat ini dikecualikan dari email aktivasi."},201);
     try {
       const token=await createOneTimeToken(user.id,"activate");
       const origin=new URL(process.env.APP_ORIGIN||"https://bcbookstudio.bahasacerdas.com");

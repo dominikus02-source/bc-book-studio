@@ -2,6 +2,7 @@ import { NextRequest,NextResponse } from "next/server";
 import { db } from "../../../../lib/db";
 import { sessionUser } from "../../../../lib/auth";
 import { checkPassword,createOneTimeToken,hashToken,passwordHash,randomToken,sendAccountEmail } from "../../../../lib/account";
+import { activationEmailAllowed } from "@/lib/account-email";
 export const runtime="nodejs";
 const generic={message:"Jika alamat email terdaftar, instruksi akan dikirim."};
 const response=(v:object,status=200)=>NextResponse.json(v,{status,headers:{"Cache-Control":"no-store"}});
@@ -40,7 +41,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{action:stri
   if(!validEmail(email))return response(generic);
   const user=await db.studioUser.findUnique({where:{email}});
   const purpose=action==="request-activation"?"activate":"reset";
-  if(user&&((purpose==="activate"&&!user.active)||(purpose==="reset"&&user.active))){
+  if(user&&((purpose==="activate"&&!user.active&&activationEmailAllowed(user.email))||(purpose==="reset"&&user.active))){
    const last=await db.studioAuthToken.findFirst({where:{userId:user.id,purpose,createdAt:{gt:new Date(Date.now()-10*60*1000)}},orderBy:{createdAt:"desc"}});
    if(!last){
     const token=await createOneTimeToken(user.id,purpose);

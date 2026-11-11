@@ -4,6 +4,7 @@ import {db} from "@/lib/db";
 import {sessionUser} from "@/lib/auth";
 import {takeQuota} from "@/lib/usage";
 import {createOneTimeToken,hashToken,sendAccountEmail} from "@/lib/account";
+import {activationEmailAllowed} from "@/lib/account-email";
 export const runtime="nodejs";
 const reply=(data:object,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});
 const input=z.object({id:z.string().min(1).max(128),action:z.enum(["reset","activate"])}).strict();
@@ -18,6 +19,7 @@ export async function POST(req:NextRequest){
  const target=await db.studioUser.findUnique({where:{id:parsed.data.id}});
  if(!target)return reply({error:"Pengguna tidak ditemukan."},404);
  const purpose=parsed.data.action;
+ if(purpose==="activate"&&!activationEmailAllowed(target.email))return reply({error:"Alamat ini dikecualikan dari email aktivasi."},409);
  if(purpose==="reset"&&!target.active)return reply({error:"Akun nonaktif tidak dapat menerima reset password. Aktifkan akun atau kirim ulang aktivasi."},409);
  if(purpose==="activate"&&target.active)return reply({error:"Akun sudah aktif. Gunakan reset password."},409);
  const cutoff=new Date(Date.now()-60_000);

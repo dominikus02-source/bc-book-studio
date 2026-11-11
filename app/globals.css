@@ -1539,3 +1539,22 @@ body:has(.writing-stage-layout), .writing-stage-layout, .writing-stage-layout .w
 .writing-stage-navigation{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .writing-stage-navigation button{min-height:44px}
 .writing-stage-navigation p{flex-basis:100%;margin:0}
+.auth-card .auth-password-field{display:grid;gap:7px}
+.auth-card .auth-password-input{position:relative;min-width:0}
+.auth-card .auth-password-input input{width:100%;padding-inline-end:56px;min-height:48px}
+.auth-card form .auth-password-toggle{position:absolute;inset-inline-end:4px;inset-block-start:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;min-height:44px;padding:0;margin:0;border:0;border-radius:8px;color:inherit;background:transparent;box-shadow:none}
+.auth-card form .auth-password-toggle:hover{background:rgba(100,116,160,.16)}
+.auth-card form .auth-password-toggle:focus-visible{outline:2px solid currentColor;outline-offset:-3px}
+.auth-card .auth-autofill-hint{font-size:.82rem;line-height:1.5;margin:0}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){
+ .site .hero-art,.site .feature-card{transform-style:preserve-3d}
+ .site .hero-art[data-tilting]{transform:perspective(1050px) rotateX(var(--rx)) rotateY(var(--ry))}
+ .site .hero-art[data-tilting] .book-cover{transform:translate3d(0,-9px,42px) rotate(-5deg) rotateY(-3deg)}
+ .site .hero-art[data-tilting] .art-note{transform:translate3d(0,-7px,64px)}
+ .site .hero-art .art-note{transition:transform .25s ease}
+ .site .feature-card[data-tilting]{transform:perspective(900px) translateY(-5px) rotateX(var(--rx)) rotateY(var(--ry));box-shadow:0 18px 34px rgba(37,57,103,.16);background-image:radial-gradient(circle at var(--glow-x) var(--glow-y),rgba(119,153,255,.15),transparent 64%)}
+}
+@media(prefers-reduced-motion:reduce){
+ .site .hero-art,.site .hero-art .book-cover,.site .hero-art .art-note,.site .feature-card{transition:none!important;animation:none!important}
+ .site .feature-card:hover,.site .hero-art:hover{transform:none!important}
+}
