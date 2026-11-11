@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       const origin=new URL(process.env.APP_ORIGIN||"https://bcbookstudio.bahasacerdas.com");
       if(origin.protocol!=="https:")throw new Error("HTTPS required");
       await sendAccountEmail(email,name,origin.origin+"/activate?token="+encodeURIComponent(token),"activate");
-    }catch(e){console.error("Activation email failed",e instanceof Error?e.message:"unknown");return respond({user,warning:"Account created but activation email could not be delivered"},201)}
+    }catch(e){console.error("Activation email failed",e instanceof Error?e.message:"unknown");await db.studioAuthToken.deleteMany({where:{userId:user.id,purpose:"activate",usedAt:null}});return respond({user,warning:"Account created but activation email could not be delivered"},201)}
     return respond({user},201);
   }catch(e){if(typeof e==="object"&&e&&"code" in e&&e.code==="P2002")return respond({error:"Email already exists"},409);throw e}
 }
