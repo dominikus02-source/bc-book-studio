@@ -87,3 +87,31 @@ test("provider errors do not echo raw response bodies or credentials", async () 
     assert.equal(error.message,"PROVIDER_HTTP_403");return true;
   });
 });
+test("allowedRequestOrigin accepts APP_ORIGIN when STUDIO_PUBLIC_ORIGIN is unset", () => {
+  const oldPublic=process.env.STUDIO_PUBLIC_ORIGIN, oldApp=process.env.APP_ORIGIN, oldNode=process.env.NODE_ENV;
+  delete process.env.STUDIO_PUBLIC_ORIGIN;
+  process.env.APP_ORIGIN="https://bcbookstudio.bahasacerdas.com";
+  process.env.NODE_ENV="production";
+  try {
+    const { api } = loadProviders();
+    const publicOrigin="https://bcbookstudio.bahasacerdas.com";
+    const internal="http://0.0.0.0:3000/api/settings/providers";
+    const ok=new Request(internal,{method:"POST",headers:{origin:publicOrigin,"content-type":"application/json"}});
+    const bad=new Request(internal,{method:"POST",headers:{origin:"https://evil.example","content-type":"application/json"}});
+    const same=new Request(publicOrigin+"/api/settings/providers",{method:"POST",headers:{origin:publicOrigin,"content-type":"application/json"}});
+    assert.equal(api.allowedRequestOrigin(ok),true);
+    assert.equal(api.safeMutation(ok),true);
+    assert.equal(api.allowedRequestOrigin(bad),false);
+    assert.equal(api.safeMutation(bad),false);
+    assert.equal(api.safeMutation(same),true);
+  } finally {
+    if(oldPublic===undefined) delete process.env.STUDIO_PUBLIC_ORIGIN; else process.env.STUDIO_PUBLIC_ORIGIN=oldPublic;
+    if(oldApp===undefined) delete process.env.APP_ORIGIN; else process.env.APP_ORIGIN=oldApp;
+    if(oldNode===undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV=oldNode;
+  }
+});
+test("DeepSeek endpoint and example model match the current official IDs", () => {
+  const { api } = loadProviders();
+  assert.equal(api.providerEndpoints.deepseek,"https://api.deepseek.com/chat/completions");
+  assert.equal(api.providerExamples.deepseek,"deepseek-flash");
+});

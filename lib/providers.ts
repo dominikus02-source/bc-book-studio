@@ -60,15 +60,23 @@ export async function activeProvider() {
  const provider=providerSchema.parse(record.provider);
  return {id:record.id,provider,apiKey:decryptCredential(record.encryptedKey,record.id),model:record.model,endpoint:providerEndpoints[provider]};
 }
+function configuredOrigins(){
+ return [process.env.STUDIO_PUBLIC_ORIGIN,process.env.APP_ORIGIN].map(v=>(v||"").trim()).filter(Boolean);
+}
+/** Browser Origin is allowed when it matches the request URL or the configured public site. */
+export function allowedRequestOrigin(req:Request) {
+ const origin=req.headers.get("origin");
+ if(!origin)return true;
+ const target=new URL(req.url);
+ if(origin===target.origin||configuredOrigins().includes(origin))return true;
+ try{
+  const from=new URL(origin);const hosts=["localhost","127.0.0.1"];
+  if(process.env.NODE_ENV!=="production"&&hosts.includes(from.hostname)&&hosts.includes(target.hostname)&&from.port===target.port&&from.protocol===target.protocol)return true;
+ }catch{}
+ return false;
+}
 export function safeMutation(req:Request) {
- const origin=req.headers.get("origin"),target=new URL(req.url);
- if(origin&&origin!==target.origin&&origin!==process.env.STUDIO_PUBLIC_ORIGIN){
-  let local=false;
-  try{const from=new URL(origin);const hosts=["localhost","127.0.0.1"];
-   local=process.env.NODE_ENV!=="production"&&hosts.includes(from.hostname)&&hosts.includes(target.hostname)&&from.port===target.port&&from.protocol===target.protocol;
-  }catch{}
-  if(!local)return false;
- }
+ if(!allowedRequestOrigin(req))return false;
  return req.headers.get("content-type")?.split(";")[0]==="application/json";
 }
 

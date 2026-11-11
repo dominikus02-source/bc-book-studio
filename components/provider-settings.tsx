@@ -54,7 +54,7 @@ export default function ProviderSettings(){
    const response=await fetch("/api/settings/providers/"+item.id+"/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
    const data=await response.json();
    if(!response.ok)throw Error(data.error||"Gagal menguji provider.");
-   if(data.ok){setMessage("Koneksi "+item.label+" berhasil. Tes singkat dapat memakai kuota API.");await check(item);window.dispatchEvent(new Event("bc-provider-updated"));}
+   if(data.ok){setMessage("Koneksi "+item.label+" berhasil. Tes singkat dapat memakai saldo akun provider.");await check(item);window.dispatchEvent(new Event("bc-provider-updated"));}
    else setError(data.message||"Provider tidak dapat dihubungi.");
   }catch(e){setError(e instanceof Error?e.message:"Tes koneksi gagal")}
   finally{setBusy(false)}
@@ -82,5 +82,5 @@ export default function ProviderSettings(){
  <label className="studio-field"><span>API key provider</span><input type="password" autoComplete="new-password" spellCheck={false} required={!editing} minLength={16} maxLength={4096} value={secret} onChange={e=>setSecret(e.target.value)} placeholder={editing?"Kosongkan untuk mempertahankan key":"Masukkan key secara privat"}/></label>
  </div><label style={{display:"flex",alignItems:"center",gap:8,margin:"16px 0"}}><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Jadikan konfigurasi ini sebagai model aktif</label>
  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="submit" className="primary-button" disabled={busy||!ready}>{busy?"Menyimpan...":"Simpan provider"}</button>{editing&&<button type="button" className="secondary-button" disabled={busy} onClick={reset}>Batal</button>}</div>
- <p className="form-hint">Model dan saldo mengikuti akun provider. Nama model harus sesuai izin akun. Tes koneksi mengirim prompt singkat yang dapat menggunakan kuota; batas harian studio tetap berlaku.</p></form></section><AiTokenDashboard/></div>;
+ <p className="form-hint">Model dan saldo mengikuti akun provider. Untuk DeepSeek isi ID model <code>deepseek-flash</code> (disarankan) atau <code>deepseek-v4-pro</code>. Tes koneksi mengirim prompt singkat ke endpoint resmi provider; nama model harus sesuai izin akun. Studio tidak membatasi jumlah generate harian; pemakaian token tetap dicatat di dasbor ini.</p></form></section><AiTokenDashboard/></div>;
 }
