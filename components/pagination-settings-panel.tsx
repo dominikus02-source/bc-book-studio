@@ -9,8 +9,8 @@ const options={
  normalFolioPosition:[["outer","Sisi luar (genap kiri, ganjil kanan)"],["center","Bawah tengah"],["top","Header sisi luar"]]
 } as const;
 
-export default function PaginationSettingsPanel({bookId}:{bookId:string}){
- const [expanded,setExpanded]=useState(false);
+export default function PaginationSettingsPanel({bookId,defaultOpen=false}:{bookId:string;defaultOpen?:boolean}){
+ const [expanded,setExpanded]=useState(defaultOpen);
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
  const [value,setValue]=useState<PaginationSettings>(DEFAULT_PAGINATION);
  const [busy,setBusy]=useState(false);

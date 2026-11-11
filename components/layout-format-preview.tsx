@@ -96,7 +96,7 @@ export default function LayoutFormatPreview({book}:{book:Book}){
  return <section className="panel layout-output" aria-labelledby="layout-output-title">
   <h2 id="layout-output-title">Pratinjau keluaran</h2>
   <p className="form-hint">Pratinjau memakai naskah tersimpan. Buku yang disetujui memakai snapshot Review dan tata letak tersimpan.</p>
-  <div className="layout-format-tabs"><a className="secondary-button" href={"/studio?module=Pengaturan&bookId="+encodeURIComponent(book.id)}>Pengaturan pagination buku</a></div>
+  <div className="layout-format-tabs"><a className="secondary-button" href={"/studio?module="+encodeURIComponent("Tata Letak")+"&bookId="+encodeURIComponent(book.id)}>Pengaturan pagination buku</a></div>
   <div className="layout-format-tabs" aria-label="Format pratinjau">
    {formats.map(value=><button type="button" key={value} aria-pressed={format===value} className={format===value?"primary-button":"secondary-button"} onClick={()=>{setFormat(value);setPage(0);setError("");setArtifact(null);setLoading(false)}} disabled={format===value}>{value}</button>)}
   </div>

@@ -9,7 +9,6 @@ import {
 
 import ProviderSettings from "./provider-settings";
 import SettingsOverview from "./settings-overview";
-import PaginationSettingsPanel from "./pagination-settings-panel";
 import FormDraftManager from "./form-draft-manager";
 import {type TransferField,type TransferRecord} from "./form-transfer";
 
@@ -111,14 +110,6 @@ export default function StudioWorkspace({ active }: Props) {
   if (active === "Penyuntingan" || active === "Tinjauan Pedagogis") return <div className="workspace-stack"><LocalDraftNotice/>{draftManager}<div className="workspace-heading"><div><div className="eyebrow-dark">PENJAMINAN MUTU</div><h2>{active==="Penyuntingan"?"Tinjau bahasa dan keterbacaan":"Tinjau kelayakan pembelajaran"}</h2><p>{active==="Penyuntingan"?"Masukkan naskah untuk menyiapkan bahan telaah editor.":"Nilai tujuan, pembaca, materi, aktivitas, dan asesmen secara berbukti."}</p></div><span className="status">Belum ditelaah</span></div><section className="panel"><Field label={active==="Penyuntingan"?"Naskah yang akan disunting":"Bagian buku yang akan ditelaah"}><textarea className="manuscript-editor" rows={12} value={editorText} onChange={e=>setEditorText(e.target.value)} placeholder="Tempelkan teks atau ringkasan bagian yang akan ditinjau..."/></Field><div className="quality-reminder"><ShieldCheck size={16}/><span>Belum ada pemeriksaan otomatis. Hasil telaah harus memuat bukti, lokasi temuan, tingkat keparahan, dan rekomendasi.</span></div></section></div>;
 
   
-  if (active === "Tata Letak") {
-    return <div className="workspace-stack">
-      <div className="workspace-heading"><div><div className="eyebrow-dark">TATA LETAK</div><h2>Rancang pengalaman membaca</h2><p>Atur struktur halaman, penomoran, dan tata letak buku.</p></div><span className="status">Siap dikonfigurasi</span></div>
-      <PaginationSettingsLink/>
-      {/* Layout editor dan tools lain bisa ditambahkan di sini */}
-    </div>;
-  }
-
 if (active === "Tata Letak" || active === "Penerbitan") return <div className="workspace-stack"><LocalDraftNotice/>{draftManager}<div className="workspace-heading"><div><div className="eyebrow-dark">PERSIAPAN TERBIT</div><h2>{active==="Tata Letak"?"Rancang pengalaman membaca":"Pastikan buku siap diterbitkan"}</h2><p>{active==="Tata Letak"?"Pilih arah desain dan struktur halaman untuk pembaca.":"Penerbitan memerlukan pemeriksaan kelengkapan dan persetujuan manusia."}</p></div><span className="status">Belum siap terbit</span></div><div className="workspace-three">{["Buku pelajaran","Panduan guru","Buku pengayaan"].map((x,i)=><button className="layout-choice" key={x}><span className="layout-sheet"><span/><span/><span/><span/></span><strong>{x}</strong><small>{i===0?"Struktur pembelajaran bertahap":i===1?"Panduan praktik untuk pendidik":"Pendalaman dan aktivitas mandiri"}</small></button>)}</div><section className="panel"><h3 className="panel-title">Daftar pemeriksaan praterbit</h3>{["Naskah lengkap dan telah disetujui","Sumber dan hak penggunaan sudah ditinjau","Penyuntingan dan telaah pedagogis selesai","Tidak ada temuan mutu kritis terbuka","Sampul, ilustrasi, dan metadata lengkap","Persetujuan editor untuk penerbitan"].map(x=><div className="check-row" key={x}><CircleDashed size={16}/><span>{x}</span><small>Belum diperiksa</small></div>)}</section></div>;
 
   if (active === "Pengaturan") return <div className="workspace-stack settings-workspace"><SettingsOverview/><ProviderSettings/></div>;
@@ -127,9 +118,3 @@ if (active === "Tata Letak" || active === "Penerbitan") return <div className="w
 }
 
 function LightbulbIcon(){return <Sparkles size={23}/>}
-
-function PaginationSettingsLink(){
-  const [bookId,setBookId]=useState("");
-  useEffect(()=>{setBookId(new URLSearchParams(window.location.search).get("bookId")||"")},[]);
-  return <PaginationSettingsPanel bookId={bookId}/>;
-}
