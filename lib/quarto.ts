@@ -5,7 +5,8 @@ import {spawn} from "node:child_process";
 import JSZip from "jszip";
 import {normalizeMediaForExport} from "./export-media";
 import {paperSpec,mmToTwips} from "./paper-sizes";
-type Source={publishingLayout?:boolean;id:string;title:string;grade:string;subject:string;bookType?:string;genre?:string;pageSize?:string;author?:string;chapters:Array<{title:string;content:string}>;assets?:Array<{id:string;mime:string;data:string;altText:string}>};
+import {bookLanguage} from "./book-language";
+type Source={publishingLayout?:boolean;id:string;title:string;grade:string;subject:string;language?:string|null;bookType?:string;genre?:string;pageSize?:string;author?:string;chapters:Array<{title:string;content:string}>;assets?:Array<{id:string;mime:string;data:string;altText:string}>};
 type Format="pdf"|"epub"|"docx";
 const yaml=(v:string)=>JSON.stringify(v);
 function safeMarkdown(v:string) {
@@ -67,7 +68,7 @@ export async function quartoExport(book:Source,format:Format):Promise<Uint8Array
    if(!capResp.ok)throw Error("Quarto Worker capabilities unavailable");
    const contract=await capResp.json();
    if(contract.contractVersion!==2||contract.publishingLayout!==true||!contract.formats?.includes(format)||!contract.paperSizes?.includes((book.pageSize||"a4").toLowerCase()))throw Error("Quarto Worker v2 contract mismatch; publication export held");
-   const body=JSON.stringify({contractVersion:2,book:{title:book.title,subject:book.subject,pageSize:book.pageSize,bookType:book.bookType,genre:book.genre,author:book.author,publishingLayout:book.publishingLayout===true,chapters:book.chapters.map(x=>({title:x.title,content:x.content})),assets:book.assets||[]},format});
+   const body=JSON.stringify({contractVersion:2,book:{title:book.title,subject:book.subject,pageSize:book.pageSize,language:bookLanguage(book.language),bookType:book.bookType,genre:book.genre,author:book.author,publishingLayout:book.publishingLayout===true,chapters:book.chapters.map(x=>({title:x.title,content:x.content})),assets:book.assets||[]},format});
    if(body.length>14500000)throw Error("Manuscript exceeds worker capacity");
    const response=await fetch(url.toString(),{method:"POST",headers:{"content-type":"application/json","x-worker-key":secret},body,signal:control.signal,cache:"no-store"});
    if(!response.ok)throw Error("Worker render rejected "+response.status);
@@ -118,7 +119,8 @@ export async function quartoExport(book:Source,format:Format):Promise<Uint8Array
    const spec=paperSpec(book.pageSize||"a4");if(!spec)throw Error("Unsupported paper size");
    await writeTypstPage(root,spec);
    const fontRule=spec.widthMm<=125?"#set text(size: 9pt)":"#set text(size: 10.5pt)";
-   const front=["---","lang: id","execute:","  enabled: false","toc: false","number-sections: false","format:","  typst:","    template-partials:","      - page.typ","    include-before-body:","      text: |","        "+fontRule,"  docx:","    toc: false","---",""];
+   const lang=bookLanguage(book.language);
+   const front=["---","lang: "+lang,"execute:","  enabled: false","toc: false","number-sections: false","format:","  typst:","    template-partials:","      - page.typ","    include-before-body:","      text: |","        "+fontRule,"  docx:","    toc: false","---",""];
    const parts=book.chapters.flatMap((ch,i)=>[...(i&&format==="pdf"?["{{< pagebreak >}}",""]:[]),"# "+ch.title.replace(/[\r\n#]/g," ").trim()+" {.unnumbered}","",resolveAssets(ch.content),""]);
    await writeFile(join(root,"publishing-manuscript.qmd"),[...front,...parts].join("\n"),"utf8");
    // Quarto injects these Typst rules before content; standard and custom dimensions both reflow.
@@ -133,7 +135,7 @@ export async function quartoExport(book:Source,format:Format):Promise<Uint8Array
    if(format==="pdf"){
    const spec=paperSpec(book.pageSize||"a4");if(!spec)throw Error("Unsupported paper size");
    await writeTypstPage(root,spec);
-   const front=["---","title: "+yaml(book.title),"subtitle: "+yaml(book.subject),"author: "+yaml(book.author||"BC Book Studio"),"lang: id","execute:","  enabled: false","toc: true","number-sections: true","format:","  typst:","    template-partials:","      - page.typ","    include-before-body:","      text: |","        #set text(size: "+(spec.widthMm<=125?"9":"10.5")+"pt)","---",""];
+   const front=["---","title: "+yaml(book.title),"subtitle: "+yaml(book.subject),"author: "+yaml(book.author||"BC Book Studio"),"lang: "+bookLanguage(book.language),"execute:","  enabled: false","toc: true","number-sections: true","format:","  typst:","    template-partials:","      - page.typ","    include-before-body:","      text: |","        #set text(size: "+(spec.widthMm<=125?"9":"10.5")+"pt)","---",""];
 
    const content=book.chapters.flatMap((ch,i)=>[...(i?["{{< pagebreak >}}",""]:[]),"# "+ch.title.replace(/[\r\n#]/g," ").trim(),"",resolveAssets(ch.content),""]);
    await writeFile(join(root,"manuscript.qmd"),[...front,...content].join("\n"),"utf8");
@@ -145,7 +147,7 @@ export async function quartoExport(book:Source,format:Format):Promise<Uint8Array
   const chapterFiles=book.publishingLayout?book.chapters.slice(1):book.chapters;
   const paths=chapterFiles.map((_,i)=>"chapter-"+String(i+1).padStart(3,"0")+".qmd");
   const yml=[
-   "lang: id",
+   "lang: "+bookLanguage(book.language),
    "project:","  type: book","  output-dir: _book","execute:","  enabled: false",...(book.publishingLayout?["epub-title-page: false"]:[]),
    "book:","  title: "+yaml(book.title),"  subtitle: "+yaml(book.subject),"  author: "+yaml(book.author||"BC Book Studio"),
    "  output-file: manuscript","  chapters:","    - index.qmd",

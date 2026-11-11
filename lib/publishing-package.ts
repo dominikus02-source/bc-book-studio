@@ -1,10 +1,11 @@
 import {z} from "zod";
 import {automaticBookLists} from "./book-index";
+import {languageLabel} from "./book-language";
 export const publishingFields=["frontCover","titlePage","copyrightPage","preface","contentsIntro","readerGuide","afterword","glossary","references","bibliography","backCover"] as const;
 export type PublishingField=typeof publishingFields[number];
 export const packageSchema=z.object(Object.fromEntries(publishingFields.map(field=>[field,z.string().max(12000)])) as Record<PublishingField,z.ZodString>).strict();
 export type PublishingPackage=z.infer<typeof packageSchema>;
-type ContextBook={title:string;author?:string|null;subject:string;grade:string;genre?:string;bookType?:string;targetAudience?:string;writingGoal?:string;description?:string;chapters?:{title:string;content?:string;outlineObjective?:string}[]};
+type ContextBook={title:string;author?:string|null;subject:string;grade:string;language?:string|null;genre?:string;bookType?:string;targetAudience?:string;writingGoal?:string;description?:string;chapters?:{title:string;content?:string;outlineObjective?:string}[]};
 const marker="[PERLU DILENGKAPI DAN DIVERIFIKASI]";
 const clean=(text:string|undefined|null,max=280)=>String(text||"").replace(/[\x00-\x1f]/g," ").replace(/\s+/g," ").trim().slice(0,max);
 const isAuthoringCommand=(text:string)=>/PERINTAH INDUK|PROMPT MASTER|KONSTITUSI PROYEK|Anda adalah (agen|AI)|instruksi untuk AI/i.test(text);
@@ -27,7 +28,7 @@ export function publishingDefaults(b:ContextBook):PublishingPackage{
  return {
  frontCover:"# "+title+"\n\n"+subject+" · Kelas "+clean(b.grade,20)+"\n\nPenulis: "+author+"\n\nDRAF — BELUM DISETUJUI",
  titlePage:"# "+title+"\n\n"+subject+"\n\nPenulis: "+author+"\n\nPenerbit, tempat dan tahun penerbitan resmi: "+marker+"\n\nStatus: Pratinjau draf",
- copyrightPage:"Judul: "+title+"\nPenulis: "+author+"\nGenre: "+genre+"\n\nPemegang hak cipta dan lisensi seluruh ilustrasi/kutipan: "+marker+"\nPenerbit dan alamat penerbit: "+marker+"\nPenyunting, editor dan ilustrator: "+marker+"\nISBN masing-masing edisi/format: BELUM DITETAPKAN. Tidak boleh dicantumkan sebelum diverifikasi Perpusnas.\nKDT dan keterangan cetakan: "+marker+"\n\nIni adalah naskah draf, bukan pernyataan hak resmi.",
+ copyrightPage:"Judul: "+title+"\nPenulis: "+author+"\nGenre: "+genre+"\nBahasa (BCP 47): "+languageLabel(b.language)+"\n\nPemegang hak cipta dan lisensi seluruh ilustrasi/kutipan: "+marker+"\nPenerbit dan alamat penerbit: "+marker+"\nPenyunting, editor dan ilustrator: "+marker+"\nISBN masing-masing edisi/format: BELUM DITETAPKAN. Tidak boleh dicantumkan sebelum diverifikasi Perpusnas.\nKDT dan keterangan cetakan: "+marker+"\n\nIni adalah naskah draf, bukan pernyataan hak resmi.",
  preface:"Kata Pengantar\n\nBuku berjudul \""+title+"\" disusun untuk "+audience+". Buku ini mengajak pembaca mempelajari "+subject+" melalui penjelasan dan contoh yang disusun berdasarkan kebutuhan pembaca.\n\n"+(goal&&!isAuthoringCommand(goal)?"Tujuan penulisan: "+goal.replace(/[.!?]+$/,"")+".\n\n":"")+p+"\n\nNaskah masih harus diperiksa secara editorial, ilmiah, bahasa, hak cipta, dan aksesibilitas sebelum diterbitkan.\n\nPenulis: "+author+" (draf, belum ditandatangani).",
  contentsIntro:"Daftar Isi (otomatis dari struktur naskah Stage 2 dan Stage 3; nomor halaman harus dihitung ulang oleh renderer akhir)\n\n"+chapterLines+"\n\nPenutup\nGlosarium\nReferensi dan Sumber\nDaftar Pustaka dan Bibliografi",
  readerGuide:"Petunjuk Pembaca\n\n"+description+"\n\nBaca bab sesuai urutan pada daftar isi. Gunakan tujuan dan contoh pada tiap bab untuk membangun pemahaman. "+p+"\n\nVersi digital menggunakan navigasi heading semantis, alternatif teks gambar, dan mode baca yang tersedia pada perangkat. Pengujian pembaca layar dan perangkat sentuh nyata belum dilakukan.",

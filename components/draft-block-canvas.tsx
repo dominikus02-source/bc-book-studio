@@ -11,6 +11,7 @@ import {MediaImageEditor,MediaVideoEditor,InsertYouTube} from "./media-controls"
 import {marked} from "marked";
 import {cleanAlignmentArtifacts,renderBookPreview} from "../lib/quarto-book-preview";
 import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
+import WritingCompanion from "./writing-companion";
 
 const WRITING_TRANSFER_FIELDS:TransferField[]=[
  {key:"title",label:"Judul bab",required:true,maxLength:180},
@@ -644,6 +645,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
    </div>
   </aside>
   <div className="writing-studio-editor" hidden={view==="preview"}>
+  <WritingCompanion bookId={bookId} chapterTitle={chapter.title} disabled={busy||Boolean(recovery)||!recoveryReady} onAccept={text=>{setBodyEdited(true);setBlocks(current=>[...current,...split(text)]);}}/>
   <fieldset disabled={!recoveryReady||Boolean(recovery)} style={{border:0,padding:0,margin:0,minWidth:0}}>
   <legend className="sr-only">Penyuntingan bab</legend>
   <label className="studio-field"><span>Bab aktif</span><select value={chapter.id} disabled={busy||dirty||Boolean(error)} onChange={event=>onSelect(event.target.value)}>{chapters.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>

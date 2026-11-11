@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "../../../../lib/db";
 import { identity, deny, sessionUser } from "../../../../lib/auth";
 export const runtime = "nodejs";
-const briefFields=["title","subject","description","targetAudience","writingGoal","bookType","genre"] as const;
+const briefFields=["title","subject","description","targetAudience","writingGoal","bookType","genre","language"] as const;
 const edit=z.object({
   expectedVersion:z.string().datetime({offset:true}),
   title:z.string().trim().min(3).max(250).optional(),
@@ -14,6 +14,7 @@ const edit=z.object({
   bookType:z.enum(["FICTION","NONFICTION"]).optional(),
   genre:z.enum(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY","TEXTBOOK","REFERENCE","GUIDE","WORKBOOK"]).optional(),
   pageSize:z.enum(["A4","A5","B5"]).optional(),
+  language:z.enum(["id","en"]).optional(),
   targetAudience:z.string().trim().max(300).optional(),
   writingGoal:z.string().trim().max(1500).optional(),
   editorialChecks:z.record(z.string().max(40),z.union([
