@@ -1539,3 +1539,10 @@ body:has(.writing-stage-layout), .writing-stage-layout, .writing-stage-layout .w
 .writing-stage-navigation{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .writing-stage-navigation button{min-height:44px}
 .writing-stage-navigation p{flex-basis:100%;margin:0}
+
+.stage-ai-bar,.print-ai{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 16px;padding:14px 16px;border:1px solid var(--line,#e8ebef);border-radius:14px;background:var(--panel,#fff);color:var(--ink,#17202b)}
+.stage-ai-bar strong,.print-ai h3{margin:0 0 4px;font:700 15px/1.4 var(--font-display,"Manrope Variable",sans-serif);color:inherit}
+.stage-ai-bar .form-transfer-caption,.print-ai p{margin:0 0 6px;font-size:14px;line-height:1.5;color:var(--muted,#536173)}
+.stage-ai-bar .primary-button,.print-ai .primary-button{min-height:44px}
+:root[data-theme="dark"] .stage-ai-bar,:root[data-theme="dark"] .print-ai{background:#1e293b;border-color:#475569;color:#f8fafc}
+:root[data-theme="dark"] .stage-ai-bar .form-transfer-caption,:root[data-theme="dark"] .print-ai p{color:#cbd5e1}

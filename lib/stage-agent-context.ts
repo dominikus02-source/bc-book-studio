@@ -8,8 +8,10 @@ function role(stage:string,agentId:AgentId,instruction:string):StageAgent{
 }
 export function stageAgentFor(name:string):StageAgent{
  const n=name.toLowerCase();
- if(/metadata provider|api key|pengaturan/.test(n))return role("PENGATURAN","chief_editor","Jangan membuat atau meminta API key, token, atau kredensial. Konfigurasi provider hanya diubah administrator.");
+ if(/metadata provider|api key|pengaturan provider/.test(n))return role("PENGATURAN","chief_editor","Jangan membuat atau meminta API key, token, atau kredensial. Konfigurasi provider hanya diubah administrator.");
+ if(/catatan penyuntingan|penyuntingan naskah/.test(n))return role("EDITORIAL","editorial","Berikan saran bahasa, EYD, koherensi, dan keterbacaan. Jangan mencentang bukti, mengubah status, atau mengaku pemeriksaan telah selesai.");
  if(/checklist editorial|keputusan editorial|reviewer|peninjau/.test(n))return role("EDITORIAL","editorial","Audit kualitas sebagai saran saja. Persetujuan editorial dan penugasan wajib dilakukan manusia.");
+ if(/percetakan|spesifikasi cetak|print order/.test(n))return role("PERCETAKAN","publisher","Usulkan spesifikasi cetak yang wajar berdasarkan ukuran dan jenis buku. Jangan mengarang harga vendor, konfirmasi produksi, ISBN, atau pengiriman.");
  if(/penerbitan|paket penerbitan|hak cipta|isbn|metadata terbit/.test(n))return role("PENERBITAN","publisher","Gunakan standar penerbitan buku Indonesia. Jangan mengarang ISBN, hak cipta, penerbit, bibliografi, atau sertifikasi.");
  if(/tata letak|layout/.test(n))return role("TATA LETAK","layout","Hormati snapshot, versi, dan urutan bab. Jangan mengubah ID, bukti atau keputusan persetujuan.");
  if(/naskah|stage 3|penulisan/.test(n))return role("PENULISAN","author","Susun tulisan dengan heading, paragraf, daftar dan tabel yang benar. Untuk fiksi jaga alur cerita. Jangan mengarang sumber.");
