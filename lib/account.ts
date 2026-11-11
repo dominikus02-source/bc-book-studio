@@ -34,6 +34,13 @@ export function emailHTML(name:string,link:string,type:"activate"|"reset"){
 export async function sendAccountEmail(to:string,name:string,link:string,type:"activate"|"reset"){
  const {SMTP_USER,SMTP_APP_PASSWORD,SMTP_FROM}=process.env;
  if(!SMTP_USER||!SMTP_APP_PASSWORD||!SMTP_FROM)throw new Error("SMTP is not configured");
- const transport=nodemailer.createTransport({host:process.env.SMTP_HOST||"smtp.gmail.com",port:Number(process.env.SMTP_PORT||465),secure:(process.env.SMTP_SECURE||"true")==="true",auth:{user:SMTP_USER,pass:SMTP_APP_PASSWORD}});
- await transport.sendMail({from:SMTP_FROM,to,subject:type==="activate"?"Aktivasi akun | BC Book Studio":"Pulihkan kata sandi | BC Book Studio",text:(type==="activate"?"Aktifkan akun":"Atur ulang kata sandi")+" BC Book Studio: "+link+"\nTautan berlaku 30 menit. Abaikan jika bukan permintaan Anda.",html:emailHTML(name,link,type)});
+ const secure = (process.env.SMTP_SECURE || "true") === "true";
+ const transport = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT || 465),
+  secure,
+  requireTLS: !secure,
+  auth: { user: SMTP_USER, pass: SMTP_APP_PASSWORD },
+ });
+ await transport.sendMail({from:SMTP_FROM,to,priority:"high",subject:type==="activate"?"Aktivasi akun | BC Book Studio":"Pulihkan kata sandi | BC Book Studio",text:(type==="activate"?"Aktifkan akun":"Atur ulang kata sandi")+" BC Book Studio: "+link+"\nTautan berlaku 30 menit. Abaikan jika bukan permintaan Anda.",html:emailHTML(name,link,type)});
 }
