@@ -20,8 +20,17 @@ export function quotaDenied() {
 export async function canCreateBook(owner: string) {
   return takeQuota("book-create",owner,new Date().toISOString().slice(0,10),20);
 }
+function dailyLimit(name:string,fallback:number){
+  const n=Number(process.env[name]);
+  return Number.isFinite(n)&&n>=1?Math.min(10_000,Math.trunc(n)):fallback;
+}
+/** Per-user and global daily caps. Override with AI_USER_DAILY_LIMIT and AI_GLOBAL_DAILY_LIMIT. */
+export function generationLimits(){
+  return {user:dailyLimit("AI_USER_DAILY_LIMIT",30),global:dailyLimit("AI_GLOBAL_DAILY_LIMIT",200)};
+}
 export async function canGenerate(owner: string) {
   const day = new Date().toISOString().slice(0,10);
-  return await takeQuota("ai-user",owner,day,5)
-    && await takeQuota("ai-global","all",day,50);
+  const limits=generationLimits();
+  return await takeQuota("ai-user",owner,day,limits.user)
+    && await takeQuota("ai-global","all",day,limits.global);
 }

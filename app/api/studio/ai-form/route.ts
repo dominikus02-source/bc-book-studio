@@ -3,7 +3,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../lib/db";
 import {identity,deny} from "../../../../lib/auth";
-import {activeProvider,invokeProvider} from "../../../../lib/providers";
+import {activeProvider,allowedRequestOrigin,invokeProvider} from "../../../../lib/providers";
 import {canGenerate,quotaDenied} from "../../../../lib/usage";
 import {stageAgentFor,isSensitiveStage} from "../../../../lib/stage-agent-context";
 export const runtime="nodejs";
@@ -19,8 +19,7 @@ export async function GET(req:NextRequest){
 }
 export async function POST(req:NextRequest){
  const user=await identity(req);if(!user)return deny();
- const origin=req.headers.get("origin");
- if(origin&&origin!==new URL(req.url).origin&&origin!==process.env.STUDIO_PUBLIC_ORIGIN)return err("Origin tidak diizinkan.",403);
+ if(!allowedRequestOrigin(req))return err("Origin tidak diizinkan.",403);
  const parsed=schema.safeParse(await req.json().catch(()=>null));
  if(!parsed.success)return err("Isian atau konteks AI tidak valid.",400);
  const p=parsed.data,agent=stageAgentFor(p.name);
