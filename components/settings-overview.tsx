@@ -24,6 +24,11 @@ function Metric({icon,label,value,hint}:{icon:React.ReactNode;label:string;value
 function Service({icon,name,detail,status,tone}:{icon:React.ReactNode;name:string;detail:string;status:string;tone:"ok"|"warn"|"neutral"}){
  return <div className="control-service"><span className="control-service-icon">{icon}</span><div className="control-service-body"><strong>{name}</strong><small>{detail}</small></div><span className={`control-service-pill ${tone}`}><span className="control-dot"/>{status}</span></div>;
 }
+function PaginationSettingsShortcut(){
+ const [href,setHref]=useState("/studio?module="+encodeURIComponent("Tata Letak"));
+ useEffect(()=>{const bookId=new URLSearchParams(window.location.search).get("bookId");setHref("/studio?module="+encodeURIComponent("Tata Letak")+(bookId?"&bookId="+encodeURIComponent(bookId):""))},[]);
+ return <p className="control-aside-note">Penomoran halaman buku (pagination, pratinjau, dan riwayat) diatur di modul Tata Letak. <a href={href}>Buka Tata Letak</a></p>;
+}
 export default function SettingsOverview(){
  const [runtime,setRuntime]=useState<Runtime|null>(null),[usage,setUsage]=useState<Usage|null>(null);
  const [runtimeError,setRuntimeError]=useState(""),[usageError,setUsageError]=useState(""),[loading,setLoading]=useState(false),[updated,setUpdated]=useState<string|null>(null);
@@ -65,6 +70,7 @@ export default function SettingsOverview(){
     {runtimeError&&<p className="control-error" role="alert">{runtimeError}</p>}
    </div>
   </div>
+  <PaginationSettingsShortcut/>
   <div className="control-disclaimer"><ShieldCheck size={17}/><span>Tidak ada nilai simulasi. Saldo AI, uptime, latensi, dan error rate belum ditampilkan karena belum tersedia pengukuran tervalidasi.</span></div>
  </section>;
 }
