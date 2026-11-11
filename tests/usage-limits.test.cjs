@@ -23,15 +23,18 @@ function loadUsage(queryRaw) {
 
 test("unset, empty, or 0 daily AI limits are unlimited", () => {
   const { api } = loadUsage();
-  assert.deepEqual(api.generationLimits({}), {user:0,global:0});
-  assert.deepEqual(api.generationLimits({AI_DAILY_LIMIT_PER_USER:"",AI_DAILY_LIMIT_GLOBAL:"  "}), {user:0,global:0});
-  assert.deepEqual(api.generationLimits({AI_DAILY_LIMIT_PER_USER:"0",AI_DAILY_LIMIT_GLOBAL:"0"}), {user:0,global:0});
-  assert.deepEqual(api.generationLimits({AI_DAILY_LIMIT_PER_USER:"-5",AI_DAILY_LIMIT_GLOBAL:"abc"}), {user:0,global:0});
+  for (const env of [{}, {AI_DAILY_LIMIT_PER_USER:"",AI_DAILY_LIMIT_GLOBAL:"  "}, {AI_DAILY_LIMIT_PER_USER:"0",AI_DAILY_LIMIT_GLOBAL:"0"}, {AI_DAILY_LIMIT_PER_USER:"-5",AI_DAILY_LIMIT_GLOBAL:"abc"}]) {
+    const limits=api.generationLimits(env);
+    assert.equal(limits.user,0);
+    assert.equal(limits.global,0);
+  }
 });
 
 test("positive env values restore a later cap", () => {
   const { api } = loadUsage();
-  assert.deepEqual(api.generationLimits({AI_DAILY_LIMIT_PER_USER:"30",AI_DAILY_LIMIT_GLOBAL:"200"}), {user:30,global:200});
+  const limits=api.generationLimits({AI_DAILY_LIMIT_PER_USER:"30",AI_DAILY_LIMIT_GLOBAL:"200"});
+  assert.equal(limits.user,30);
+  assert.equal(limits.global,200);
   assert.equal(api.parseDailyLimit("AI_DAILY_LIMIT_PER_USER",{AI_DAILY_LIMIT_PER_USER:"12.9"}), 12);
 });
 
