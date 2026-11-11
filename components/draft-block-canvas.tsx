@@ -12,6 +12,9 @@ import {marked} from "marked";
 import {cleanAlignmentArtifacts,renderBookPreview} from "../lib/quarto-book-preview";
 import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
 import WritingCompanion from "./writing-companion";
+import OpenReviewNotes from "./open-review-notes";
+import {starterChapter} from "../lib/guided-book";
+import {bookLanguage} from "../lib/book-language";
 
 const WRITING_TRANSFER_FIELDS:TransferField[]=[
  {key:"title",label:"Judul bab",required:true,maxLength:180},
@@ -195,8 +198,8 @@ function contentValue(block:Block){
  if(block.kind==="exercise")return block.raw.replace(/^> \*\*Latihan\*\*\n>\n/,"").split("\n").map(line=>line.replace(/^> ?/,"")).join("\n");
  return block.raw;
 }
-export default function DraftBlockCanvas({bookId,chapters,bookContext="",initialChapterId="",onChanged}:{
- bookId:string;chapters:Chapter[];bookContext?:string;initialChapterId?:string;onChanged:()=>Promise<void>;
+export default function DraftBlockCanvas({bookId,chapters,bookContext="",initialChapterId="",editorialStage="WRITING",language="id",onChanged}:{
+ bookId:string;chapters:Chapter[];bookContext?:string;initialChapterId?:string;editorialStage?:string;language?:string;onChanged:()=>Promise<void>;
 }){
  const [selected,setSelected]=useState(chapters.find(item=>item.id===initialChapterId)?.id??chapters[0]?.id??"");
  const [newTitle,setNewTitle]=useState("");
@@ -221,7 +224,9 @@ export default function DraftBlockCanvas({bookId,chapters,bookContext="",initial
   if(newTitle.trim().length<2||adding||pending)return;
   setAdding(true);setChapterError("");
   try{
-   const response=await fetch("/api/books/"+encodeURIComponent(bookId)+"/chapters",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:newTitle.trim(),outlineObjective:"Susun isi dan tujuan bab ini."})});
+   const title=newTitle.trim();
+   const payload=editorialStage==="BRIEF"?{title,content:starterChapter(bookLanguage(language)).content}:{title,outlineObjective:"Susun isi dan tujuan bab ini."};
+   const response=await fetch("/api/books/"+encodeURIComponent(bookId)+"/chapters",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
    const data=await response.json();
    if(!response.ok)throw Error(data.error||"Bab gagal dibuat.");
    setNewTitle("");setSelected(data.chapter.id);await onChanged();
@@ -230,6 +235,7 @@ export default function DraftBlockCanvas({bookId,chapters,bookContext="",initial
  }
  return <section className="panel layout-output writing-workspace" role="region" aria-label="Kanvas naskah draf" style={{fontFamily:"DM Sans Variable, sans-serif"}}>
   <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Studio Penulisan</h2><p className="form-hint">Fokus pada naskah. Konten tersimpan otomatis ke database saat valid dan dapat dipulihkan melalui riwayat revisi.</p></div><span>{chapters.length} bab</span></div>
+  <OpenReviewNotes bookId={bookId} chapterId={chapter?.id}/>
   <details className="writing-chapter-manager"><summary>Kelola bab · tambah dan pilih bab</summary>
    <div className="writing-chapter-list">{chapters.map((c,i)=><div className="writing-chapter-item" key={c.id}><button type="button" className={c.id===chapter?.id?"primary-button":"secondary-button"} disabled={adding||pending} onClick={()=>setSelected(c.id)}>{i+1}. {c.title}</button><button type="button" className="secondary-button" aria-label={"Arsipkan "+c.title} title={"Arsipkan "+c.title} disabled={adding||pending} onClick={()=>void archiveChapter(c)}>Arsip</button></div>)}</div>
    <form onSubmit={event=>{event.preventDefault();void createChapter()}} className="writing-chapter-create"><label className="studio-field"><span>Bab baru</span><input value={newTitle} maxLength={180} onChange={e=>setNewTitle(e.target.value)} placeholder="Judul bab berikutnya"/></label><button className="primary-button" type="submit" disabled={adding||pending||newTitle.trim().length<2}>{adding?"Membuat…":"Tambah bab"}</button></form>

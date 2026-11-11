@@ -45,6 +45,7 @@ test("preview PDF keeps Unicode, author, and language",async()=>{
  assert.match(text,/Cerita Pelabuhan/);
  assert.match(text,/Sari Wibowo/);
  assert.match(text,/kutipan/);
+ assert.match(text,/Contents/);
  assert.match(text,/naïve/);
  assert.doesNotMatch(text,/ISBN:\s*\d/);
 });
@@ -58,6 +59,7 @@ test("preview DOCX carries core metadata, language, and chapter text",async()=>{
  const footer=await zip.file("word/footer1.xml").async("string");
  assert.match(document,/Cerita Pelabuhan/);
  assert.match(document,/kutipan/);
+ assert.match(document,/Contents/);
  assert.match(footer,/PAGE/);
  assert.match(core,/<dc:creator>Sari Wibowo<\/dc:creator>/);
  assert.match(core,/<dc:language>en-US<\/dc:language>/);
@@ -84,6 +86,8 @@ test("preview EPUB is a package with language, creator, nav, and chapter order",
  assert.match(opf,/dcterms:modified/);
  assert.match(nav,/epub:type="toc"/);
  assert.match(nav,/chapter-1.xhtml/);
+ assert.match(nav,/contents.xhtml/);
+ assert.match(opf,/<dc:rights>[^<]*ISBN is not assigned/);
  assert.match(chapter,/xml:lang="en"/);
  assert.match(chapter,/kutipan/);
  assert.doesNotMatch(opf,/BC Book Studio/);

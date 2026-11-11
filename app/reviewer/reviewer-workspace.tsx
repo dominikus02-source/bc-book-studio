@@ -3,6 +3,7 @@ import AiVoiceControls from "../../components/ai-voice-controls";
 import ReviewerPromptTemplates from "./reviewer-prompt-templates";
 import {useCallback,useEffect,useRef,useState} from "react";
 import {checkpointsFor} from "../../lib/editorial";
+import {openReviewQueue,reviewNextStep} from "../../lib/review-queue";
 import ReviewerTransfer from "./reviewer-transfer";
 import "./reviewer.css";
 
@@ -61,11 +62,14 @@ function ReviewProgress({book}:{book:Book}){
  const resolved=book.reviewNotes.filter(note=>note.status==="RESOLVED").length;
  const critical=book.reviewNotes.filter(note=>note.status==="OPEN"&&["MAJOR","CRITICAL"].includes(note.severity)).length;
  const decision=book.status==="APPROVED"?"Review selesai. Naskah disetujui.":book.status==="REVIEW"?"Review sedang berjalan.":latest?.decision==="reject"?"Review selesai. Naskah dikembalikan untuk revisi.":"Naskah belum diajukan untuk review.";
+ const queue=openReviewQueue(book.reviewNotes);
+ const step=reviewNextStep({role:book.isOwner?"owner":book.canReview?"reviewer":"reader",status:book.status,openCritical:queue.filter(note=>note.severity==="CRITICAL").length,openMajor:queue.filter(note=>note.severity==="MAJOR").length,openSuggestions:queue.filter(note=>note.severity==="SUGGESTION").length});
  const note=latest&&latest.decision!=="submit"?latest.note.replace(/\s*\[Reviewer: [^\]]+\]$/,"").trim():"";
  return <section className="reviewer-panel review-progress" aria-label="Laporan progres reviewer">
   <h2>Laporan progres reviewer</h2>
   <div role="status" aria-live="polite">
    <strong>{decision}</strong>
+   <p>{step.headline} {step.detail}</p>
    {latest&&<p><time dateTime={latest.createdAt}>{new Date(latest.createdAt).toLocaleString("id-ID")}</time>{note&&<> · {note}</>}</p>}
    <p>{open} temuan terbuka · {resolved} selesai · {critical} temuan mayor atau kritis terbuka</p>
    {book.isOwner&&book.status==="APPROVED"&&<p>Langkah berikutnya: buka Tata Letak untuk menyiapkan pratinjau.</p>}

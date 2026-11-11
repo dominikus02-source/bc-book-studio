@@ -101,6 +101,10 @@ export async function renderPreviewPdf(book: PreviewBook) {
  if (book.preview) { draw(info.draft, 11, true); y -= 6; }
  draw(info.rights, 10);
  y -= 16;
+ const contentsTitle = info.language === "en" ? "Contents" : "Daftar isi";
+ draw(contentsTitle, 16, true);
+ book.chapters.forEach((chapter, index) => draw((chapter.position || index + 1) + ". " + chapter.title, 12));
+ y -= 18;
  for (const chapter of book.chapters) {
   ensure(40);
   draw((chapter.position ? chapter.position + ". " : "") + chapter.title, 16, true);
@@ -149,11 +153,14 @@ export async function renderPreviewEpub(book: PreviewBook) {
  for (const chapter of chapters) {
   zip.file("OEBPS/" + chapter.file, `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="${info.language}" lang="${info.language}"><head><title>${escapeXml(chapter.title)}</title><link rel="stylesheet" href="style.css"/></head><body><h1>${escapeXml(chapter.title)}</h1>${chapter.body}</body></html>`);
  }
- const navItems = [`<li><a href="title.xhtml">${escapeXml(book.title)}</a></li>`, ...chapters.map(chapter => `<li><a href="${chapter.file}">${escapeXml(chapter.title)}</a></li>`)].join("");
- zip.file("OEBPS/nav.xhtml", `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${info.language}" lang="${info.language}"><head><title>${escapeXml(info.language === "en" ? "Contents" : "Daftar isi")}</title><link rel="stylesheet" href="style.css"/></head><body><nav epub:type="toc" id="toc"><h1>${escapeXml(info.language === "en" ? "Contents" : "Daftar isi")}</h1><ol>${navItems}</ol></nav></body></html>`);
- const manifest = `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/><item id="title" href="title.xhtml" media-type="application/xhtml+xml"/>` + chapters.map(chapter => `<item id="${chapter.id}" href="${chapter.file}" media-type="application/xhtml+xml"/>`).join("");
- const spine = `<itemref idref="title"/>` + chapters.map(chapter => `<itemref idref="${chapter.id}"/>`).join("");
- zip.file("OEBPS/content.opf", `<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="3.0" xml:lang="${info.language}"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:${escapeXml(book.id)}</dc:identifier><dc:title>${escapeXml(book.title)}</dc:title><dc:language>${info.language}</dc:language><dc:creator>${escapeXml(info.author)}</dc:creator><dc:description>${escapeXml((book.description || info.subject || book.title).slice(0, 500))}</dc:description><meta property="dcterms:modified">${modified}</meta></metadata><manifest>${manifest}</manifest><spine>${spine}</spine></package>`);
+ const contentsLabel = info.language === "en" ? "Contents" : "Daftar isi";
+ const contentsItems = chapters.map(chapter => `<li><a href="${chapter.file}">${escapeXml(chapter.title)}</a></li>`).join("");
+ zip.file("OEBPS/contents.xhtml", `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xml:lang="${info.language}" lang="${info.language}"><head><title>${escapeXml(contentsLabel)}</title><link rel="stylesheet" href="style.css"/></head><body><h1>${escapeXml(contentsLabel)}</h1><nav><ol>${contentsItems}</ol></nav><p>${escapeXml(info.rights)}</p></body></html>`);
+ const navItems = [`<li><a href="title.xhtml">${escapeXml(book.title)}</a></li>`, `<li><a href="contents.xhtml">${escapeXml(contentsLabel)}</a></li>`, ...chapters.map(chapter => `<li><a href="${chapter.file}">${escapeXml(chapter.title)}</a></li>`)].join("");
+ zip.file("OEBPS/nav.xhtml", `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${info.language}" lang="${info.language}"><head><title>${escapeXml(contentsLabel)}</title><link rel="stylesheet" href="style.css"/></head><body><nav epub:type="toc" id="toc"><h1>${escapeXml(contentsLabel)}</h1><ol>${navItems}</ol></nav></body></html>`);
+ const manifest = `<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/><item id="title" href="title.xhtml" media-type="application/xhtml+xml"/><item id="contents" href="contents.xhtml" media-type="application/xhtml+xml"/>` + chapters.map(chapter => `<item id="${chapter.id}" href="${chapter.file}" media-type="application/xhtml+xml"/>`).join("");
+ const spine = `<itemref idref="title"/><itemref idref="contents"/>` + chapters.map(chapter => `<itemref idref="${chapter.id}"/>`).join("");
+ zip.file("OEBPS/content.opf", `<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="3.0" xml:lang="${info.language}"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="bookid">urn:uuid:${escapeXml(book.id)}</dc:identifier><dc:title>${escapeXml(book.title)}</dc:title><dc:language>${info.language}</dc:language><dc:creator>${escapeXml(info.author)}</dc:creator><dc:rights>${escapeXml(info.rights)}</dc:rights><dc:description>${escapeXml((book.description || info.subject || book.title).slice(0, 500))}</dc:description><meta property="dcterms:modified">${modified}</meta></metadata><manifest>${manifest}</manifest><spine>${spine}</spine></package>`);
  return zip.generateAsync({type: "uint8array", compression: "DEFLATE"});
 }
 
@@ -166,6 +173,8 @@ export async function renderPreviewDocx(book: PreviewBook) {
   {kind: "paragraph" as const, text: [info.subject, info.grade, languageLabel(info.language)].filter(Boolean).join(" · ")},
   ...(book.preview ? [{kind: "paragraph" as const, text: info.draft}] : []),
   {kind: "paragraph" as const, text: info.rights},
+  {kind: "heading" as const, text: info.language === "en" ? "Contents" : "Daftar isi", level: 1},
+  ...book.chapters.map((chapter, index) => ({kind: "paragraph" as const, text: (chapter.position || index + 1) + ". " + chapter.title})),
   ...book.chapters.flatMap(chapter => [{kind: "heading" as const, text: (chapter.position ? chapter.position + ". " : "") + chapter.title, level: 1}, ...manuscriptBlocks(chapter.content)]),
  ];
  const margin = mmToTwips(spec.widthMm <= 148 ? 14 : 20);
