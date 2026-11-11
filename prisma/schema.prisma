@@ -38,6 +38,7 @@ model Book {
   approvedAt DateTime?
   publication BookPublication?
   reviewNotes ReviewerNote[]
+  printOrders PrintOrder[]
   @@index([ownerId, updatedAt])
   @@index([ownerId, archivedAt])
 }
@@ -186,6 +187,7 @@ model StudioUser {
   tokens StudioAuthToken[]
   assignedBooks BookReviewer[]
   formDrafts StudioFormDraft[]
+  printOrders PrintOrder[]
   exportJobs ExportJob[]
   isbnEvents IsbnEvent[]
   isbnDocuments IsbnDocument[]
@@ -515,4 +517,28 @@ model BookPaginationRevision {
  createdAt DateTime @default(now())
  book Book @relation(fields:[bookId],references:[id],onDelete:Restrict)
  @@unique([bookId,version])
+}
+
+model PrintOrder {
+  id String @id @default(cuid())
+  ownerId String
+  owner StudioUser @relation(fields:[ownerId],references:[id],onDelete:Cascade)
+  bookId String
+  book Book @relation(fields:[bookId],references:[id],onDelete:Cascade)
+  printerName String @default("")
+  contact String @default("")
+  quantity Int
+  paper String
+  binding String
+  color String
+  size String
+  unitPrice Int @default(0)
+  dueDate String @default("")
+  notes String @default("")
+  status String @default("DRAFT")
+  archivedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ownerId, archivedAt, updatedAt])
+  @@index([bookId])
 }
