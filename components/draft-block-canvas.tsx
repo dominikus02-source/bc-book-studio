@@ -648,66 +648,9 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
   <legend className="sr-only">Penyuntingan bab</legend>
   <label className="studio-field"><span>Bab aktif</span><select value={chapter.id} disabled={busy||dirty||Boolean(error)} onChange={event=>onSelect(event.target.value)}>{chapters.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
   <label className="studio-field"><span>Judul bab (editor blok)</span><input maxLength={180} value={title} onChange={event=>setTitle(event.target.value)}/></label>
-  <section className="panel" aria-label="Daftar isi otomatis dari Quarto Markdown">
-   <h3>Judul dan daftar isi otomatis (Quarto Markdown)</h3>
-   <p className="form-hint">Heading # menawarkan judul bab, sedangkan ## dan ### membentuk daftar isi otomatis. Judul manual tidak ditimpa tanpa persetujuan. Autosave tetap aktif.</p>
-   {markdownTitle&&markdownTitle!==title&&<button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>setTitle(markdownTitle.slice(0,180))}>Gunakan judul dari Markdown: {markdownTitle}</button>}
-   {!markdownTitle&&<p className="form-hint">Tambahkan # Judul Bab di Markdown untuk menghasilkan judul.</p>}
-   {markdownToc.length?<nav aria-label="Daftar isi naskah saat ini"><ul>{markdownToc.map(heading=><li key={heading.number}><strong>{heading.number}</strong> {heading.title}</li>)}</ul></nav>:<p className="form-hint">Tambahkan ## Judul bagian dan ### Subbagian untuk menghasilkan daftar isi.</p>}
-   {([["Daftar gambar",manuscriptIndex.figures],["Daftar tabel",manuscriptIndex.tables],["Daftar persamaan",manuscriptIndex.equations]] as const).map(([label,entries])=>entries.length>0&&<details key={label}><summary>{label} ({entries.length})</summary><ul>{entries.map(entry=><li key={entry.number}><strong>{entry.number}</strong> {entry.title}</li>)}</ul></details>)}
-   <p className="form-hint">Nomor mengikuti urutan bab dan elemen. Persamaan tampilan masuk daftar bila diberi label seperti <code>{"{#eq-usaha}"}</code>.</p>
-   {!markdownToc.length&&outline.filter(item=>!item.archivedAt).length>0&&<button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>{setBodyEdited(true);setBlocks(current=>[...current,...outline.filter(item=>!item.archivedAt).sort((a,b)=>a.position-b.position).map(item=>({id:crypto.randomUUID(),kind:"heading" as const,raw:(item.parentId?"### ":"## ")+item.title}))])}}>Buat daftar isi dari kerangka Stage 2</button>}
-  </section>
-  <details className="stage-transfer-panel writing-optional">
-   <summary>Template Stage 3 — Naskah bab dan prompt AI</summary>
-   <FormTransfer name="Stage 3 Naskah Bab" bookId={bookId} fields={WRITING_TRANSFER_FIELDS}
-    values={{title,content}} disabled={busy||Boolean(recovery)||!recoveryReady}
-    aiContext={`STAGE=TULIS; BRIEF STAGE 1: ${bookContext}; BAB=${chapter.title}; BUKU=${bookId}; BAB SEBELUM/LAINNYA: ${chapters.map((item,i)=>`${i+1}. ${item.title}`).join("; ")}; KERANGKA BAB: ${outline.filter(item=>!item.archivedAt).sort((a,b)=>a.position-b.position).map(item=>`${item.title}: ${item.objective}`).join("; ")}. Buat isi orisinal sesuai tujuan, genre serta pembaca Stage 1. Untuk nonfiction: contoh, penjelasan, aktivitas yang aman, rangkuman, latihan dan referensi yang dapat diverifikasi. Untuk fiction: alur, tokoh, konflik dan kesinambungan. Pertahankan field_id title/content, serta Markdown sebagai konten. Jangan mengarang bukti, lisensi, sitasi atau ISBN.`}
-    onApply={(data:TransferRecord)=>{
-     if(dirty&&!confirm("Ganti perubahan bab yang belum tersimpan dengan hasil impor?"))return;
-     if(typeof data.title==="string")setTitle(data.title);
-     if(typeof data.content==="string"){setBodyEdited(true);setRecoveredContent(null);setBlocks(split(data.content))}
-    }}/>
-   <p className="form-hint">Impor memuat isi ke editor blok dahulu. Periksa dan ubah sesuai kebutuhan, lalu gunakan Simpan sekarang (autosave juga tersedia). Versi lama tetap tercatat sebagai revisi.</p>
-  </details>
-  <details className="draft-outline-context writing-optional"><summary>Kerangka Stage 2 untuk bab ini</summary>
-   <p className="form-hint">Kerangka berfungsi sebagai panduan. Tombol Sisipkan hanya menambah judul di draf dan tidak mengubah naskah yang telah disetujui.</p>
-   {outlineError&&<p role="alert">{outlineError}</p>}
-   {outline.filter(s=>!s.archivedAt).length===0&&<p>Belum ada subbagian tersimpan di Rancang.</p>}
-   <ul>{outline.filter(s=>!s.archivedAt).sort((a,b)=>a.parentId===b.parentId?a.position-b.position:!a.parentId?-1:1).map(s=><li key={s.id} style={{marginLeft:s.parentId?16:0}}>
-    <strong>{s.title}</strong><p>{s.objective}</p>
-    <button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>insertHeading(s)}>Sisipkan judul {s.title}</button>
-   </li>)}</ul>
-  </details>
-  <details className="writing-optional draft-image-upload" open={uploadOpen} onToggle={event=>setUploadOpen(event.currentTarget.open)}>
-   <summary>+ Unggah gambar dan sisipkan ke naskah</summary>
-   <p className="form-hint">PNG/JPEG maksimum 12 MB; gambar dioptimalkan sebelum disimpan. Wajib isi teks alternatif dan lisensi. Gambar akan langsung muncul sebagai blok setelah berhasil diunggah.</p>
-   <div className="draft-image-upload-fields">
-    <label>File gambar<input type="file" accept="image/png,image/jpeg" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label>
-    <label>Deskripsi alternatif<input value={uploadAlt} maxLength={180} onChange={e=>setUploadAlt(e.target.value)} placeholder="Jelaskan isi dan fungsi gambar"/></label>
-    <label>Lisensi<select value={uploadLicense} onChange={e=>setUploadLicense(e.target.value)}><option value="OWNED">Karya sendiri</option><option value="CC0">CC0</option><option value="CC_BY">CC BY</option><option value="CC_BY_SA">CC BY-SA</option><option value="LICENSED">Berizin</option></select></label>
-    <label>URL sumber (opsional, HTTPS)<input type="url" value={uploadSource} onChange={e=>setUploadSource(e.target.value)} placeholder="https://..."/></label>
-    <button type="button" className="primary-button" disabled={uploadBusy||busy||!uploadFile||uploadAlt.trim().length<5} onClick={()=>void uploadAndInsertImage()}>{uploadBusy?"Mengunggah…":"Unggah & sisipkan"}</button>
-   </div>
-  </details>
-  <InsertYouTube disabled={busy||Boolean(recovery)} onInsert={raw=>{setBodyEdited(true);setBlocks(current=>[...current,{id:crypto.randomUUID(),kind:"video",raw}])}}/>
-  {assetError&&<p role="alert">{assetError}</p>}
-  {!assets.length&&<p className="form-hint">Unggah gambar dengan lisensi di Studio Penulisan agar tersedia di kanvas.</p>}
-  <details className="writing-quality-audit">
-   <summary>Koherensi & kelengkapan bab · {qualityIssues.filter(item=>item.severity==="warning").length} perhatian, {qualityIssues.filter(item=>item.severity==="info").length} saran</summary>
-   <p className="form-hint">Pemeriksaan editorial lokal ini hanya memberi petunjuk; bukan pengganti pemeriksaan fakta, bahasa, atribusi, atau kualitas isi oleh editor.</p>
-   {qualityIssues.length===0?<p role="status">Tidak ada masalah struktur dasar yang terdeteksi. Periksa tetap ketepatan fakta dan kesinambungan isi.</p>:
-   <ul>{qualityIssues.map(item=><li key={item.id}><strong>{item.severity==="warning"?"Perlu perhatian":"Saran"}: {item.label}</strong><p>{item.detail}</p></li>)}</ul>}
-  </details>
   <div className="draft-save-toolbar"><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.past.length} onClick={()=>stepHistory("undo")} aria-keyshortcuts="Control+Z Meta+Z">Undo</button><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.future.length} onClick={()=>stepHistory("redo")} aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Redo</button><button type="button" className="primary-button" disabled={!dirty||!valid||busy||Boolean(recovery)} onClick={()=>void saveNow()}>Simpan sekarang</button><span className="form-hint">Autosave tetap aktif; naskah tidak akan ditimpa bila versi berubah.</span></div>
   <p role="status">{busy?"Menyimpan revisi…":error?"Perubahan belum tersimpan.":dirty&&!valid?"Judul minimal 2 karakter dan isi 20–200.000 karakter.":dirty?"Menunggu simpan otomatis…":"Naskah tersimpan."}</p>
   {error&&<><p role="alert">{error}</p><button type="button" className="secondary-button" onClick={()=>downloadDraft({title,content})}>Unduh draf lokal</button><button type="button" className="secondary-button" onClick={()=>{if(confirm("Muat versi server dan buang perubahan yang belum tersimpan?")){try{sessionStorage.removeItem(recoveryKey)}catch{}window.location.reload()}}}>Muat versi server</button></>}
-  <details className="draft-revision-history"><summary>Riwayat revisi naskah</summary>
-   <button type="button" className="secondary-button" disabled={revisionBusy||busy} onClick={()=>void loadRevisions()}>Muat riwayat</button>
-   {revisionBusy&&<p role="status">Memuat riwayat...</p>}
-   {revisions&&<ul>{revisions.map(r=><li key={r.revision}><details><summary>Revisi {r.revision} — {new Date(r.createdAt).toLocaleString("id-ID")}</summary><p><strong>{r.title}</strong></p><pre className="draft-revision-preview">{r.content}</pre><button type="button" className="secondary-button" disabled={dirty||busy||revisionBusy} onClick={()=>void restoreRevision(r.revision)}>Pulihkan revisi {r.revision}</button></details></li>)}</ul>}
-   {revisions?.length===0&&<p>Belum ada revisi tersimpan.</p>}
-  </details>
   <ol className={"book-layout-canvas writing-drop-canvas"+(drag?" is-drop-target":"")} aria-label="Blok naskah" onDragOver={event=>{if(drag&&!busy&&!recovery){event.preventDefault();event.dataTransfer.dropEffect=drag.startsWith("preset:")?"copy":"move"}}} onDrop={event=>{if(!drag)return;event.preventDefault();event.stopPropagation();onCanvasDrop()}}>
    {drag&&<li className="writing-canvas-drop-hint" aria-live="polite">Lepaskan komponen di sini untuk menambahkannya di akhir naskah.</li>}
    {blocks.length===0&&!drag&&<li className="writing-canvas-empty">Area menulis masih kosong. Tarik komponen dari panel kiri ke area ini, atau klik <strong>Tambah</strong> pada komponen.</li>}
@@ -786,6 +729,65 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
     </li>;
    })}
   </ol>
+  <div className="writing-secondary-tools" aria-label="Alat tambahan penulisan">
+  <details className="writing-optional writing-quarto-reference">
+   <summary>Judul dan daftar isi otomatis (Quarto Markdown)</summary>
+   <p className="form-hint">Heading # menawarkan judul bab, sedangkan ## dan ### membentuk daftar isi otomatis. Judul manual tidak ditimpa tanpa persetujuan. Autosave tetap aktif.</p>
+   {markdownTitle&&markdownTitle!==title&&<button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>setTitle(markdownTitle.slice(0,180))}>Gunakan judul dari Markdown: {markdownTitle}</button>}
+   {!markdownTitle&&<p className="form-hint">Tambahkan # Judul Bab di Markdown untuk menghasilkan judul.</p>}
+   {markdownToc.length?<nav aria-label="Daftar isi naskah saat ini"><ul>{markdownToc.map(heading=><li key={heading.number}><strong>{heading.number}</strong> {heading.title}</li>)}</ul></nav>:<p className="form-hint">Tambahkan ## Judul bagian dan ### Subbagian untuk menghasilkan daftar isi.</p>}
+   {([["Daftar gambar",manuscriptIndex.figures],["Daftar tabel",manuscriptIndex.tables],["Daftar persamaan",manuscriptIndex.equations]] as const).map(([label,entries])=>entries.length>0&&<details key={label}><summary>{label} ({entries.length})</summary><ul>{entries.map(entry=><li key={entry.number}><strong>{entry.number}</strong> {entry.title}</li>)}</ul></details>)}
+   <p className="form-hint">Nomor mengikuti urutan bab dan elemen. Persamaan tampilan masuk daftar bila diberi label seperti <code>{"{#eq-usaha}"}</code>.</p>
+   {!markdownToc.length&&outline.filter(item=>!item.archivedAt).length>0&&<button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>{setBodyEdited(true);setBlocks(current=>[...current,...outline.filter(item=>!item.archivedAt).sort((a,b)=>a.position-b.position).map(item=>({id:crypto.randomUUID(),kind:"heading" as const,raw:(item.parentId?"### ":"## ")+item.title}))])}}>Buat daftar isi dari kerangka Stage 2</button>}
+  </details>
+  <details className="stage-transfer-panel writing-optional">
+   <summary>Template Stage 3 — Naskah bab dan prompt AI</summary>
+   <FormTransfer name="Stage 3 Naskah Bab" bookId={bookId} fields={WRITING_TRANSFER_FIELDS}
+    values={{title,content}} disabled={busy||Boolean(recovery)||!recoveryReady}
+    aiContext={`STAGE=TULIS; BRIEF STAGE 1: ${bookContext}; BAB=${chapter.title}; BUKU=${bookId}; BAB SEBELUM/LAINNYA: ${chapters.map((item,i)=>`${i+1}. ${item.title}`).join("; ")}; KERANGKA BAB: ${outline.filter(item=>!item.archivedAt).sort((a,b)=>a.position-b.position).map(item=>`${item.title}: ${item.objective}`).join("; ")}. Buat isi orisinal sesuai tujuan, genre serta pembaca Stage 1. Untuk nonfiction: contoh, penjelasan, aktivitas yang aman, rangkuman, latihan dan referensi yang dapat diverifikasi. Untuk fiction: alur, tokoh, konflik dan kesinambungan. Pertahankan field_id title/content, serta Markdown sebagai konten. Jangan mengarang bukti, lisensi, sitasi atau ISBN.`}
+    onApply={(data:TransferRecord)=>{
+     if(dirty&&!confirm("Ganti perubahan bab yang belum tersimpan dengan hasil impor?"))return;
+     if(typeof data.title==="string")setTitle(data.title);
+     if(typeof data.content==="string"){setBodyEdited(true);setRecoveredContent(null);setBlocks(split(data.content))}
+    }}/>
+   <p className="form-hint">Impor memuat isi ke editor blok dahulu. Periksa dan ubah sesuai kebutuhan, lalu gunakan Simpan sekarang (autosave juga tersedia). Versi lama tetap tercatat sebagai revisi.</p>
+  </details>
+  <details className="draft-outline-context writing-optional"><summary>Kerangka Stage 2 untuk bab ini</summary>
+   <p className="form-hint">Kerangka berfungsi sebagai panduan. Tombol Sisipkan hanya menambah judul di draf dan tidak mengubah naskah yang telah disetujui.</p>
+   {outlineError&&<p role="alert">{outlineError}</p>}
+   {outline.filter(s=>!s.archivedAt).length===0&&<p>Belum ada subbagian tersimpan di Rancang.</p>}
+   <ul>{outline.filter(s=>!s.archivedAt).sort((a,b)=>a.parentId===b.parentId?a.position-b.position:!a.parentId?-1:1).map(s=><li key={s.id} style={{marginLeft:s.parentId?16:0}}>
+    <strong>{s.title}</strong><p>{s.objective}</p>
+    <button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>insertHeading(s)}>Sisipkan judul {s.title}</button>
+   </li>)}</ul>
+  </details>
+  <details className="writing-optional draft-image-upload" open={uploadOpen} onToggle={event=>setUploadOpen(event.currentTarget.open)}>
+   <summary>+ Unggah gambar dan sisipkan ke naskah</summary>
+   <p className="form-hint">PNG/JPEG maksimum 12 MB; gambar dioptimalkan sebelum disimpan. Wajib isi teks alternatif dan lisensi. Gambar akan langsung muncul sebagai blok setelah berhasil diunggah.</p>
+   <div className="draft-image-upload-fields">
+    <label>File gambar<input type="file" accept="image/png,image/jpeg" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label>
+    <label>Deskripsi alternatif<input value={uploadAlt} maxLength={180} onChange={e=>setUploadAlt(e.target.value)} placeholder="Jelaskan isi dan fungsi gambar"/></label>
+    <label>Lisensi<select value={uploadLicense} onChange={e=>setUploadLicense(e.target.value)}><option value="OWNED">Karya sendiri</option><option value="CC0">CC0</option><option value="CC_BY">CC BY</option><option value="CC_BY_SA">CC BY-SA</option><option value="LICENSED">Berizin</option></select></label>
+    <label>URL sumber (opsional, HTTPS)<input type="url" value={uploadSource} onChange={e=>setUploadSource(e.target.value)} placeholder="https://..."/></label>
+    <button type="button" className="primary-button" disabled={uploadBusy||busy||!uploadFile||uploadAlt.trim().length<5} onClick={()=>void uploadAndInsertImage()}>{uploadBusy?"Mengunggah…":"Unggah & sisipkan"}</button>
+   </div>
+  </details>
+  <InsertYouTube disabled={busy||Boolean(recovery)} onInsert={raw=>{setBodyEdited(true);setBlocks(current=>[...current,{id:crypto.randomUUID(),kind:"video",raw}])}}/>
+  {assetError&&<p role="alert">{assetError}</p>}
+  {!assets.length&&<p className="form-hint">Unggah gambar dengan lisensi di Studio Penulisan agar tersedia di kanvas.</p>}
+  <details className="writing-quality-audit">
+   <summary>Koherensi & kelengkapan bab · {qualityIssues.filter(item=>item.severity==="warning").length} perhatian, {qualityIssues.filter(item=>item.severity==="info").length} saran</summary>
+   <p className="form-hint">Pemeriksaan editorial lokal ini hanya memberi petunjuk; bukan pengganti pemeriksaan fakta, bahasa, atribusi, atau kualitas isi oleh editor.</p>
+   {qualityIssues.length===0?<p role="status">Tidak ada masalah struktur dasar yang terdeteksi. Periksa tetap ketepatan fakta dan kesinambungan isi.</p>:
+   <ul>{qualityIssues.map(item=><li key={item.id}><strong>{item.severity==="warning"?"Perlu perhatian":"Saran"}: {item.label}</strong><p>{item.detail}</p></li>)}</ul>}
+  </details>
+  <details className="draft-revision-history"><summary>Riwayat revisi naskah</summary>
+   <button type="button" className="secondary-button" disabled={revisionBusy||busy} onClick={()=>void loadRevisions()}>Muat riwayat</button>
+   {revisionBusy&&<p role="status">Memuat riwayat...</p>}
+   {revisions&&<ul>{revisions.map(r=><li key={r.revision}><details><summary>Revisi {r.revision} — {new Date(r.createdAt).toLocaleString("id-ID")}</summary><p><strong>{r.title}</strong></p><pre className="draft-revision-preview">{r.content}</pre><button type="button" className="secondary-button" disabled={dirty||busy||revisionBusy} onClick={()=>void restoreRevision(r.revision)}>Pulihkan revisi {r.revision}</button></details></li>)}</ul>}
+   {revisions?.length===0&&<p>Belum ada revisi tersimpan.</p>}
+  </details>
+  </div>
   </fieldset>
   </div>
   {view!=="editor"&&<aside className="writing-studio-preview" aria-label="Pratinjau langsung buku">
