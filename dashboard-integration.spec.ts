@@ -24,11 +24,11 @@ test("dashboard creates a project through the live API and restores it on reload
  await page.goto(origin+"/studio");
  await expect(page.getByRole("heading",{name:"Selamat datang di ruang penerbitan"})).toBeVisible();
  await page.getByRole("button",{name:"Buat Buku Baru",exact:true}).click();
- const form=page.getByRole("form",{name:"Formulir proyek buku baru"});
+ const form=page.getByRole("form",{name:"Mulai buku"});
  await form.getByLabel(/Judul buku/).fill(title);
- await form.getByLabel(/Kategori \/ mata pelajaran/).fill("Fisika");
+ await form.getByLabel(/^Penulis/).fill("Penulis CI");
  const saved=page.waitForResponse(r=>new URL(r.url()).pathname==="/api/books"&&r.request().method()==="POST"&&r.status()===201);
- await form.getByRole("button",{name:/Simpan buku/}).click();
+ await form.getByRole("button",{name:/Buat draf dan mulai menulis/}).click();
  const {book}=await (await saved).json();
  try{
   expect((await db.book.findUniqueOrThrow({where:{id:book.id}})).title).toBe(title);
