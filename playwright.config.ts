@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 const origin=process.env.TEST_ORIGIN||"http://127.0.0.1:3183";
 export default defineConfig({
- testMatch:["dashboard-integration.spec.ts","form-transfer.spec.ts"],
+ testMatch:["dashboard-integration.spec.ts","form-transfer.spec.ts","account-admin-crud.spec.ts"],
  workers:1,
  use:{
   baseURL:origin,

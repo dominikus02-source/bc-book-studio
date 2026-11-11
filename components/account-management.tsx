@@ -1,37 +1,193 @@
 "use client";
-import {useCallback,useEffect,useRef,useState} from "react";
-type Role="EDITOR"|"REVIEWER"|"ADMIN"|"SUPERADMIN";
-type User={id:string;email:string;name:string;role:Role;active:boolean};
-const roles:Role[]=["EDITOR","REVIEWER","ADMIN"];
-export default function AccountManagement(){
- const [users,setUsers]=useState<User[]>([]);
- const [drafts,setDrafts]=useState<Record<string,User>>({});
- const [status,setStatus]=useState<Record<string,string>>({});
- const [error,setError]=useState("");
- const [newUser,setNewUser]=useState({email:"",name:"",role:"EDITOR" as Role});
- const [busy,setBusy]=useState(false);
- const timers=useRef<Record<string,ReturnType<typeof setTimeout>>>({});
- const load=useCallback(async()=>{const r=await fetch("/api/admin/users",{cache:"no-store"});const j=await r.json();if(!r.ok)throw Error(j.error||"Unable to load users");setUsers(j.users);setDrafts(Object.fromEntries((j.users as User[]).map(u=>[u.id,u])));},[]);
- useEffect(()=>{void load().catch(e=>setError(e.message));return()=>{Object.values(timers.current).forEach(clearTimeout)}},[load]);
- async function save(id:string,next:User){setStatus(s=>({...s,[id]:"Menyimpan..."}));try{const r=await fetch("/api/admin/users",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,name:next.name,role:next.role,active:next.active})});const j=await r.json();if(!r.ok)throw Error(j.error||"Save failed");setUsers(us=>us.map(u=>u.id===id?{...u,...j.user}:u));setStatus(s=>({...s,[id]:"Tersimpan otomatis"}))}catch(e){setStatus(s=>({...s,[id]:e instanceof Error?e.message:"Gagal menyimpan"}))}}
- function edit(id:string,changes:Partial<User>){const next={...drafts[id],...changes};setDrafts(d=>({...d,[id]:next}));setStatus(s=>({...s,[id]:"Menunggu autosave..."}));clearTimeout(timers.current[id]);timers.current[id]=setTimeout(()=>void save(id,next),700)}
- function reset(id:string){clearTimeout(timers.current[id]);const saved=users.find(u=>u.id===id);if(saved)setDrafts(d=>({...d,[id]:saved}));setStatus(s=>({...s,[id]:"Form dikembalikan ke data terakhir tersimpan"}))}
- async function add(e:React.FormEvent){e.preventDefault();setBusy(true);setError("");try{const r=await fetch("/api/admin/users",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(newUser)});const j=await r.json();if(!r.ok)throw Error(j.error||"Create failed");setNewUser({email:"",name:"",role:"EDITOR"});await load();if(j.warning)setError(j.warning)}catch(e){setError(e instanceof Error?e.message:"Gagal membuat akun")}finally{setBusy(false)}}
- return <section style={{maxWidth:1100,margin:"0 auto",padding:"clamp(12px,2vw,28px)"}}>
-  <h1>Manajemen Akun</h1><p>Superadmin · kelola pengguna dan hak akses. Perubahan akun tersimpan otomatis.</p>
-  {error&&<p role="alert" style={{color:"var(--danger,#b42318)"}}>{error}</p>}
-  <form onSubmit={add} style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,alignItems:"end",margin:"24px 0"}}>
-   <label>Nama<input required minLength={2} maxLength={120} style={{width:"100%"}} value={newUser.name} onChange={e=>setNewUser(u=>({...u,name:e.target.value}))}/></label>
-   <label>Email<input required type="email" style={{width:"100%"}} value={newUser.email} onChange={e=>setNewUser(u=>({...u,email:e.target.value}))}/></label>
-   <label>Hak akses<select style={{width:"100%"}} value={newUser.role} onChange={e=>setNewUser(u=>({...u,role:e.target.value as Role}))}>{roles.map(role=><option key={role}>{role}</option>)}</select></label>
-   <button className="primary-button" disabled={busy} type="submit">{busy?"Menyimpan...":"Tambah akun"}</button>
-  </form>
-  <div style={{display:"grid",gap:12}}>{users.map(u=>{const d=drafts[u.id]||u;return <article key={u.id} style={{border:"1px solid var(--border,#d9dee8)",borderRadius:14,padding:16,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,alignItems:"end"}}>
-   <label>Nama<input style={{width:"100%"}} disabled={u.role==="SUPERADMIN"} value={d.name} onChange={e=>edit(u.id,{name:e.target.value})}/></label>
-   <div><small>Email</small><div style={{overflowWrap:"anywhere"}}>{u.email}</div></div>
-   <label>Role<select style={{width:"100%"}} disabled={u.role==="SUPERADMIN"} value={d.role} onChange={e=>edit(u.id,{role:e.target.value as Role})}>{u.role==="SUPERADMIN"&&<option>SUPERADMIN</option>}{roles.map(role=><option key={role}>{role}</option>)}</select></label>
-   <label>Status<select style={{width:"100%"}} disabled={u.role==="SUPERADMIN"} value={String(d.active)} onChange={e=>edit(u.id,{active:e.target.value==="true"})}><option value="true">Aktif</option><option value="false">Nonaktif</option></select></label>
-   <div><button type="button" className="secondary-button" onClick={()=>reset(u.id)}>Reset</button><p role="status" style={{fontSize:12}}>{status[u.id]||"Tersimpan"}</p></div>
-  </article>})}</div>
- </section>
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { StudioRole } from "@prisma/client";
+import { ASSIGNABLE_ROLES, accountDeactivateError, accountMutationError } from "@/lib/account-admin";
+
+type Account = { id: string; email: string; name: string; role: StudioRole; active: boolean; createdAt: string };
+type Me = { id: string; role: StudioRole };
+
+const roleLabel: Record<StudioRole, string> = {
+  EDITOR: "Editor",
+  REVIEWER: "Peninjau",
+  ADMIN: "Admin",
+  SUPERADMIN: "Superadmin",
+};
+
+export function AccountManagement() {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [me, setMe] = useState<Me | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<StudioRole>("EDITOR");
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+
+  const activeSuperadminCount = useMemo(
+    () => accounts.filter((account) => account.role === "SUPERADMIN" && account.active).length,
+    [accounts]
+  );
+
+  const load = useCallback(async () => {
+    const response = await fetch("/api/admin/users", { cache: "no-store" });
+    const data = await response.json() as { users?: Account[]; me?: Me; error?: string };
+    if (!response.ok) throw new Error(data.error || "Gagal memuat akun");
+    setAccounts(data.users || []);
+    setMe(data.me || null);
+  }, []);
+
+  useEffect(() => { void load().catch((error: unknown) => setStatus(error instanceof Error ? error.message : "Gagal memuat akun")); }, [load]);
+
+  function lockReason(target: Account, changes: { role?: StudioRole; active?: boolean }) {
+    if (!me) return "Memuat sesi…";
+    return accountMutationError(me, target, changes, activeSuperadminCount);
+  }
+
+  async function invite(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, role }) });
+      const data = await response.json() as { warning?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || "Gagal mengundang akun");
+      setName("");
+      setEmail("");
+      setRole("EDITOR");
+      setStatus(data.warning || "Undangan aktivasi telah dikirim.");
+      await load();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal mengundang akun");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function update(id: string, body: { name?: string; role?: StudioRole; active?: boolean }) {
+    setPending((current) => ({ ...current, [id]: true }));
+    setStatus("");
+    try {
+      const response = await fetch("/api/admin/users", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }) });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Gagal memperbarui akun");
+      await load();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal memperbarui akun");
+      await load().catch(() => undefined);
+    } finally {
+      setPending((current) => ({ ...current, [id]: false }));
+    }
+  }
+
+  async function resend(id: string) {
+    setPending((current) => ({ ...current, [id]: true }));
+    setStatus("");
+    try {
+      const response = await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, resendActivation: true }) });
+      const data = await response.json() as { message?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || "Gagal mengirim ulang aktivasi");
+      setStatus(data.message || "Undangan aktivasi telah dikirim ulang.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal mengirim ulang aktivasi");
+    } finally {
+      setPending((current) => ({ ...current, [id]: false }));
+    }
+  }
+
+  async function deactivate(id: string) {
+    const target = accounts.find((account) => account.id === id);
+    if (!target) return;
+    const denied = me ? accountDeactivateError(me, target, activeSuperadminCount) : "Memuat sesi…";
+    if (denied) { setStatus(denied); return; }
+    if (!window.confirm(`Nonaktifkan akun ${target.name} (${target.email})? Data tetap disimpan.`)) return;
+    setPending((current) => ({ ...current, [id]: true }));
+    setStatus("");
+    try {
+      const response = await fetch(`/api/admin/users?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const data = await response.json() as { message?: string; error?: string };
+      if (!response.ok) throw new Error(data.error || "Gagal menonaktifkan akun");
+      setStatus(data.message || "Akun dinonaktifkan.");
+      await load();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal menonaktifkan akun");
+    } finally {
+      setPending((current) => ({ ...current, [id]: false }));
+    }
+  }
+
+  async function resetPassword(id: string) {
+    setPending((current) => ({ ...current, [id]: true }));
+    setStatus("");
+    try {
+      const response = await fetch("/api/admin/users/reset", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: id }) });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Gagal mereset kata sandi");
+      setStatus("Tautan reset kata sandi telah dikirim.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Gagal mereset kata sandi");
+    } finally {
+      setPending((current) => ({ ...current, [id]: false }));
+    }
+  }
+
+  return (
+    <section className="studio-panel studio-stack">
+      <div>
+        <p className="studio-kicker">Manajemen akun</p>
+        <h2>Undang dan kelola anggota studio</h2>
+        <p className="studio-copy">Superadmin dapat mengundang, mengubah nama/peran/status, mengirim ulang aktivasi, dan menonaktifkan anggota. Hanya superadmin yang boleh memberi atau mencabut peran Superadmin. Superadmin aktif terakhir dan akun Anda sendiri tidak dapat dinonaktifkan atau diturunkan hingga ada superadmin aktif lain.</p>
+      </div>
+      <form className="studio-stack" onSubmit={invite}>
+        <label className="studio-field"><span>Nama</span><input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={120} /></label>
+        <label className="studio-field"><span>Email</span><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+        <label className="studio-field"><span>Peran</span>
+          <select value={role} onChange={(event) => setRole(event.target.value as StudioRole)}>
+            {ASSIGNABLE_ROLES.map((value) => <option key={value} value={value}>{roleLabel[value]}</option>)}
+          </select>
+        </label>
+        <button className="studio-button" disabled={busy}>{busy ? "Mengirim…" : "Kirim undangan"}</button>
+      </form>
+      {status ? <p className="studio-status" role="status">{status}</p> : null}
+      <div className="studio-account-list">
+        {accounts.map((account) => {
+          const working = !!pending[account.id];
+          const deactivateDenied = lockReason(account, { active: false });
+          const roleLocked = !!lockReason(account, { role: account.role === "SUPERADMIN" ? "ADMIN" : account.role });
+          return (
+            <article key={account.id} className="studio-account-card">
+              <div>
+                <strong>{account.name}</strong>
+                <p>{account.email}</p>
+                {me?.id === account.id ? <p className="studio-copy">Ini akun Anda</p> : null}
+              </div>
+              <label className="studio-field"><span>Nama tampilan</span>
+                <input defaultValue={account.name} disabled={working} onBlur={(event) => {
+                  const next = event.target.value.trim();
+                  if (next && next !== account.name) void update(account.id, { name: next });
+                }} />
+              </label>
+              <label className="studio-field"><span>Peran</span>
+                <select value={account.role} disabled={working || roleLocked} onChange={(event) => void update(account.id, { role: event.target.value as StudioRole })}>
+                  {ASSIGNABLE_ROLES.map((value) => <option key={value} value={value}>{roleLabel[value]}</option>)}
+                </select>
+              </label>
+              <label className="studio-field"><span>Status</span>
+                <select value={account.active ? "active" : "inactive"} disabled={working || (account.active && !!deactivateDenied)} onChange={(event) => void update(account.id, { active: event.target.value === "active" })}>
+                  <option value="active">Aktif</option>
+                  <option value="inactive">Nonaktif</option>
+                </select>
+              </label>
+              <div className="studio-row-actions">
+                {!account.active ? <button type="button" className="studio-button studio-button-secondary" disabled={working} onClick={() => void resend(account.id)}>Kirim ulang aktivasi</button> : null}
+                {account.active ? <button type="button" className="studio-button studio-button-secondary" disabled={working} onClick={() => void resetPassword(account.id)}>Reset kata sandi</button> : null}
+                {account.active ? <button type="button" className="studio-button studio-button-secondary" disabled={working || !!deactivateDenied} onClick={() => void deactivate(account.id)}>Nonaktifkan</button> : null}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
+
+export default AccountManagement;
