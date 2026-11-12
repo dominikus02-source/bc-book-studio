@@ -22,7 +22,7 @@ test("dashboard creates a project through the live API and restores it on reload
  const origin=process.env.TEST_ORIGIN||"http://127.0.0.1:3183";
  const title="Buku Integrasi "+randomBytes(5).toString("hex");
  await page.goto(origin+"/studio");
- await expect(page.getByRole("heading",{name:"Selamat datang di ruang penerbitan"})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Lanjutkan naskah"})).toBeVisible();
  await page.getByRole("button",{name:"Buat Buku Baru",exact:true}).click();
  const form=page.getByRole("form",{name:"Formulir proyek buku baru"});
  await form.getByLabel(/Judul buku/).fill(title);

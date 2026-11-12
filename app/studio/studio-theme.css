@@ -1,0 +1,205 @@
+/* Signed-in studio. Public .site and .auth-screen keep their own rules. */
+.shell.studio-app,
+.reviewer-workspace,
+.fullscreen-writing-editor{
+  --bg:#f6f0e4;
+  --panel:#fffdf8;
+  --ink:#17233f;
+  --muted:#5c5348;
+  --line:#e4d3b5;
+  --navy:#172b4d;
+  --gold:#c4a15a;
+  --gold-soft:#f3e4c4;
+  --blue:#243e6b;
+  --shadow:0 10px 28px rgba(23,43,77,.06);
+  color:var(--ink);
+  font-family:"DM Sans Variable",sans-serif;
+}
+body:has(.studio-app),
+body:has(.reviewer-workspace),
+body:has(.fullscreen-writing-editor){background:#f6f0e4;color:#17233f}
+:root[data-theme="dark"] .shell.studio-app,
+:root[data-theme="dark"] .reviewer-workspace,
+:root[data-theme="dark"] .fullscreen-writing-editor{
+  --bg:#10182b;
+  --panel:#18243a;
+  --ink:#f4efe6;
+  --muted:#cbbfaa;
+  --line:#3d4d68;
+  --navy:#d7c39a;
+  --gold:#e2c27a;
+  --gold-soft:#3a3120;
+  --blue:#e7d7b2;
+  --shadow:none;
+}
+:root[data-theme="dark"] body:has(.studio-app),
+:root[data-theme="dark"] body:has(.reviewer-workspace),
+:root[data-theme="dark"] body:has(.fullscreen-writing-editor){background:#10182b;color:#f4efe6}
+
+.shell.studio-app{grid-template-columns:240px minmax(0,1fr);background:var(--bg);color:var(--ink)}
+.shell.studio-app>.sidebar{background:#172b4d;color:#f6f0e4;border-right:0;padding:22px 14px 18px}
+.shell.studio-app .brand-mark{background:#c4a15a;color:#172b4d}
+.shell.studio-app .brand-name{color:#f6f0e4;font-family:"Manrope Variable",sans-serif}
+.shell.studio-app .brand-sub,.shell.studio-app .nav-label{color:#e7d7b2}
+.shell.studio-app .nav-item{color:#f6f0e4;border-radius:12px}
+.shell.studio-app .nav-item:hover{background:rgba(243,228,196,.14)}
+.shell.studio-app .nav-item.active{background:#c4a15a;color:#172b4d;font-weight:700}
+.shell.studio-app .studio-identity{margin-top:auto;display:grid;gap:2px;padding:14px 12px 4px}
+.shell.studio-app .studio-identity strong{color:#f6f0e4;font:600 14px "Manrope Variable",sans-serif}
+.shell.studio-app .studio-identity span{color:#e7d7b2;font-size:12px;letter-spacing:.04em}
+.shell.studio-app>.main{background:transparent;padding:clamp(16px,2vw,40px) clamp(14px,3vw,56px) 48px;max-width:none}
+.shell.studio-app .page-title,.shell.studio-app .panel-title,.shell.studio-app h1,.shell.studio-app h2,.shell.studio-app h3{font-family:"Manrope Variable",sans-serif;color:var(--ink)}
+.shell.studio-app .primary-button{background:#172b4d;color:#f6f0e4}
+.shell.studio-app .primary-button:hover{background:#243e6b}
+.shell.studio-app .secondary-button{background:var(--gold-soft);color:#172b4d}
+.shell.studio-app .studio-theme-switch{min-height:44px;min-width:44px;padding:10px 16px;border-radius:999px;border:1px solid #c4a15a;background:#fffdf8;color:#172b4d;font-weight:700}
+.shell.studio-app :is(.panel,.stat,.module-card){background:var(--panel);color:var(--ink);border-color:var(--line)}
+.shell.studio-app :is(input,textarea,select){background:var(--panel);color:var(--ink);border-color:var(--line)}
+.shell.studio-app .crumb,.shell.studio-app .page-sub,.shell.studio-app .form-hint,.shell.studio-app .panel-desc{color:var(--muted)}
+
+.studio-home{display:grid;gap:22px;max-width:1080px}
+.studio-masthead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
+.shell.studio-app .studio-masthead .page-title{font-size:clamp(2rem,4vw,3.15rem);letter-spacing:-.045em;line-height:1.05;margin:6px 0 8px}
+.shell.studio-app .studio-masthead .page-sub{max-width:38rem;font-size:1.05rem;line-height:1.6}
+.studio-kicker{margin:0;font:700 11px/1.4 "DM Sans Variable",sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#8a6a2f}
+.studio-page-intro{margin-bottom:18px}
+.studio-office-links{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.studio-hero{display:grid;gap:14px;justify-items:start;padding:clamp(22px,3vw,36px);border-radius:22px;background:#fffdf8;border:1px solid #e4d3b5;border-top:3px solid #c4a15a;box-shadow:0 24px 60px rgba(23,43,77,.06)}
+.shell.studio-app .studio-hero h2{margin:0;max-width:18ch;font:650 clamp(1.8rem,3vw,2.6rem)/1.15 "Manrope Variable",sans-serif;letter-spacing:-.04em;color:#172b4d}
+.shell.studio-app .studio-hero p{margin:0;max-width:42rem;color:#3e4a63;font-size:1.05rem;line-height:1.6}
+.shell.studio-app .studio-hero .primary-button{background:#172b4d;color:#f6f0e4;min-height:48px;padding:12px 18px;font-size:14px}
+.studio-rail{display:flex;flex-wrap:wrap;gap:8px 18px;list-style:none;margin:4px 0 0;padding:0}
+.studio-rail li{font:650 13px/1 "Manrope Variable",sans-serif;color:#8d8376;letter-spacing:.01em}
+.studio-rail li.is-done{color:#172b4d}
+.studio-rail li.is-current{color:#172b4d;box-shadow:inset 0 -2px 0 #c4a15a;padding-bottom:4px}
+.studio-book-list{display:grid;gap:12px}
+.studio-book-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:18px 20px}
+.shell.studio-app .studio-book-row strong{display:block;margin-top:6px;font:650 1.15rem "Manrope Variable",sans-serif;letter-spacing:-.02em}
+.studio-book-row p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.5}
+.studio-stage-pill{display:inline-flex;align-items:center;min-height:26px;padding:0 8px;border-radius:999px;background:#f3e4c4;color:#172b4d;font:700 11px/1 "DM Sans Variable",sans-serif;letter-spacing:.08em;text-transform:uppercase}
+.studio-empty{padding:22px;font-size:1.05rem;line-height:1.6}
+.studio-queue h2{font:650 1.1rem "Manrope Variable",sans-serif}
+.writing-stage-navigation{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.writing-stage-navigation .stage-guidance{flex:1 1 220px;margin:0}
+
+:root[data-theme="dark"] .shell.studio-app>.sidebar{background:#0c1424}
+:root[data-theme="dark"] .shell.studio-app .nav-item.active{background:#e2c27a;color:#17233f !important}
+:root[data-theme="dark"] .shell.studio-app .brand-name,
+:root[data-theme="dark"] .shell.studio-app .nav-item,
+:root[data-theme="dark"] .shell.studio-app .nav-label,
+:root[data-theme="dark"] .shell.studio-app .brand-sub,
+:root[data-theme="dark"] .shell.studio-app .studio-identity strong{color:#f4efe6 !important}
+:root[data-theme="dark"] .shell.studio-app .studio-identity span{color:#e2c27a !important}
+:root[data-theme="dark"] .shell.studio-app .nav-item.active,
+:root[data-theme="dark"] .shell.studio-app .nav-item.active *{color:#17233f !important}
+:root[data-theme="dark"] .shell.studio-app .studio-theme-switch{background:#18243a;color:#f4efe6;border-color:#e2c27a}
+:root[data-theme="dark"] .shell.studio-app .primary-button{background:#e2c27a;color:#17233f}
+:root[data-theme="dark"] .shell.studio-app .secondary-button{background:#3a3120;color:#f4efe6}
+:root[data-theme="dark"] .shell.studio-app .studio-hero{background:#243246;border-color:#4d617f;border-top-color:#e2c27a;box-shadow:none}
+:root[data-theme="dark"] .shell.studio-app .studio-hero h2,
+:root[data-theme="dark"] .shell.studio-app .studio-hero .studio-rail li.is-current,
+:root[data-theme="dark"] .shell.studio-app .studio-hero .studio-rail li.is-done{color:#f7f1e6 !important}
+:root[data-theme="dark"] .shell.studio-app .studio-hero p{color:#f0e6d4 !important}
+:root[data-theme="dark"] .shell.studio-app .studio-hero .primary-button{background:#e2c27a !important;color:#17233f !important}
+:root[data-theme="dark"] .shell.studio-app .studio-kicker,
+:root[data-theme="dark"] .shell.studio-app .studio-rail li{color:#cbbfaa}
+:root[data-theme="dark"] .shell.studio-app .studio-stage-pill{background:#3a3120;color:#f4efe6}
+:root[data-theme="dark"] .shell.studio-app .main,
+:root[data-theme="dark"] .shell.studio-app .panel,
+:root[data-theme="dark"] .shell.studio-app .stat,
+:root[data-theme="dark"] .shell.studio-app .module-card{background:var(--panel);color:var(--ink)}
+:root[data-theme="dark"] .shell.studio-app .workspace-stack :is(.panel,.template-card,.agent-card,.agent-detail,.memory-item,.empty-state,.local-notice,.prompt-preview,.layout-choice,.check-row,.status,.quality-reminder,.visual-placeholder,.workspace-stats>div,.tag-cloud span,.toggle-grid>label,.output-checks>label){
+  background:#18243a !important;color:#f4efe6 !important;border-color:#3d4d68 !important;
+}
+:root[data-theme="dark"] .shell.studio-app .workspace-stack :is(.workspace-heading p,.eyebrow-dark,.studio-field span,.studio-field small,.panel small,.panel-desc,.template-card em,.template-card strong,.template-card small,.agent-detail h3,.memory-item small,.empty-state strong,.empty-state span,.incomplete-label,.toggle-grid label,.output-checks label,.prompt-preview,.local-notice,.workspace-stats strong,.workspace-stats span){
+  color:#e7dcc8 !important;
+}
+:root[data-theme="dark"] .shell.studio-app .sidebar-close{background:#18243a;color:#f4efe6;border-color:#3d4d68}
+
+/* Writing surface: a quiet page, not a form. */
+.shell.studio-app:has(.writing-stage-layout)>.main{padding-inline:clamp(12px,2vw,40px)}
+.shell.studio-app:has(.writing-stage-layout) .writing-workflow-summary{margin-bottom:8px;padding:14px 18px;background:transparent;border:0;box-shadow:none}
+.shell.studio-app:has(.writing-stage-layout) .brand-name,
+.shell.studio-app:has(.writing-stage-layout) .page-title,
+.shell.studio-app:has(.writing-stage-layout) .writing-workspace-heading h2{font-family:"Manrope Variable",sans-serif;color:var(--ink)}
+.shell.studio-app .writing-stage-layout .writing-workspace-heading{max-width:48rem;margin-inline:auto}
+.shell.studio-app .writing-stage-layout .writing-workspace-heading h2{font-size:clamp(2rem,3vw,2.7rem);letter-spacing:-.04em}
+.shell.studio-app .writing-stage-layout .writing-workspace-heading .form-hint{font-size:1rem;line-height:1.55}
+.shell.studio-app .writing-stage-layout .writing-studio-toolbar{border:0;background:transparent;justify-content:flex-start;max-width:48rem;margin:0 auto 8px;padding:0}
+.shell.studio-app .writing-stage-layout .book-layout-canvas{max-width:48rem;margin-inline:auto;gap:1.1rem}
+:root[data-theme="light"] .shell.studio-app .workspace-stack.writing-stage-layout .book-layout-canvas>li.draft-block-status,
+:root[data-theme="dark"] .shell.studio-app .workspace-stack.writing-stage-layout .book-layout-canvas>li.draft-block-status{border:1px solid #eadfce !important;background:#fffdf8 !important;color:#17233f !important;border-radius:18px;padding:8px 22px 18px !important;box-shadow:0 16px 40px rgba(23,43,77,.05)}
+:root[data-theme="dark"] .shell.studio-app .workspace-stack.writing-stage-layout .book-layout-canvas>li.draft-block-status{background:#1c283d !important;color:#f4efe6 !important;border-color:#3d4d68 !important;box-shadow:none}
+:root[data-theme="light"] .shell.studio-app .workspace-stack.writing-stage-layout .writing-studio-shell.is-focused .card-status-label,
+:root[data-theme="dark"] .shell.studio-app .workspace-stack.writing-stage-layout .writing-studio-shell.is-focused .card-status-label{background:transparent !important;border-color:transparent !important;color:#8d8376 !important;box-shadow:none !important}
+.pdf-manuscript-import>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:650 1.05rem "Manrope Variable",sans-serif}
+.shell.studio-app .writing-stage-layout .editor-selection-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.shell.studio-app .writing-stage-layout [data-preview-selected="true"]{box-shadow:inset 3px 0 0 #c4a15a, 0 16px 40px rgba(23,43,77,.05) !important}
+.shell.studio-app .writing-studio-shell.is-focused .draft-format-details{display:none}
+:root[data-theme="light"] .shell.studio-app .writing-studio-shell.is-focused .card-status-label,
+:root[data-theme="dark"] .shell.studio-app .writing-studio-shell.is-focused .card-status-label{background:transparent !important;border:0 !important;color:#8d8376 !important;box-shadow:none !important}
+.shell.studio-app .writing-studio-shell.is-focused .card-status-label{background:transparent !important;color:#8d8376 !important;border:0 !important;box-shadow:none !important;font-weight:600}
+.shell.studio-app .writing-stage-layout textarea[data-draft-block],
+.fullscreen-writing-editor textarea[data-draft-block]{
+  font-family:"DM Sans Variable",sans-serif;
+  font-size:1.2rem;
+  line-height:1.85;
+  min-height:12rem;
+  padding:1rem 0.2rem;
+  background:transparent;
+  border:0;
+  border-radius:0;
+}
+.shell.studio-app .writing-stage-layout textarea[data-draft-block][rows="2"],
+.fullscreen-writing-editor textarea[data-draft-block][rows="2"]{
+  min-height:3.2rem;
+  font-family:"Manrope Variable",sans-serif;
+  font-size:1.35rem;
+  font-weight:700;
+  line-height:1.35;
+}
+.shell.studio-app .writing-stage-layout .writing-studio-shell.is-focused:not(.is-split),
+.fullscreen-writing-editor .writing-studio-shell.is-focused:not(.is-split){grid-template-columns:minmax(0,1fr)}
+.fullscreen-writing-editor{background:var(--bg);color:var(--ink)}
+.fullscreen-writing-editor .writing-preview-paper{background:#fbf6ec;color:#17233f}
+:root[data-theme="dark"] .fullscreen-writing-editor{--bg:#10182b;--panel:#18243a;--ink:#f4efe6;--muted:#cbbfaa;--line:#3d4d68}
+:root[data-theme="dark"] .shell.studio-app .writing-stage-layout .book-layout-canvas>li{background:#18243a !important;box-shadow:none;border:1px solid #3d4d68 !important}
+:root[data-theme="dark"] .shell.studio-app .writing-stage-layout textarea[data-draft-block],
+:root[data-theme="dark"] .fullscreen-writing-editor textarea[data-draft-block]{color:#f4efe6}
+:root[data-theme="dark"] .shell.studio-app .writing-studio-shell.is-focused .card-status-label{color:#cbbfaa !important}
+@media (prefers-reduced-motion: no-preference){
+  .studio-hero{animation:studio-rise .35s ease both}
+}
+@keyframes studio-rise{from{transform:translateY(6px)}to{transform:none}}
+
+.shell.studio-app .reviewer-workspace,
+.reviewer-workspace{
+  --review-surface:var(--panel);
+  --review-input:var(--panel);
+  --review-text:var(--ink);
+  --review-muted:var(--muted);
+  --review-line:var(--line);
+  --review-subtle:var(--gold-soft);
+  --review-accent:#8a6a2f;
+  max-width:none;
+  padding:0;
+}
+.shell.studio-app .isbn-office,
+.shell.studio-app .guide-workspace,
+.shell.studio-app .print-workspace{color:var(--ink)}
+
+@media(max-width:760px){
+  .shell.studio-app{grid-template-columns:1fr}
+  .shell.studio-app>.main{padding:16px 12px 36px}
+  .studio-book-row{grid-template-columns:1fr}
+  .studio-book-row .secondary-button,.studio-hero .primary-button{width:100%}
+  .studio-masthead{align-items:stretch}
+  .studio-office-links>*{flex:1 1 140px}
+}
+@media(min-width:1280px){
+  .shell.studio-app>.main{padding-inline:clamp(28px,4vw,72px)}
+}
+@media(max-width:390px){
+  .shell.studio-app .studio-workflow-actions{grid-template-columns:1fr}
+  .shell.studio-app .top-actions{width:100%}
+}
