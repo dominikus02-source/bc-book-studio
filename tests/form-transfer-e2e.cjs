@@ -23,7 +23,7 @@ async function login(ctx,email){const res=await ctx.request.post(origin+"/api/au
   await redirectPage.waitForURL(url=>url.pathname==="/login"&&url.searchParams.get("module")==="Kurikulum",{timeout:15000});
   await redirectPage.getByLabel("Alamat email").fill(users[0].email);
   await redirectPage.getByLabel("Kata sandi").fill(password);
-  await redirectPage.getByRole("button",{name:/Masuk ke Studio/}).click();
+  await redirectPage.getByRole("button",{name:/masuk ke studio/i}).click();
   await redirectPage.waitForURL(url=>url.pathname==="/studio"&&url.searchParams.get("module")==="Kurikulum",{timeout:15000});
   await redirectPage.locator(".form-draft-manager").waitFor({state:"visible",timeout:15000});
   await redirectContext.close();

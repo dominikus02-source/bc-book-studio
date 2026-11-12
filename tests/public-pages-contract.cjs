@@ -48,6 +48,10 @@ test("public pages share the landing theme control and boot", () => {
 
 test("public copy stays inside known product limits", () => {
   assert.match(auth, /Masuk ke studio/);
+  const transfer = read("tests/form-transfer-e2e.cjs");
+  assert.match(transfer, /\/masuk ke studio\/i/);
+  assert.match("Masuk ke studio", /masuk ke studio/i);
+  assert.match("Masuk ke Studio", /masuk ke studio/i);
   assert.match(auth, /Aktivasi akun/);
   assert.match(auth, /Lupa kata sandi/);
   assert.match(auth, /30 menit/);
