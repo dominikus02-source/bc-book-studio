@@ -2,13 +2,14 @@ import {NextRequest,NextResponse} from "next/server";
 import {db} from "../../../lib/db";
 import {sessionUser,deny} from "../../../lib/auth";
 import {reviewSubmissionMissing} from "../../../lib/review-readiness";
+import {isManuscriptReviewerRole,manuscriptVisibilityWhere} from "../../../lib/manuscript-access";
 export const runtime="nodejs";
 
 export async function GET(req:NextRequest){
  const actor=await sessionUser(req);if(!actor)return deny();
- const reviewer=["REVIEWER","ADMIN"].includes(actor.role);
+ const reviewer=isManuscriptReviewerRole(actor.role);
  const books=await db.book.findMany({
-  where:{archivedAt:null,OR:[{ownerId:actor.id},...(reviewer?[{assignedReviewers:{some:{reviewerId:actor.id}}}]:[])]},
+  where:manuscriptVisibilityWhere(actor),
   orderBy:{updatedAt:"desc"},
   include:{
    chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},

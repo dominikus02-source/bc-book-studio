@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../../../lib/manuscript-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string;assetId:string}>};
 const error=(message:string,status:number,code?:string)=>NextResponse.json({error:message,...(code?{code}:{})},{status,headers:{"Cache-Control":"no-store"}});
@@ -17,7 +18,7 @@ const metadata=(a:{name:string;altText:string;license:string;sourceUrl:string|nu
 export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id,assetId}=await params;
- const where=["REVIEWER","ADMIN"].includes(actor.role)?{id,archivedAt:null,OR:[{ownerId:actor.id},{assignedReviewers:{some:{reviewerId:actor.id}}}]}:{id,ownerId:actor.id,archivedAt:null};
+ const where=manuscriptVisibilityWhere(actor,{id});
  const book=await db.book.findFirst({where,select:{id:true}});if(!book)return error("Not found",404);
  const asset=await db.bookAsset.findFirst({where:{id:assetId,bookId:id,archivedAt:null}});
  if(!asset)return error("Not found",404);

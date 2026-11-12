@@ -6,6 +6,7 @@ import {checkpointsFor} from "../../../../../lib/editorial";
 import {briefMissing} from "../../../../../lib/workflow";
 import {referencedAssets} from "../../../../../lib/approval-snapshot";
 import {resolvedPublishingPackage,publishingSequence} from "../../../../../lib/publishing-package";
+import {canDecideReview} from "../../../../../lib/manuscript-access";
 export const runtime="nodejs";
 const fail=(error:string,status:number)=>NextResponse.json({error},{status});
 export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -32,11 +33,9 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    const assignmentCount=await tx.bookReviewer.count({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:["REVIEWER","ADMIN"]}}}});
    if(!assignmentCount)return fail("Assign independent reviewer",409);
   }else{
-   if(!["REVIEWER","ADMIN"].includes(actor.role)||actor.id===book.ownerId)return fail("Not authorized",403);
    const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:["REVIEWER","ADMIN"]}},select:{id:true}});
-   if(!eligible)return fail("Reviewer is no longer active",403);
    const assigned=await tx.bookReviewer.findUnique({where:{bookId_reviewerId:{bookId:id,reviewerId:actor.id}}});
-   if(!assigned)return fail("Not authorized",403);
+   if(!eligible||!canDecideReview(actor,book,Boolean(assigned)))return fail("Not authorized",403);
    if(book.status!=="REVIEW")return fail("Invalid transition",409);
    if(!note.trim())return fail("Review note required",400);
    if(action==="approve"&&await tx.reviewerNote.count({where:{bookId:id,severity:{in:["CRITICAL","MAJOR"]},status:"OPEN"}}))return fail("Selesaikan semua temuan MAJOR dan CRITICAL sebelum persetujuan akhir.",409);

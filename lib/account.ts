@@ -15,6 +15,22 @@ export const checkPassword = (password:string,stored:string) => {
  const got=scryptSync(password,salt,64);
  return timingSafeEqual(expected,got);
 };
+// One well-formed hash so a missing, inactive, or passwordless account still pays the scrypt cost.
+const loginTimingHash = passwordHash("bc-book-studio-login-timing-pad");
+export const ACCOUNT_RECOVERY_MESSAGE = "Jika alamat email terdaftar, instruksi akan dikirim.";
+/** Delivery failure must not change the public reply. Registration stays undisclosed. */
+export function accountRecoveryResult(_deliveryFailed = false) {
+ return { status: 200 as const, body: { message: ACCOUNT_RECOVERY_MESSAGE } };
+}
+export function smtpConfigured() {
+ const { SMTP_USER, SMTP_APP_PASSWORD, SMTP_FROM } = process.env;
+ return Boolean(SMTP_USER && SMTP_APP_PASSWORD && SMTP_FROM);
+}
+export function loginPasswordAccepted(user: { active: boolean; passwordHash: string | null } | null, password: string) {
+ const stored = user?.active && user.passwordHash ? user.passwordHash : loginTimingHash;
+ const matches = checkPassword(password, stored);
+ return Boolean(user?.active && user.passwordHash && matches);
+}
 export async function createOneTimeToken(userId:string,purpose:"activate"|"reset") {
  const token=randomToken();
  await db.$transaction([

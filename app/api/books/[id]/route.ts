@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "../../../../lib/db";
 import { identity, deny, sessionUser } from "../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../lib/manuscript-access";
 export const runtime = "nodejs";
 const briefFields=["title","subject","description","targetAudience","writingGoal","bookType","genre"] as const;
 const edit=z.object({
@@ -28,7 +29,7 @@ export async function GET(req:NextRequest,{params}:Ctx){
   const book=await db.book.findFirst({where:{id,ownerId:user.id,archivedAt:null},select:{briefRevisions:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:50}}});
   return book?NextResponse.json({history:book.briefRevisions},{headers:{"Cache-Control":"no-store"}}):fail("Book not found",404);
  }
- const where=["REVIEWER","ADMIN"].includes(user.role)?{id,archivedAt:null,OR:[{ownerId:user.id},{assignedReviewers:{some:{reviewerId:user.id}}}]}:{id,ownerId:user.id,archivedAt:null};
+ const where=manuscriptVisibilityWhere(user,{id});
  const book=await db.book.findFirst({where,include:{chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},reviews:true}});
  return book?NextResponse.json({book:{...book,isOwner:book.ownerId===user.id}},{headers:{"Cache-Control":"no-store"}}):fail("Book not found",404);
 }
