@@ -100,6 +100,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    description:nextDescription,
    targetAudience:book.targetAudience.trim()||("Peserta didik kelas "+book.grade),
    writingGoal:book.writingGoal.trim()||"Mengembangkan pemahaman materi berdasarkan naskah sumber yang diimpor dan ditinjau secara editorial.",
+   // Named shortcut, not workflow.transition: import may enter WRITING from Ide or Rancang.
    editorialStage:"WRITING",
   }});
   await tx.review.create({data:{bookId:id,decision:"pdf:import",note:"Impor "+parsed.length+" PDF menjadi "+created.length+" bab Markdown; sumber PDF diproses di memori dan tidak disimpan sebagai berkas."}});

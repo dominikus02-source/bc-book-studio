@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../../lib/manuscript-access";
 import {approvedManuscript} from "../../../../../lib/approval-snapshot";
 import {storedLayout} from "../../../../../lib/book-layout";
 import {PUBLISHING_EVIDENCE_KINDS,RELEASE_FORMATS,publicationReadiness,validIsbn13} from "../../../../../lib/publishing-readiness";
@@ -29,8 +30,9 @@ async function load(id:string){
 }
 export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await sessionUser(req);if(!actor)return deny();
- const {id}=await params;const data=await load(id);if(!data)return fail("Buku tidak ditemukan.",404);
- if(data.book.ownerId!==actor.id&&!(await db.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}})))return fail("Buku tidak ditemukan.",404);
+ const {id}=await params;
+ if(!await db.book.findFirst({where:manuscriptVisibilityWhere(actor,{id}),select:{id:true}}))return fail("Buku tidak ditemukan.",404);
+ const data=await load(id);if(!data)return fail("Buku tidak ditemukan.",404);
  return NextResponse.json({readiness:data.readiness,history:data.book.publishingEvidence,permissions:{canSubmit:data.book.ownerId===actor.id,canReview:actor.role==="ADMIN"&&actor.id!==data.book.ownerId&&Boolean(await db.bookReviewer.count({where:{bookId:id,reviewerId:actor.id}}))}},{headers});
 }
 export async function POST(req:NextRequest,{params}:Ctx){
@@ -38,6 +40,7 @@ export async function POST(req:NextRequest,{params}:Ctx){
  const parsed=inputSchema.safeParse(await req.json().catch(()=>null));
  if(!parsed.success)return fail("Bukti tidak valid: "+parsed.error.issues.map(e=>e.message).join("; "),400);
  const {id}=await params;const input=parsed.data;
+ if(!await db.book.findFirst({where:manuscriptVisibilityWhere(actor,{id}),select:{id:true}}))return fail("Buku tidak ditemukan.",404);
  return db.$transaction(async tx=>{
   await tx.$queryRaw`SELECT id FROM "Book" WHERE id=${id} FOR UPDATE`;
   const book=await tx.book.findFirst({where:{id,archivedAt:null},include:{chapters:{where:{archivedAt:null}}}});

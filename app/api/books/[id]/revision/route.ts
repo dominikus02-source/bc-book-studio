@@ -4,6 +4,7 @@ import {createHash} from "node:crypto";
 import {snapshotSchema} from "../../../../../lib/approval-snapshot";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../../lib/manuscript-access";
 export const runtime="nodejs";
 const input=z.object({expectedVersion:z.string().datetime({offset:true}),confirmed:z.literal(true)}).strict();
 export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){
@@ -30,7 +31,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
 
 export async function GET(req:NextRequest,{params}:{params:Promise<{id:string}>}){
  const actor=await sessionUser(req);if(!actor)return deny();const {id}=await params;
- const book=await db.book.findFirst({where:{id,archivedAt:null,OR:[{ownerId:actor.id},{assignedReviewers:{some:{reviewerId:actor.id}}}]},select:{id:true,title:true,status:true,updatedAt:true,approvedAt:true}});
+ const book=await db.book.findFirst({where:manuscriptVisibilityWhere(actor,{id}),select:{id:true,title:true,status:true,updatedAt:true,approvedAt:true}});
  if(!book)return NextResponse.json({error:"Buku tidak ditemukan."},{status:404});
  const rows=await db.bookApprovalSnapshot.findMany({where:{bookId:id},orderBy:{approvedAt:"desc"},take:50,include:{layout:{select:{version:true,archivedAt:true}}}});
  return NextResponse.json({book,approvals:rows.map(row=>{

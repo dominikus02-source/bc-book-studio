@@ -1,6 +1,7 @@
 import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import {briefGenreIssues} from "./genre-policy";
+import {stageRequiredBefore,workflowAdvanceAllowed} from "./stage-guard";
 
 const briefSelect = {
  id:true, approvedAt:true, status:true, editorialStage:true, title:true, subject:true, description:true,
@@ -54,8 +55,8 @@ export async function transition(bookId:string,to:"OUTLINE"|"WRITING",actor:{id:
   const book=await findOwnedBook(tx,bookId,actor.id);
   if(!book)return {status:404,body:{error:"Buku tidak ditemukan."}};
   const state=stageReadiness(book);
-  const from=to==="OUTLINE"?"BRIEF":"OUTLINE";
-  if(!state.ready||state.stage!==from)return {status:409,body:{...state,error:"Tahap ini belum dapat dilanjutkan."}};
+  const from=stageRequiredBefore(to);
+  if(!workflowAdvanceAllowed(state.stage,to,state.ready))return {status:409,body:{...state,error:"Tahap ini belum dapat dilanjutkan."}};
   const updated=await tx.book.updateMany({
    where:{id:bookId,ownerId:actor.id,status:"DRAFT",editorialStage:from,updatedAt:book.updatedAt},
    data:{editorialStage:to},

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sessionUser, deny } from "@/lib/auth";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 const statuses = ["DRAFT", "QUOTED", "APPROVED", "IN_PRODUCTION", "COMPLETED", "CANCELLED"] as const;
@@ -76,7 +77,10 @@ export async function PATCH(req: NextRequest) {
     const data = inputSchema.parse({ ...saved, ...body, bookId: saved.bookId });
     if (!transitions[saved.status].includes(data.status)) return NextResponse.json({ error: "Perubahan status tidak sesuai alur produksi." }, { status: 409 });
     if (["APPROVED", "IN_PRODUCTION", "COMPLETED"].includes(data.status) && (!data.printerName || !data.contact || data.unitPrice <= 0 || !data.dueDate)) return NextResponse.json({ error: "Persetujuan/produksi membutuhkan mitra, kontak, harga, dan tanggal selesai." }, { status: 422 });
-    const row = await db.studioFormDraft.update({ where: { id, ownerId: user.id, module: "PRINT_ORDER", updatedAt: old.updatedAt }, data: { title: book.title, payload: data } });
+    const changed = await db.studioFormDraft.updateMany({ where: { id, ownerId: user.id, module: "PRINT_ORDER", updatedAt: old.updatedAt }, data: { title: book.title, payload: data as Prisma.InputJsonValue } });
+    if (!changed.count) return conflict();
+    const row = await db.studioFormDraft.findFirst({ where: { id, ownerId: user.id, module: "PRINT_ORDER" } });
+    if (!row) return conflict();
     return NextResponse.json({ order: { id: row.id, title: row.title, ...data, updatedAt: row.updatedAt } });
   } catch (e) {
     if (typeof e === "object" && e && "code" in e && e.code === "P2025") return conflict();

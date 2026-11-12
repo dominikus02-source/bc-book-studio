@@ -3,14 +3,15 @@ import {z} from "zod";
 import {approvedManuscript} from "../../../../../lib/approval-snapshot";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../../lib/manuscript-access";
 import {packageSchema,publishingDefaults,publishingFields} from "../../../../../lib/publishing-package";
 export const runtime="nodejs";
 type Context={params:Promise<{id:string}>};
 const moduleFor=(id:string)=>"PUBLISHING_PACKAGE:"+id;
 const headers={"Cache-Control":"no-store"};
 const fail=(error:string,status:number)=>NextResponse.json({error},{status,headers});
-async function source(id:string,ownerId:string){
- return db.book.findFirst({where:{id,archivedAt:null,OR:[{ownerId},{assignedReviewers:{some:{reviewerId:ownerId}}}]},select:{
+async function source(id:string,actor:{id:string;role:string}){
+ return db.book.findFirst({where:manuscriptVisibilityWhere(actor,{id}),select:{
  id:true,ownerId:true,approvedAt:true,status:true,updatedAt:true,title:true,subject:true,grade:true,author:true,genre:true,bookType:true,
  targetAudience:true,writingGoal:true,description:true,
  chapters:{where:{archivedAt:null},orderBy:{position:"asc"},select:{title:true,content:true,outlineObjective:true}}
@@ -19,7 +20,7 @@ async function source(id:string,ownerId:string){
 export async function GET(req:NextRequest,{params}:Context){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;
- const book=await source(id,actor.id);if(!book)return fail("Buku tidak ditemukan.",404);
+ const book=await source(id,actor);if(!book)return fail("Buku tidak ditemukan.",404);
  const row=await db.studioFormDraft.findFirst({where:{ownerId:book.ownerId,module:moduleFor(id)},orderBy:{updatedAt:"desc"}});
  const defaults=publishingDefaults(book);
  const existing=packageSchema.partial().safeParse(row?.payload);
@@ -33,7 +34,7 @@ const writeSchema=z.object({data:packageSchema,expectedVersion:z.string().dateti
 export async function PUT(req:NextRequest,{params}:Context){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;
- const book=await source(id,actor.id);if(!book)return fail("Buku tidak ditemukan.",404);
+ const book=await source(id,actor);if(!book)return fail("Buku tidak ditemukan.",404);
  if(book.ownerId!==actor.id)return fail("Buku tidak ditemukan.",404);
  if(book.status!=="DRAFT")return fail("Paket penerbitan hanya dapat disunting saat DRAFT.",409);
  const parsed=writeSchema.safeParse(await req.json().catch(()=>null));
