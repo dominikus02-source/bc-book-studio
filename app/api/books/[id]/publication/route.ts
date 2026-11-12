@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {manuscriptVisibilityWhere} from "../../../../../lib/manuscript-access";
 import {applyLayout,storedLayout} from "../../../../../lib/book-layout";
 import {approvedManuscript} from "../../../../../lib/approval-snapshot";
 import {publicationReadiness} from "../../../../../lib/publishing-readiness";
@@ -15,7 +16,7 @@ const fail=(error:string,status:number)=>NextResponse.json({error},{status});
 export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;
- const book=await db.book.findFirst({where:{id,archivedAt:null,OR:[{ownerId:actor.id},{assignedReviewers:{some:{reviewerId:actor.id}}}]},include:{publication:true}});
+ const book=await db.book.findFirst({where:manuscriptVisibilityWhere(actor,{id}),include:{publication:true}});
  if(!book)return fail("Book not found",404);
  const p=book.publication;
  return NextResponse.json({publication:p?{version:p.version,publishedAt:p.publishedAt,unpublishedAt:p.unpublishedAt,publicUrl:p.unpublishedAt?null:"/read/"+id}:null},{headers:{"Cache-Control":"no-store"}});
