@@ -15,5 +15,6 @@ export default function ThemeShell({children}:{children:ReactNode}){
    return()=>{window.removeEventListener("storage",sync);window.removeEventListener("bc-theme-change",sync)};
  },[]);
  function toggle(){const mode=!dark;setDark(mode);document.documentElement.dataset.theme=mode?"dark":"light";localStorage.setItem("bcstudio-theme",mode?"dark":"light");}
- return <>{pathname!=="/studio"&&<button className="public-theme-switch" type="button" aria-label={dark?"Light: aktifkan tema terang":"Dark: aktifkan tema gelap"} aria-pressed={dark} onClick={toggle}><span aria-hidden="true">{dark?"☀":"☾"}</span><span>{dark?"Light":"Dark"}</span></button>}{children}</>;
+ const showPublicSwitch=pathname!=="/"&&pathname!=="/studio";
+ return <>{showPublicSwitch&&<button className="public-theme-switch" type="button" aria-label={dark?"Light: aktifkan tema terang":"Dark: aktifkan tema gelap"} aria-pressed={dark} onClick={toggle}><span aria-hidden="true">{dark?"☀":"☾"}</span><span>{dark?"Light":"Dark"}</span></button>}{children}</>;
 }

@@ -5,6 +5,9 @@ const path = require("node:path");
 
 const page = fs.readFileSync(path.join(__dirname, "../app/page.tsx"), "utf8");
 const header = fs.readFileSync(path.join(__dirname, "../components/landing-header.tsx"), "utf8");
+const css = fs.readFileSync(path.join(__dirname, "../app/landing.css"), "utf8");
+const layout = fs.readFileSync(path.join(__dirname, "../app/layout.tsx"), "utf8");
+const themeShell = fs.readFileSync(path.join(__dirname, "../app/theme-shell.tsx"), "utf8");
 const source = page + "\n" + header;
 
 test("landing page uses the existing auth entry points", () => {
@@ -21,6 +24,39 @@ test("landing page names the real workflow and export formats", () => {
   assert.match(source, /PT Bahasa Cerdas Indonesia/);
   assert.match(source, /pratinjau draf/i);
   assert.match(source, /snapshot persetujuan/);
+});
+
+test("landing theme toggle uses the studio theme and stays on the page tokens", () => {
+  assert.match(header, /Terang/);
+  assert.match(header, /Gelap/);
+  assert.match(header, /className="lp-theme"/);
+  assert.match(header, /aria-pressed/);
+  assert.match(header, /localStorage\.setItem\("bcstudio-theme"/);
+  assert.match(header, /prefers-color-scheme: dark/);
+  assert.match(header, /bc-theme-change/);
+  assert.match(header, /dataset\.theme/);
+  assert.match(layout, /bcstudio-theme/);
+  assert.match(layout, /prefers-color-scheme: dark/);
+  assert.match(layout, /pathname!=="\/"/);
+  assert.match(themeShell, /pathname!=="\/"&&pathname!=="\/studio"/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /\.lp-theme,\s*\.lp-menu\s*\{[^}]*min-height:\s*44px/);
+  for (const line of css.split("\n")) {
+    if (!line.includes("#")) continue;
+    assert.match(line, /--lp-[a-z0-9-]+\s*:/);
+  }
+  assert.doesNotMatch(css, /rgba?\(|\bhsl/);
+  for (const line of css.split("\n")) {
+    if (!/font-size\s*:/.test(line)) continue;
+    assert.match(line, /font-size:\s*var\(--lp-size-/);
+  }
+  assert.match(css, /--lp-size-kicker:\s*0\.75rem/);
+  assert.match(css, /--lp-size-meta:\s*0\.875rem/);
+  assert.match(css, /--lp-size-ui:\s*1rem/);
+  assert.match(css, /--lp-size-body:\s*1\.0625rem/);
+  assert.match(css, /--lp-size-h3:\s*1\.25rem/);
+  assert.match(css, /--lp-size-h2:\s*clamp\(1\.75rem, 3vw, 2\.25rem\)/);
+  assert.match(css, /--lp-size-h1:\s*clamp\(1\.875rem, 4\.2vw, 3rem\)/);
 });
 
 test("landing page does not claim the studio issues ISBN", () => {
