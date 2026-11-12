@@ -202,3 +202,19 @@
   .reviewer-standalone > .review-section-nav{grid-row:auto;grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}
   .reviewer-standalone > .review-section-nav ~ *{grid-column:1}
 }
+.reviewer-workspace{--review-surface:#fffdf8;--review-input:#fffdf8;--review-text:#17233f;--review-muted:#5c5348;--review-line:#e4d3b5;--review-subtle:#f3e4c4;--review-accent:#8a6a2f;font-family:"DM Sans Variable",sans-serif}
+:root[data-theme="dark"] .reviewer-workspace{--review-surface:#18243a;--review-input:#10182b;--review-text:#f4efe6;--review-muted:#cbbfaa;--review-line:#3d4d68;--review-subtle:#3a3120;--review-accent:#e2c27a}
+.reviewer-workspace h1,.reviewer-workspace h2,.reviewer-workspace h3{font-family:"Manrope Variable",sans-serif;letter-spacing:-.03em}
+.reviewer-workspace .reviewer-chapter-content{font-size:1.08rem;line-height:1.75}
+.reviewer-workspace .reviewer-primary{background:#172b4d;color:#f6f0e4;border:0;min-height:44px;border-radius:10px;padding:10px 16px;font-weight:700}
+:root[data-theme="dark"] .reviewer-workspace .reviewer-primary{background:#e2c27a;color:#17233f}
+.reviewer-workspace.review-v2 .review-v2-header{background:#fffdf8;color:#17233f;border:1px solid #e4d3b5;border-top:3px solid #c4a15a;box-shadow:none}
+.reviewer-workspace.review-v2 .review-v2-header,
+.reviewer-workspace.review-v2 .review-v2-header :is(h1,p){color:#17233f}
+.reviewer-workspace.review-v2 .review-v2-header .reviewer-eyebrow{color:#8a6a2f}
+.reviewer-workspace.review-v2 .review-v2-header button{background:#f3e4c4;color:#172b4d;border-color:#e4d3b5}
+:root[data-theme="dark"] .reviewer-workspace.review-v2 .review-v2-header{background:#18243a;border-color:#3d4d68;border-top-color:#e2c27a}
+:root[data-theme="dark"] .reviewer-workspace.review-v2 .review-v2-header,
+:root[data-theme="dark"] .reviewer-workspace.review-v2 .review-v2-header :is(h1,p){color:#f4efe6}
+:root[data-theme="dark"] .reviewer-workspace.review-v2 .review-v2-header .reviewer-eyebrow{color:#e2c27a}
+:root[data-theme="dark"] .reviewer-workspace.review-v2 .review-v2-header button{background:#3a3120;color:#f4efe6;border-color:#3d4d68}

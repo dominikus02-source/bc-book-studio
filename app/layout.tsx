@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import ThemeShell from "./theme-shell";
 import "./globals.css";
 import "../components/settings-control.css";
+import "./studio/studio-theme.css";
 export const metadata: Metadata = {
   title: "BC Book Studio — Ekosistem Penerbitan Cerdas",
   description: "Studio produksi buku pendidikan dan literasi berbantuan kecerdasan buatan.",
