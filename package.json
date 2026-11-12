@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "postbuild": "node --test tests/pdfjs-standalone-worker.test.cjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:ai-providers": "node --test tests/provider-compat.test.cjs tests/usage-limits.test.cjs",
