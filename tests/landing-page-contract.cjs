@@ -4,10 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const page = fs.readFileSync(path.join(__dirname, "../app/page.tsx"), "utf8");
-const header = fs.readFileSync(path.join(__dirname, "../components/landing-header.tsx"), "utf8");
+const header = fs.readFileSync(path.join(__dirname, "../components/landing-header.tsx"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "../components/theme-toggle.tsx"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../app/landing.css"), "utf8");
 const layout = fs.readFileSync(path.join(__dirname, "../app/layout.tsx"), "utf8");
 const themeShell = fs.readFileSync(path.join(__dirname, "../app/theme-shell.tsx"), "utf8");
+const publicPaths = fs.readFileSync(path.join(__dirname, "../lib/public-theme-paths.ts"), "utf8");
 const source = page + "\n" + header;
 
 test("landing page uses the existing auth entry points", () => {
@@ -37,8 +38,9 @@ test("landing theme toggle uses the studio theme and stays on the page tokens", 
   assert.match(header, /dataset\.theme/);
   assert.match(layout, /bcstudio-theme/);
   assert.match(layout, /prefers-color-scheme: dark/);
-  assert.match(layout, /pathname!=="\/"/);
-  assert.match(themeShell, /pathname!=="\/"&&pathname!=="\/studio"/);
+  assert.match(layout, /EDITORIAL_PUBLIC_PATHS/);
+  assert.match(publicPaths, /"\/"/);
+  assert.match(themeShell, /pathname!=="\/studio"&&!isEditorialPublicPath\(pathname\)/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /\.lp-theme,\s*\.lp-menu\s*\{[^}]*min-height:\s*44px/);
   for (const line of css.split("\n")) {

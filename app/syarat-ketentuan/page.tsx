@@ -1,24 +1,45 @@
-﻿import Link from "next/link";
+﻿import type { Metadata } from "next";
+import Link from "next/link";
+import PublicHeader from "@/components/public-header";
 
-export const metadata={title:"Syarat dan Ketentuan | BC Book Studio",robots:{index:false,follow:false}};
+export const metadata: Metadata = {
+  title: "Syarat dan Ketentuan | BC Book Studio",
+  robots: { index: false, follow: false },
+};
 
-const sections=[
- ["Layanan dan ruang lingkup","BC Book Studio membantu tim menyiapkan, meninjau, dan mengekspor buku, LKPD/LKS, dan panduan guru. Ketentuan ini berlaku bagi anggota tim dan reviewer yang diberi akses oleh PT Bahasa Cerdas Indonesia. Pada lingkungan staging, gunakan data dummy atau materi yang diizinkan untuk pengujian."],
- ["Akun dan kewenangan","Gunakan akun sendiri dan jaga kerahasiaan akses. Pemilik proyek bertanggung jawab atas pemberian akses. Reviewer hanya boleh mengakses proyek yang menjadi kewenangannya dan wajib menjaga kerahasiaan naskah serta kunci jawaban."],
- ["Hak atas naskah dan aset","Hak atas materi tetap pada pemegang haknya. Pengguna memberi izin terbatas kepada pengelola untuk menyimpan, memproses, menampilkan kepada pihak berwenang, dan mengekspor materi sesuai tindakan pengguna. Pastikan izin mencakup gambar, font, kutipan, video, dan penggunaan yang direncanakan."],
- ["Penggunaan AI dan mode suara","Pengguna memilih kapan mengirim konteks ke penyedia AI. Hasil AI adalah usulan yang perlu diperiksa, khususnya fakta, sumber, perhitungan, dan hak penggunaan. Mode suara memerlukan aktivasi. Dikte dapat diproses oleh layanan browser sesuai perangkat dan pengaturannya."],
- ["Data dan kerahasiaan","Unggah hanya data yang diperlukan. Gunakan data sintetis untuk murid dan hindari memasukkan informasi pribadi atau rahasia ke prompt. Ikuti kebijakan internal tim untuk penggunaan penyedia AI, penyimpanan berkas, dan permintaan terkait data. Hubungi administrator Studio jika ada data yang perlu dikoreksi atau dihapus."],
- ["Review, ekspor, dan publikasi","Draf dan pratinjau digunakan untuk pemeriksaan. Tim penerbit memverifikasi izin, kunci jawaban, versi produk, aksesibilitas, dan proof sebelum rilis. Ekspor Studio tidak merupakan penerbitan ISBN, sertifikasi PDF, atau persetujuan percetakan."],
- ["QR dan layanan eksternal","Periksa tujuan QR dan tautan sebelum mencetak. Video, penyedia AI, serta layanan eksternal dapat memiliki ketentuan, pengaturan privasi, dan ketersediaan tersendiri."],
- ["Penggunaan yang dilarang","Dilarang mengakses proyek tanpa izin, menyebarkan kunci atau naskah terbatas, mengunggah materi yang melanggar hak pihak lain, atau mengganggu keamanan layanan. Akses dapat dibatasi untuk melindungi pengguna dan data, sesuai hukum yang berlaku."],
- ["Perubahan, pengaduan, dan hak pengguna","Perubahan material perlu diumumkan melalui kanal yang dapat diakses pengguna. Pengaduan hak cipta, privasi, akses, dan koreksi dapat disampaikan kepada administrator BC Book Studio melalui kanal internal tim. Ketentuan ini tidak mengurangi hak yang diberikan oleh hukum yang berlaku."],
+const sections = [
+  ["Layanan dan ruang lingkup", "BC Book Studio membantu tim internal PT Bahasa Cerdas Indonesia menyiapkan, meninjau, dan mengekspor naskah. Lima tahap di studio adalah Ide, Rancang, Tulis, Review, dan Terbit. Berkas yang dapat disiapkan: PDF, DOCX, EPUB, HTML, dan flipbook. Ketentuan ini berlaku bagi anggota tim dan reviewer yang diberi akses. Pada lingkungan percobaan, gunakan data dummy atau materi yang diizinkan untuk pengujian."],
+  ["Akun dan kewenangan", "Tidak ada pendaftaran umum. Akun dibuka lewat undangan pengelola studio. Gunakan akun sendiri dan jaga kerahasiaan kata sandi. Tautan aktivasi dan pemulihan berlaku 30 menit dan sekali pakai. Pemilik proyek bertanggung jawab atas pemberian akses. Reviewer hanya boleh mengakses proyek yang menjadi tugasnya dan wajib menjaga kerahasiaan naskah."],
+  ["Hak atas naskah dan aset", "Hak atas materi tetap pada pemegang haknya. Pengguna memberi izin terbatas kepada pengelola untuk menyimpan, memproses, menampilkan kepada pihak yang berwenang, dan mengekspor materi sesuai tindakan pengguna. Pastikan izin mencakup gambar, font, kutipan, dan penggunaan yang direncanakan."],
+  ["Penggunaan AI", "Bantuan AI, bila dipakai, hanya usulan yang harus diperiksa manusia, khususnya fakta, sumber, perhitungan, dan hak penggunaan. Studio tidak menggantikan keputusan reviewer."],
+  ["Data dan kerahasiaan", "Unggah hanya data yang diperlukan. Hindari memasukkan informasi pribadi yang tidak dibutuhkan ke naskah atau permintaan AI. Ikuti kebijakan internal tim untuk penyedia AI, penyimpanan berkas, dan permintaan terkait data. Hubungi administrator studio jika ada data yang perlu dikoreksi."],
+  ["Review, ekspor, dan publikasi", "Sebelum ada persetujuan, unduhan adalah pratinjau draf. Setelah disetujui, ekspor memakai snapshot persetujuan. Studio tidak membuat ISBN, barcode, atau Katalog Dalam Terbitan, dan tidak mengirim permohonan ke portal Perpusnas. Ekspor tidak berarti berkas sudah lulus EPUBCheck, PDF/UA, atau pemeriksaan percetakan."],
+  ["Tautan dan layanan eksternal", "Periksa tujuan tautan sebelum dibagikan atau dicetak. Penyedia AI dan layanan di luar studio dapat memiliki ketentuan dan ketersediaan tersendiri."],
+  ["Penggunaan yang dilarang", "Dilarang mengakses proyek tanpa izin, menyebarkan naskah terbatas, mengunggah materi yang melanggar hak pihak lain, atau mengganggu keamanan layanan. Akses dapat dibatasi untuk melindungi pengguna dan data."],
+  ["Perubahan dan pengaduan", "Perubahan material perlu disampaikan lewat kanal yang dapat diakses pengguna. Pengaduan hak cipta, privasi, dan koreksi dapat disampaikan kepada administrator BC Book Studio melalui kanal internal tim. Halaman ini tidak mengurangi hak yang diberikan oleh hukum yang berlaku, dan bukan pengganti telaah hukum atas badan hukum penerbit."],
 ] as const;
 
-export default function TermsPage(){
- return <main style={{maxWidth:800,margin:"0 auto",padding:"clamp(16px,4vw,40px)",overflowWrap:"anywhere"}}>
-  <Link href="/">Kembali ke Beranda</Link>
-  <h1>Syarat dan Ketentuan BC Book Studio</h1>
-  <p><strong>Penggunaan internal PT Bahasa Cerdas Indonesia.</strong> Akses diberikan kepada anggota tim dan reviewer yang ditugaskan.</p>
-  {sections.map(([title,body])=><section key={title}><h2>{title}</h2><p>{body}</p></section>)}
- </main>;
+export default function TermsPage() {
+  return (
+    <div className="lp">
+      <PublicHeader />
+      <main className="lp-terms">
+        <p className="lp-kicker">PT Bahasa Cerdas Indonesia</p>
+        <h1>Syarat dan Ketentuan</h1>
+        <p className="lp-lede">Penggunaan internal studio. Akses diberikan kepada anggota tim dan reviewer yang ditugaskan, bukan kepada pendaftar umum.</p>
+        {sections.map(([title, body]) => (
+          <section key={title}>
+            <h2>{title}</h2>
+            <p>{body}</p>
+          </section>
+        ))}
+        <nav className="lp-terms-links" aria-label="Halaman terkait">
+          <Link href="/">Beranda</Link>
+          <Link href="/login">Masuk</Link>
+          <Link href="/activate">Aktivasi akun</Link>
+          <Link href="/forgot-password">Lupa kata sandi</Link>
+        </nav>
+      </main>
+    </div>
+  );
 }

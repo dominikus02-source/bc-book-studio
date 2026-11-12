@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState,type ReactNode} from "react";
 import {usePathname} from "next/navigation";
+import {isEditorialPublicPath} from "@/lib/public-theme-paths";
 export default function ThemeShell({children}:{children:ReactNode}){
  const pathname=usePathname();
  const [dark,setDark]=useState(false);
@@ -15,6 +16,6 @@ export default function ThemeShell({children}:{children:ReactNode}){
    return()=>{window.removeEventListener("storage",sync);window.removeEventListener("bc-theme-change",sync)};
  },[]);
  function toggle(){const mode=!dark;setDark(mode);document.documentElement.dataset.theme=mode?"dark":"light";localStorage.setItem("bcstudio-theme",mode?"dark":"light");}
- const showPublicSwitch=pathname!=="/"&&pathname!=="/studio";
+ const showPublicSwitch=pathname!=="/studio"&&!isEditorialPublicPath(pathname);
  return <>{showPublicSwitch&&<button className="public-theme-switch" type="button" aria-label={dark?"Light: aktifkan tema terang":"Dark: aktifkan tema gelap"} aria-pressed={dark} onClick={toggle}><span aria-hidden="true">{dark?"☀":"☾"}</span><span>{dark?"Light":"Dark"}</span></button>}{children}</>;
 }

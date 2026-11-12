@@ -1,3 +1,14 @@
 import { Suspense } from "react";
 import AuthPanel from "../auth-panel";
-export default function Page(){return <Suspense fallback={<main className="auth-screen">Memuat...</main>}><AuthPanel mode="forgot-password"/></Suspense>}
+import PublicHeader from "@/components/public-header";
+
+export default function Page() {
+  return (
+    <div className="lp">
+      <PublicHeader />
+      <Suspense fallback={<main className="lp-auth"><p>Memuat...</p></main>}>
+        <AuthPanel mode="forgot-password" />
+      </Suspense>
+    </div>
+  );
+}
