@@ -13,5 +13,5 @@ export default async function StudioPage({searchParams}:{searchParams:Promise<{m
  const tokenHash=createHash("sha256").update(token).digest("hex");
  const session=await db.studioSession.findUnique({where:{tokenHash},include:{user:true}});
  if(!session || session.expiresAt<=new Date() || !session.user.active) redirect(loginHref);
- return <Dashboard role={session.user.role}/>;
+ return <Dashboard role={session.user.role} name={session.user.name}/>;
 }

@@ -228,14 +228,14 @@ export default function DraftBlockCanvas({bookId,chapters,bookContext="",initial
   finally{setAdding(false)}
  }
  return <section className="panel layout-output writing-workspace" role="region" aria-label="Kanvas naskah draf" style={{fontFamily:"DM Sans Variable, sans-serif"}}>
-  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Studio Penulisan</h2><p className="form-hint">Fokus pada naskah. Konten tersimpan otomatis ke database saat valid dan dapat dipulihkan melalui riwayat revisi.</p></div><span>{chapters.length} bab</span></div>
+  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Naskah</h2><p className="form-hint">Tulis di sini. Perubahan yang valid tersimpan sendiri dan tetap bisa dipulihkan.</p></div><span>{chapters.length} bab</span></div>
   <details className="writing-chapter-manager"><summary>Kelola bab · tambah dan pilih bab</summary>
    <div className="writing-chapter-list">{chapters.map((c,i)=><div className="writing-chapter-item" key={c.id}><button type="button" className={c.id===chapter?.id?"primary-button":"secondary-button"} disabled={adding||pending} onClick={()=>setSelected(c.id)}>{i+1}. {c.title}</button><button type="button" className="secondary-button" aria-label={"Arsipkan "+c.title} title={"Arsipkan "+c.title} disabled={adding||pending} onClick={()=>void archiveChapter(c)}>Arsip</button></div>)}</div>
    <form onSubmit={event=>{event.preventDefault();void createChapter()}} className="writing-chapter-create"><label className="studio-field"><span>Bab baru</span><input value={newTitle} maxLength={180} onChange={e=>setNewTitle(e.target.value)} placeholder="Judul bab berikutnya"/></label><button className="primary-button" type="submit" disabled={adding||pending||newTitle.trim().length<2}>{adding?"Membuat…":"Tambah bab"}</button></form>
    {chapterError&&<p role="alert">{chapterError}</p>}
   </details>
   {chapter?<DraftChapterCanvas key={chapter.id} bookId={bookId} chapter={chapter} chapters={chapters} bookContext={bookContext} onSelect={setSelected} onChanged={onChanged} onPendingChange={setPending}/>
-   :<p>Tambahkan bab dari Rancang atau Studio Penulisan untuk mulai mengedit.</p>}
+   :<p className="writing-invite">Belum ada bab. Tambah satu judul, lalu tulis kalimat pertama.</p>}
  </section>;
 }
 type DraftEdit={title:string;blocks:Block[]};
@@ -272,7 +272,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
  const [error,setError]=useState("");
  const [busy,setBusy]=useState(false);
  const [drag,setDrag]=useState<string|null>(null);
- const [view,setView]=useState<"editor"|"split"|"preview">("split");
+ const [view,setView]=useState<"editor"|"split"|"preview">("editor");
  const [previewPaper,setPreviewPaper]=useState("a4");
  const [previewScope,setPreviewScope]=useState<"chapter"|"all">("chapter");
  const [styleScope,setStyleScope]=useState<"all"|"chapter">("all");
@@ -298,7 +298,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
   setPrefsLoaded(true);
  },[bookId]);
  useEffect(()=>{if(!prefsLoaded)return;try{localStorage.setItem("bcstudio:reader:"+bookId,JSON.stringify(readerPrefs))}catch{}},[bookId,prefsLoaded,readerPrefs]);
- const [focus,setFocus]=useState(false);
+ const [focus,setFocus]=useState(true);
  const [libraryOpen,setLibraryOpen]=useState(false);
  const [tableRows,setTableRows]=useState(3);
  const [tableColumns,setTableColumns]=useState(3);
@@ -771,7 +771,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
       <label className="studio-field"><span>Sisipkan QR atau gambar dari pustaka</span><select aria-label="Sisipkan QR atau gambar dari pustaka" value="" disabled={!assets.length} onChange={e=>{const asset=assets.find(item=>item.id===e.target.value);if(asset)update(block.id,sidebarMarkdown(sidebar.type,sidebar.position,sidebar.body+"\n\n"+imageMarkdown(asset.altText,asset.id)))}}><option value="">Pilih gambar</option>{assets.map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}</select></label>
       <p className="form-hint">Gunakan Markdown untuk judul, daftar, tautan, dan kutipan. Unggah gambar QR melalui panel gambar sebelum menyisipkannya.</p>
      </div>:block.kind==="image"&&ref?<MediaImageEditor raw={block.raw} bookId={bookId} assets={assets} disabled={busy||Boolean(recovery)} onChange={raw=>update(block.id,raw)} onUploaded={asset=>setAssets(current=>[asset,...current.filter(item=>item.id!==asset.id)])}/>:block.kind==="video"?<MediaVideoEditor raw={block.raw} disabled={busy||Boolean(recovery)} onChange={raw=>update(block.id,raw)}/>:<label className="studio-field"><span>Isi {labels[block.kind].toLowerCase()} {index+1}</span>
-      <textarea data-draft-block={block.id} rows={block.kind==="heading"?2:4} value={contentValue(block)} onChange={event=>{
+      <textarea data-draft-block={block.id} rows={block.kind==="heading"?2:12} value={contentValue(block)} onChange={event=>{
        const value=event.target.value;
        update(block.id,block.kind==="heading"?(block.raw.match(/^#{1,6}/)?.[0]??"##")+" "+value.replace(/\r?\n/g," "):block.kind==="exercise"?exerciseMarkdown(value):value);
       }}/>
