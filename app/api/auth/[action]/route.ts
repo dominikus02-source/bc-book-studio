@@ -46,7 +46,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{action:stri
    if(!last){
     const token=await createOneTimeToken(user.id,purpose);
     const link=origin()+"/"+(purpose==="activate"?"activate":"reset-password")+"?token="+encodeURIComponent(token);
-    try{await sendAccountEmail(user.email,user.name,link,purpose);}catch(e){console.error("Account email delivery failed",e instanceof Error?e.message:"unknown");return response({error:"Layanan email sementara tidak tersedia. Coba kembali nanti."},503);}
+    try{await sendAccountEmail(user.email,user.name,link,purpose);}catch(e){console.error("Account email delivery failed",e instanceof Error?e.message:"unknown");await db.studioAuthToken.deleteMany({where:{userId:user.id,purpose,usedAt:null}});return response({error:"Layanan email sementara tidak tersedia. Coba kembali nanti."},503);}
    }
   }
   return response(generic);

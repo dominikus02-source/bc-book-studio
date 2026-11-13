@@ -1,8 +1,9 @@
 "use client";
 import {useCallback,useEffect,useRef,useState} from "react";
+import {ASSIGNABLE_ROLES, accountDeactivateError, accountMutationError, type AccountActor} from "@/lib/account-admin";
 type Role="EDITOR"|"REVIEWER"|"ADMIN"|"SUPERADMIN";
 type User={id:string;email:string;name:string;role:Role;active:boolean;updatedAt?:string};
-const roles:Role[]=["EDITOR","REVIEWER","ADMIN"];
+const roles=ASSIGNABLE_ROLES;
 async function request(url:string,options?:RequestInit){
  const r=await fetch(url,{cache:"no-store",...options});
  const j=await r.json().catch(()=>({error:"Server mengirim respons tidak valid. Coba lagi."}));
@@ -10,6 +11,7 @@ async function request(url:string,options?:RequestInit){
  return j;
 }
 export default function AccountManagement(){
+ const [me,setMe]=useState<AccountActor|null>(null);
  const [users,setUsers]=useState<User[]>([]),[drafts,setDrafts]=useState<Record<string,User>>({});
  const [status,setStatus]=useState<Record<string,string>>({}),[saving,setSaving]=useState<Record<string,boolean>>({});
  const [error,setError]=useState(""),[notice,setNotice]=useState(""),[loading,setLoading]=useState(true);
@@ -19,7 +21,7 @@ export default function AccountManagement(){
  const pending=useRef(new Set<string>());
  const load=useCallback(async()=>{
   const j=await request("/api/admin/users");
-  setUsers(j.users);setDrafts(Object.fromEntries((j.users as User[]).map(u=>[u.id,u])));
+  setMe(j.me);setUsers(j.users);setDrafts(Object.fromEntries((j.users as User[]).map(u=>[u.id,u])));
  },[]);
  useEffect(()=>{void load().catch(e=>setError(e.message)).finally(()=>setLoading(false));
   const warn=(e:BeforeUnloadEvent)=>{if(pending.current.size){e.preventDefault();e.returnValue="";}};
@@ -82,30 +84,30 @@ export default function AccountManagement(){
   <details className="panel" open><summary>Tambah pengguna</summary><form onSubmit={add} className="account-fields">
    <label>Nama lengkap<input required minLength={2} maxLength={120} autoComplete="name" value={newUser.name} onChange={e=>setNewUser(u=>({...u,name:e.target.value}))}/></label>
    <label>Alamat email<input required type="email" maxLength={254} autoComplete="email" value={newUser.email} onChange={e=>setNewUser(u=>({...u,email:e.target.value}))}/></label>
-   <label>Peran pengguna<select value={newUser.role} onChange={e=>setNewUser(u=>({...u,role:e.target.value as Role}))}>{roles.map(role=><option key={role}>{role}</option>)}</select></label>
+   <label>Peran pengguna<select value={newUser.role} onChange={e=>setNewUser(u=>({...u,role:e.target.value as Role}))}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></label>
    <button className="primary-button" disabled={busy} type="submit">{busy?"Membuat…":"Tambah & kirim undangan"}</button>
-  </form><p className="account-help">Editor menyusun buku; reviewer meninjau naskah; admin menangani penerbitan. Akun superadmin dilindungi dari perubahan peran dan penonaktifan.</p></details>
+  </form><p className="account-help">Editor menyusun buku; reviewer meninjau naskah; admin menangani penerbitan. Superadmin aktif terakhir dilindungi dari penurunan peran dan penonaktifan.</p></details>
   <div className="account-fields account-filters">
    <label>Cari pengguna<input type="search" placeholder="Nama atau email" value={query} onChange={e=>setQuery(e.target.value)}/></label>
-   <label>Filter peran<select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="ALL">Semua peran</option>{[...roles,"SUPERADMIN"].map(r=><option key={r}>{r}</option>)}</select></label>
+   <label>Filter peran<select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="ALL">Semua peran</option>{roles.map(r=><option key={r}>{r}</option>)}</select></label>
    <label>Filter status<select value={activeFilter} onChange={e=>setActiveFilter(e.target.value)}><option value="ALL">Semua status</option><option value="true">Aktif</option><option value="false">Nonaktif / diundang</option></select></label>
   </div>
   {loading?<p role="status">Memuat pengguna…</p>:<p className="account-help">{filtered.length} dari {users.length} pengguna</p>}
   {!loading&&!filtered.length&&<p>Tidak ada pengguna yang cocok dengan pencarian.</p>}
-  <div className="account-list">{filtered.map(u=>{const d=drafts[u.id]||u;const protectedUser=u.role==="SUPERADMIN";const disabled=!!saving[u.id];return <article className="panel account-user" key={u.id} aria-label={u.email}>
+  <div className="account-list">{filtered.map(u=>{const d=drafts[u.id]||u;const count=users.filter(user=>user.role==="SUPERADMIN"&&user.active).length;const roleLocked=!me||!!accountMutationError(me,u,{role:u.role==="SUPERADMIN"?"ADMIN":u.role},count);const deactivateLocked=!me||!!accountDeactivateError(me,u,count);const disabled=!!saving[u.id];return <article className="panel account-user" key={u.id} aria-label={u.email}>
    <div className="account-user-heading"><strong>{u.name}</strong><span>{u.role} · {u.active?"Aktif":"Nonaktif / diundang"}</span></div>
    <div className="account-fields">
-    <label>Nama<input disabled={protectedUser||disabled} minLength={2} maxLength={120} value={d.name} onChange={e=>edit(u.id,{name:e.target.value})}/></label>
-    <label>Email<input disabled={protectedUser||disabled} type="email" maxLength={254} value={d.email} onChange={e=>edit(u.id,{email:e.target.value})}/></label>
-    <label>Hak akses<select disabled={protectedUser||disabled} value={d.role} onChange={e=>edit(u.id,{role:e.target.value as Role})}>{protectedUser&&<option>SUPERADMIN</option>}{roles.map(role=><option key={role}>{role}</option>)}</select></label>
-    <label>Status akun<select disabled={protectedUser||disabled} value={String(d.active)} onChange={e=>{if(e.target.value==="false"){void deactivate(u);}else edit(u.id,{active:true});}}><option value="true">Aktif</option><option value="false">Nonaktif</option></select></label>
+    <label>Nama<input disabled={disabled} minLength={2} maxLength={120} value={d.name} onChange={e=>edit(u.id,{name:e.target.value})}/></label>
+    <label>Email<input disabled={disabled} type="email" maxLength={254} value={d.email} onChange={e=>edit(u.id,{email:e.target.value})}/></label>
+    <label>Hak akses<select disabled={roleLocked||disabled} value={d.role} onChange={e=>edit(u.id,{role:e.target.value as Role})}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></label>
+    <label>Status akun<select disabled={disabled||(u.active&&deactivateLocked)} value={String(d.active)} onChange={e=>{if(e.target.value==="false"){void deactivate(u);}else edit(u.id,{active:true});}}><option value="true">Aktif</option><option value="false">Nonaktif</option></select></label>
    </div>
    <div className="account-actions">
     <button type="button" className="secondary-button" disabled={disabled||pending.current.has(u.id)} onClick={()=>void recovery(u)}>{u.active?"Kirim reset password":"Kirim ulang aktivasi"}</button>
-    {!protectedUser&&<><button type="button" className="secondary-button" disabled={disabled||!pending.current.has(u.id)} onClick={()=>restore(u.id)}>Batalkan perubahan</button>
+    {<><button type="button" className="secondary-button" disabled={disabled||!pending.current.has(u.id)} onClick={()=>restore(u.id)}>Batalkan perubahan</button>
     {pending.current.has(u.id)&&<button type="button" className="primary-button" disabled={disabled} onClick={()=>{clearTimeout(timers.current[u.id]);void save(u.id,d);}}>Simpan ulang</button>}
-    {u.active&&<button type="button" className="secondary-button" disabled={disabled||pending.current.has(u.id)} onClick={()=>void deactivate(u)}>Nonaktifkan akun</button>}</>}
-   </div><p role="status" className="account-help">{status[u.id]||(protectedUser?"Akun superadmin dilindungi":"Tersimpan")}</p>
+    {u.active&&!deactivateLocked&&<button type="button" className="secondary-button" disabled={disabled||pending.current.has(u.id)} onClick={()=>void deactivate(u)}>Nonaktifkan akun</button>}</>}
+   </div><p role="status" className="account-help">{status[u.id]||(deactivateLocked?"Penonaktifan akun dilindungi":"Tersimpan")}</p>
   </article>})}</div>
   <p className="account-help">Reset password mengirim tautan sekali pakai, berlaku 30 menit. Password lama tetap berlaku sampai pengguna menyimpan password baru; setelah itu semua sesi login dicabut.</p>
   <style jsx>{`

@@ -17,6 +17,7 @@ flock -n 9 || { echo 'A Book Studio deployment is already running'; exit 2; }
 compose=(docker compose -p bc-book-studio-runtime -f compose.yml)
 [[ ! -f compose.edge.yml ]] || compose+=(-f compose.edge.yml)
 compose+=(-f compose.resources.yml -f compose.release.yml)
+[[ ! -f compose.smtp-relay.yml ]] || compose+=(-f compose.smtp-relay.yml)
 # Refuse to operate on a newly created or different Compose database.
 expected_project=bc-book-studio-runtime
 expected_volume=bc-book-studio-runtime_bookstudio_pg

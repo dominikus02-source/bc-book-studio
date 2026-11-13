@@ -16,7 +16,10 @@ const edit=z.object({
   pageSize:z.enum(["A4","A5","B5"]).optional(),
   targetAudience:z.string().trim().max(300).optional(),
   writingGoal:z.string().trim().max(1500).optional(),
-  editorialChecks:z.record(z.string().max(40),z.boolean()).optional(),
+  editorialChecks:z.record(z.string().max(40),z.union([
+  z.boolean(),
+  z.string().transform(v => v === "true" || v === "1" || v === "yes" || v === "on")
+])).optional(),
 }).strict().refine(v=>Object.keys(v).some(k=>k!=="expectedVersion"),"At least one change required.")
 .refine(v=>!(v.bookType||v.genre)||(Boolean(v.bookType)&&Boolean(v.genre)&&(["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"].includes(v.genre!)===(v.bookType==="FICTION"))),"Genre and book type must be changed together.");
 type Ctx={params:Promise<{id:string}>};

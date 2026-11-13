@@ -1,7 +1,9 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import nodemailer from "nodemailer";
 import { db } from "./db";
-import {accountEmail, activationEmailAllowed, type AccountEmailPurpose} from "./account-email";
+import { accountEmail, activationEmailAllowed } from "./account-email";
 
 export const hashToken = (token:string) => createHash("sha256").update(token).digest("hex");
 export const randomToken = () => randomBytes(32).toString("hex");
@@ -24,18 +26,49 @@ export async function createOneTimeToken(userId:string,purpose:"activate"|"reset
  ]);
  return token;
 }
-export async function sendAccountEmail(to: string, name: string, link: string, type: AccountEmailPurpose) {
- if (type === "activate" && !activationEmailAllowed(to)) return;
- const {SMTP_USER, SMTP_APP_PASSWORD, SMTP_FROM} = process.env;
- if (!SMTP_USER || !SMTP_APP_PASSWORD || !SMTP_FROM) throw new Error("SMTP is not configured");
- const host = process.env.SMTP_HOST || "smtp.gmail.com";
- const secure = (process.env.SMTP_SECURE || "true") === "true";
- const transport = nodemailer.createTransport({
-  host,
-  port: Number(process.env.SMTP_PORT || 465),
-  secure,
-  requireTLS: host === "smtp.gmail.com" && !secure,
-  auth: {user: SMTP_USER, pass: SMTP_APP_PASSWORD},
+const redactLog=(s:string)=>s.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,"[REDACTED_EMAIL]");
+const formatFrom=(from:string)=>{
+ if(/</.test(from))return from;
+ const name=(process.env.SMTP_FROM_NAME||"BC Book Studio").trim().replace(/[\r\n"<>]/g,"").slice(0,70)||"BC Book Studio";
+ return `${name} <${from}>`;
+};
+export async function sendAccountEmail(to:string,name:string,link:string,type:"activate"|"reset"){
+ if(type==="activate"&&!activationEmailAllowed(to))return;
+ const {SMTP_USER,SMTP_APP_PASSWORD,SMTP_FROM}=process.env;
+ if(!SMTP_USER||!SMTP_APP_PASSWORD||!SMTP_FROM)throw new Error("SMTP is not configured");
+ const configuredHost=process.env.SMTP_HOST||"smtp.gmail.com";
+ let connectHost=configuredHost;
+ // Prefer getaddrinfo so Docker extra_hosts /etc/hosts wins over nodemailer 10's resolve4/6.
+ if(!isIP(configuredHost)){
+  try{const looked=await dnsLookup(configuredHost,{verbatim:true}); if(looked?.address)connectHost=looked.address;}catch{ /* use hostname */ }
+ }
+ const tlsServername=(process.env.SMTP_TLS_SERVERNAME||"").trim()||(!isIP(configuredHost)?configuredHost:"");
+ const transport=nodemailer.createTransport({
+  host:connectHost,
+  port:Number(process.env.SMTP_PORT||465),
+  secure:(process.env.SMTP_SECURE||"true")==="true",
+  requireTLS:configuredHost==="smtp.gmail.com" && (process.env.SMTP_SECURE||"true")!=="true",
+  auth:{user:SMTP_USER,pass:SMTP_APP_PASSWORD},
+  connectionTimeout:15_000,
+  greetingTimeout:15_000,
+  socketTimeout:30_000,
+  ...(tlsServername?{tls:{servername:tlsServername}}:{})
  });
- await transport.sendMail({from: {name: "BC Book Studio", address: SMTP_FROM}, to, ...accountEmail(name, link, type)});
+ const started=Date.now();
+ const replyTo=(process.env.SMTP_REPLY_TO||"").trim();
+ try{
+  const info=await transport.sendMail({
+   from:formatFrom(SMTP_FROM),
+   to,
+   ...accountEmail(name,link,type),
+   ...(replyTo?{replyTo}:{})
+  });
+  const smtp=typeof info?.response==="string"?redactLog(info.response).slice(0,160):"";
+  console.info("Account email delivered","id="+(info?.messageId||"none"),"ms="+(Date.now()-started),"smtp="+smtp);
+ }catch(e){
+  console.error("Account email delivery failed",e instanceof Error?redactLog(e.message):"unknown","ms="+(Date.now()-started));
+  throw e;
+ }finally{
+  transport.close();
+ }
 }

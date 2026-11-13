@@ -57,7 +57,7 @@ export default function BookLayoutEditor({id,onPublish}:{id:string;onPublish:()=
  return <section className="panel layout-output" aria-labelledby="book-layout-title">
   <h2 id="book-layout-title">Tata letak buku</h2>
   <p className="form-hint">Atur urutan bab dan blok dari snapshot yang disetujui. Isi blok tidak disunting melalui layout. Perubahan disimpan otomatis; riwayat dapat dipulihkan.</p>
-  <a href={"/studio/pagination?bookId="+encodeURIComponent(id)}>Atur penomoran halaman</a>
+  <a href={"/studio?bookId="+encodeURIComponent(id)+"&module=Tata+Letak"}>Atur penomoran halaman (di Tata Letak)</a>
   <p role="status" aria-live="polite">{busy?"Memproses tata letak...":error&&dirty?"Perubahan belum tersimpan; draf lokal tetap ada.":dirty?"Menunggu penyimpanan...":notice|| (layout?.saved?"Tata letak tersimpan.":"")}</p>
   {error&&<div role="alert"><p>{error}</p><button type="button" className="secondary-button" disabled={busy} onClick={reload}>Muat versi server</button>{dirty&&<button type="button" className="secondary-button" onClick={download}>Unduh draf layout lokal</button>}{!conflict&&dirty&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>void save(settings)}>Coba simpan lagi</button>}</div>}
   {layout&&settings&&<>

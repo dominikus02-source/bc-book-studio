@@ -38,7 +38,7 @@ async function waitReady(){for(let i=0;i<90;i++){try{if((await fetch(origin+"/ap
  r=await admin.request.get(origin+"/api/admin/users");u=(await r.json()).users.find(x=>x.id===u.id);
  r=await admin.request.patch(origin+"/api/admin/users",{data:{id:u.id,name:"QA Updated",email:u.email,active:true,role:"REVIEWER",expectedVersion:u.updatedAt}});assert.equal(r.status(),200);let saved=(await r.json()).user;
  assert.equal((await admin.request.patch(origin+"/api/admin/users",{data:{id:u.id,name:"stale",expectedVersion:u.updatedAt}})).status(),409);
- assert.equal((await admin.request.patch(origin+"/api/admin/users",{data:{id:superUser.id,name:"Protected",expectedVersion:superUser.updatedAt.toISOString()}})).status(),403);
+ assert.equal((await admin.request.patch(origin+"/api/admin/users",{data:{id:superUser.id,role:"ADMIN",expectedVersion:superUser.updatedAt.toISOString()}})).status(),403);
  assert.equal((await admin.request.post(origin+"/api/admin/users/recovery",{headers:{origin:"https://evil.invalid"},data:{id:saved.id,action:"reset"}})).status(),403);
  r=await admin.request.post(origin+"/api/admin/users/recovery",{data:{id:saved.id,action:"reset"}});assert.equal(r.status(),200);assert(!JSON.stringify(await r.json()).includes("token="));
  assert.equal((await admin.request.post(origin+"/api/admin/users/recovery",{data:{id:saved.id,action:"reset"}})).status(),429);

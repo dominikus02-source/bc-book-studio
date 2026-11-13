@@ -5,7 +5,7 @@ Untuk rilis produksi (termasuk migrasi berpagar, deploy VPS, rollback, dan promo
 # Titik awal infrastruktur (bukan jalur rilis produksi saat ini)
 1. Provision a dedicated Linux VPS or isolated project directory, DNS and HTTPS reverse proxy.
 2. Install Docker Engine and Compose. Restrict inbound traffic to 80/443 and SSH. Do not expose PostgreSQL publicly.
-3. Create a server-only `.env` from `.env.example` with STUDIO_API_KEY (at least 24 random characters), DB_PASSWORD (strong random), AI_API_KEY and AI_MODEL if AI is needed. Keep this file out of Git.
+3. Create a server-only `.env` from `.env.example` with STUDIO_API_KEY (at least 24 random characters), DB_PASSWORD (strong random), STUDIO_SECRET_ENCRYPTION_KEY (base64 of 32 random bytes) and STUDIO_PUBLIC_ORIGIN; API keys are added later in Pengaturan, not in .env. Keep this file out of Git.
 4. Run `docker compose build` and `docker compose up -d db`.
 5. Run `docker compose run --rm web npm run db:migrate`, then `docker compose up -d web`.
 6. Proxy HTTPS to 127.0.0.1:3100 and verify `/api/health`. Test editorial endpoints with the bearer token.
