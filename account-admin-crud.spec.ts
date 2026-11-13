@@ -201,10 +201,10 @@ test.describe("admin users API and Manajemen Akun", () => {
     const session = (login.headers()["set-cookie"] || "").match(/bcstudio_session=([^;]+)/)?.[1];
     await page.context().addCookies([{ name: "bcstudio_session", value: session!, domain: "127.0.0.1", path: "/", httpOnly: true, sameSite: "Lax", secure: false }]);
     await page.goto(origin + "/studio?module=Manajemen+Akun");
-    await expect(page.getByRole("heading", { name: "Undang dan kelola anggota studio" })).toBeVisible();
-    const roleSelect = page.locator("form.studio-stack").getByLabel("Peran");
+    await expect(page.getByRole("heading", { name: "Manajemen pengguna" })).toBeVisible();
+    const roleSelect = page.getByLabel("Peran pengguna",{exact:true});
     await expect(roleSelect.locator("option[value='SUPERADMIN']")).toHaveCount(1);
-    await expect(page.getByText(superB.email)).toBeVisible();
+    await expect(page.getByRole("article",{name:superB.email,exact:true})).toBeVisible();
     await expect(page.getByRole("button", { name: "Kirim ulang aktivasi" }).first()).toBeVisible();
   });
 });
