@@ -84,7 +84,7 @@ export default function AccountManagement(){
   <details className="panel" open><summary>Tambah pengguna</summary><form onSubmit={add} className="account-fields">
    <label>Nama lengkap<input required minLength={2} maxLength={120} autoComplete="name" value={newUser.name} onChange={e=>setNewUser(u=>({...u,name:e.target.value}))}/></label>
    <label>Alamat email<input required type="email" maxLength={254} autoComplete="email" value={newUser.email} onChange={e=>setNewUser(u=>({...u,email:e.target.value}))}/></label>
-   <label>Peran pengguna<select value={newUser.role} onChange={e=>setNewUser(u=>({...u,role:e.target.value as Role}))}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></label>
+   <label>Peran pengguna<select aria-label="Peran pengguna" value={newUser.role} onChange={e=>setNewUser(u=>({...u,role:e.target.value as Role}))}>{roles.map(role=><option key={role} value={role}>{role}</option>)}</select></label>
    <button className="primary-button" disabled={busy} type="submit">{busy?"Membuat…":"Tambah & kirim undangan"}</button>
   </form><p className="account-help">Editor menyusun buku; reviewer meninjau naskah; admin menangani penerbitan. Superadmin aktif terakhir dilindungi dari penurunan peran dan penonaktifan.</p></details>
   <div className="account-fields account-filters">

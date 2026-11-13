@@ -204,7 +204,7 @@ test.describe("admin users API and Manajemen Akun", () => {
     await expect(page.getByRole("heading", { name: "Manajemen pengguna" })).toBeVisible();
     const roleSelect = page.getByLabel("Peran pengguna",{exact:true});
     await expect(roleSelect.locator("option[value='SUPERADMIN']")).toHaveCount(1);
-    await expect(page.getByText(superB.email)).toBeVisible();
+    await expect(page.getByRole("article",{name:superB.email,exact:true})).toBeVisible();
     await expect(page.getByRole("button", { name: "Kirim ulang aktivasi" }).first()).toBeVisible();
   });
 });
