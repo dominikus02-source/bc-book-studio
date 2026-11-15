@@ -45,7 +45,7 @@ async function main(){
  block=false;
  await recovery.getByRole("button",{name:"Pulihkan draf lokal"}).click();
  await page.waitForResponse(r=>r.url().endsWith(path)&&r.request().method()==="PATCH"&&r.status()===200);
- await canvas.getByText("Naskah tersimpan.",{exact:true}).waitFor();
+ await canvas.getByText("Tersimpan otomatis",{exact:true}).waitFor();
  assert.equal((await db.chapter.findUnique({where:{id:chapter.id}})).content,draft);
  assert.equal(await page.evaluate(k=>sessionStorage.getItem(k),key),null);
  await page.reload();
@@ -80,7 +80,7 @@ async function main(){
  await page.reload();
  await field.fill("Masih dapat disimpan meskipun penyimpanan browser tidak tersedia.");
  await canvas.getByText(/Draf belum dicadangkan di tab ini/).waitFor();
- await canvas.getByText("Naskah tersimpan.",{exact:true}).waitFor();
+ await canvas.getByText("Tersimpan otomatis",{exact:true}).waitFor();
  assert.equal((await db.chapter.findUnique({where:{id:chapter.id}})).content,"Masih dapat disimpan meskipun penyimpanan browser tidak tersedia.");
  console.log("PASS storage failure is visible and does not block server save");
 }
