@@ -18,6 +18,7 @@ export default function BriefGate({book,onChanged,onOutline}:{book:Book;onChange
  async function run(action:()=>Promise<void>){setBusy(true);setError("");try{await action()}catch(e){setError(e instanceof Error?e.message:"Permintaan gagal")}finally{setBusy(false)}}
  return <section aria-label="Tahap Ide" className="panel stage-readiness-panel">
   <h3>Kesiapan Ide</h3>
+  <p className="form-hint">Tombol utama ada di bawah. Lengkapi yang masih kurang, simpan, lalu lanjut.</p>
   <p className="form-hint">Edit judul, sinopsis, pembaca dan tujuan pada formulir proyek buku di atas. Unggah XLSX/Markdown pada form yang sama; tidak ada input brief kedua yang dapat menimpa perubahan.</p>
   {error&&<p role="alert">{error}</p>}
   {readiness?.stage==="BRIEF"&&readiness.missing.length>0&&<><p role="status">Masih perlu dilengkapi:</p><ul>{readiness.missing.map(field=><li key={field}>{field}</li>)}</ul></>}

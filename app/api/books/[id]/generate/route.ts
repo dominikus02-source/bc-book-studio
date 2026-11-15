@@ -5,13 +5,14 @@ import { db } from "../../../../../lib/db";
 import { identity, deny } from "../../../../../lib/auth";
 import { canGenerate, quotaDenied } from "../../../../../lib/usage";
 import { activeProvider, invokeProvider } from "../../../../../lib/providers";
+import {draftParticipantWhere} from "../../../../../lib/draft-access";
 export const runtime = "nodejs";
 const schema = z.object({ topic: z.string().trim().min(4).max(250), learningGoals: z.string().trim().min(10).max(2000) });
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ownerId = await identity(req);
   if (!ownerId) return deny();
   const { id } = await params;
-  const book = await db.book.findFirst({ where: { id, ownerId, archivedAt:null } });
+  const book = await db.book.findFirst({ where: { id, archivedAt:null, ...draftParticipantWhere(ownerId) } });
   if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
   if (book.status !== "DRAFT") return NextResponse.json({ error: "Book must be a draft" }, { status: 409 });
   const parsed = schema.safeParse(await req.json().catch(() => null));

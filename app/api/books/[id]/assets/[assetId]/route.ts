@@ -3,6 +3,7 @@ import {z} from "zod";
 import {db} from "../../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../../lib/auth";
 import {manuscriptVisibilityWhere} from "../../../../../../lib/manuscript-access";
+import {lockDraftEditor} from "../../../../../../lib/draft-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string;assetId:string}>};
 const error=(message:string,status:number,code?:string)=>NextResponse.json({error:message,...(code?{code}:{})},{status,headers:{"Cache-Control":"no-store"}});
@@ -30,7 +31,7 @@ async function mutate(req:NextRequest,{params}:Ctx,archive:boolean){
  const parsed=update.safeParse(await req.json().catch(()=>null));if(!parsed.success)return error("A valid expectedVersion is required",428);
  if(!archive&&Object.keys(parsed.data).every(k=>k==="expectedVersion"))return error("No changes supplied",400);
  return db.$transaction(async tx=>{
-  const [book]=await tx.$queryRaw<{id:string;status:string}[]>`SELECT id,status FROM "Book" WHERE id=${id} AND "ownerId"=${actor.id} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book=await lockDraftEditor(tx,id,actor.id);
   if(!book)return error("Not found",404);
   if(book.status!=="DRAFT")return error("Draft assets only",409);
   const a=await tx.bookAsset.findFirst({where:{id:assetId,bookId:id}});if(!a)return error("Asset not found",404);

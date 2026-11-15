@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../../../../lib/db";
 import {identity,deny} from "../../../../../../../../lib/auth";
+import {lockDraftEditor} from "../../../../../../../../lib/draft-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string;chapterId:string}>};
 const input=z.object({parentId:z.string().min(4).max(100).nullable(),ids:z.array(z.string().min(4).max(100)).min(1).max(500),expectedOrder:z.array(z.string().min(4).max(100)).min(1).max(500)}).strict();
@@ -15,7 +16,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
  const {ids,expectedOrder,parentId}=parsed.data;
  if(new Set(ids).size!==ids.length||new Set(expectedOrder).size!==expectedOrder.length)return fail("Duplicate ids",400);
  return db.$transaction(async tx=>{
-  const [book]=await tx.$queryRaw<{id:string;status:string;editorialStage:string}[]>`SELECT id,status,"editorialStage" FROM "Book" WHERE id=${id} AND "ownerId"=${actor} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book=await lockDraftEditor(tx,id,actor);
   if(!book)return fail("Not found",404);
   if(book.status!=="DRAFT"||!["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))return fail("Outline locked",409);
   const chapter=await tx.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null}});

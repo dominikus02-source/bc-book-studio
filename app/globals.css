@@ -1539,3 +1539,25 @@ body:has(.writing-stage-layout), .writing-stage-layout, .writing-stage-layout .w
 .writing-stage-navigation{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .writing-stage-navigation button{min-height:44px}
 .writing-stage-navigation p{flex-basis:100%;margin:0}
+
+.font-size-toggle{display:inline-flex;gap:4px}
+.font-size-toggle button{min-height:44px;min-width:44px;padding:8px 14px}
+.book-query-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.book-query-bar .studio-field,.collaborator-panel .studio-field{font-size:18px}
+.book-query-bar input,.book-query-bar select,.collaborator-panel input{min-height:44px;font-size:18px}
+.collaborator-results{list-style:none;padding:0;display:grid;gap:10px}
+.collaborator-results li{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.collaborator-results button{min-height:44px}
+.writing-workspace,.stage-readiness-panel,.senior-checklist{font-size:18px;line-height:1.6}
+.writing-workspace textarea,[data-draft-block],.writing-studio-editor textarea,.writing-studio-editor input,.writing-chapter-create input{font-size:18px;line-height:1.65;color:#172033}
+.writing-save-status{font-size:18px;font-weight:700;margin:8px 0}
+.writing-chapter-nav{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.writing-chapter-nav button,.writing-chapter-list button,.draft-word-toolbar button,.draft-palette-item button{min-height:44px}
+.senior-checklist{border:1px solid #cbd5e1;border-radius:12px;padding:12px 16px;background:#f8fafc}
+html[data-font="besar"] body{font-size:20px}
+html[data-font="besar"] .writing-workspace textarea,html[data-font="besar"] [data-draft-block]{font-size:22px}
+.writing-workspace :focus-visible,.senior-checklist :focus-visible,.book-query-bar :focus-visible,.collaborator-panel :focus-visible,.font-size-toggle :focus-visible{outline:3px solid #1d4ed8;outline-offset:3px}
+:root[data-theme="dark"] .writing-workspace textarea,:root[data-theme="dark"] [data-draft-block]{color:#f8fafc;background:#0f172a}
+:root[data-theme="dark"] .senior-checklist{background:#1e293b;border-color:#64748b;color:#f8fafc}
+.publishing-panel,.reviewer-workspace{font-size:18px}
+.publishing-panel :is(button,a.secondary-button){min-height:44px}

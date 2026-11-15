@@ -10,9 +10,11 @@ import PrintingWorkspace from "@/components/printing-workspace";
 import StudioUserGuide from "@/components/studio-user-guide";
 import AccountManagement from "@/components/account-management";
 import {
-  bookWorkspaceAction, roleCaption, roleHomeCopy, stageOpenAllowed, studioPrimaryNav, STAGE_PATH,
+  bookWorkspaceAction, roleCaption, roleHomeCopy, stageOpenAllowed, studioPrimaryNav, STAGE_PATH, waitingDecisionQueue,
   type StudioRole,
 } from "@/lib/studio-home";
+import FontSizeToggle from "@/components/font-size-toggle";
+import BookQueryBar from "@/components/book-query-bar";
 import {
   BookMarked, BookOpen, ChevronRight, FolderOpen, Menu, Settings2, ShieldCheck,
 } from "lucide-react";
@@ -37,11 +39,7 @@ const navIcon: Record<string, typeof BookOpen> = {
 };
 
 type Stage = { name: string; complete: boolean; available: boolean; missing: string[] };
-type DeskBook = { id: string; title: string; status: string; isOwner?: boolean; editorialStage?: string; stageReadiness?: { stages: Stage[] } };
-
-function waitingDecisions(books: DeskBook[], role: StudioRole) {
-  return books.filter(book => book.isOwner === false && book.status === "REVIEW" && (role === "REVIEWER" || role === "ADMIN"));
-}
+type DeskBook = { id: string; title: string; status: string; isOwner?: boolean; isCollaborator?: boolean; editorialStage?: string; stageReadiness?: { stages: Stage[] } };
 
 export default function Home({ role, name }: { role: StudioRole; name: string }) {
   const { books, error: booksError, loading, refresh } = useBooks();
@@ -144,7 +142,29 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
   }, [mobileOpen]);
 
   const showWorkflow = !["Review Naskah","Dasbor","Pengaturan","Buat Buku","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan","Manajemen Akun"].includes(active);
-  const decisions = waitingDecisions(books, role);
+  const decisions = waitingDecisionQueue(books, role);
+  const [deskQ, setDeskQ] = useState("");
+  const [deskStatus, setDeskStatus] = useState("");
+  const [deskStage, setDeskStage] = useState("");
+  const [deskLimit, setDeskLimit] = useState(20);
+  const [desk, setDesk] = useState<DeskBook[] | null>(null);
+  const [deskMore, setDeskMore] = useState(false);
+  const [deskError, setDeskError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    if (deskQ.trim()) params.set("q", deskQ.trim());
+    if (deskStatus) params.set("status", deskStatus);
+    if (deskStage) params.set("stage", deskStage);
+    params.set("page", "1");
+    params.set("limit", String(deskLimit));
+    fetch("/api/books?" + params.toString(), { cache: "no-store", signal: controller.signal })
+      .then(async response => { const data = await response.json(); if (!response.ok) throw Error(data.error || "Gagal memuat"); return data; })
+      .then(data => { if (!controller.signal.aborted) { setDesk(data.books); setDeskMore(Boolean(data.hasMore)); setDeskError(""); } })
+      .catch(error => { if (!controller.signal.aborted && !(error instanceof DOMException)) setDeskError(error instanceof Error ? error.message : "Gagal memuat"); });
+    return () => controller.abort();
+  }, [deskQ, deskStatus, deskStage, deskLimit, books]);
+  const deskBooks = desk ?? books;
   const ownedDraft = books.find(book => book.isOwner !== false && book.status === "DRAFT");
   const focusBook = role === "REVIEWER" && decisions[0] ? decisions[0] : (ownedDraft || books.find(book => book.isOwner !== false) || books[0]);
   const focusAction = focusBook ? bookWorkspaceAction(role, focusBook) : null;
@@ -168,6 +188,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
       <header className="topbar">
         <div><button className="icon-button mobile-menu" aria-label="Buka menu" aria-expanded={mobileOpen} aria-controls="studio-sidebar" onClick={() => setMobileOpen(!mobileOpen)}><Menu size={17} /></button><div className="crumb">BC Book Studio <ChevronRight size={12} style={{ display: "inline", verticalAlign: "middle" }} /> {active === "Studio Penulisan" ? "Tulis" : active === "Proyek Buku" ? "Ide" : active === "Review Naskah" ? "Review" : active === "Tata Letak" || active === "Penerbitan" ? "Terbit" : active}</div></div>
         <div className="top-actions">
+          <FontSizeToggle />
           <button type="button" className="studio-theme-switch" aria-pressed={dark} aria-label={dark ? "Mode terang" : "Mode gelap"} onClick={() => setDark(value => !value)}>{dark ? "Terang" : "Gelap"}</button>
           <button type="button" className="secondary-button" disabled={logoutBusy} onClick={() => void logout()}>{logoutBusy ? "Keluar…" : "Keluar"}</button>
         </div>
@@ -221,15 +242,19 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
           <p>{focusAction.detail}</p>
           <button type="button" className="primary-button" onClick={() => navigateTo(focusAction.module, focusBook.id)}>{focusAction.label}</button>
         </article>}
-        {decisions.length > 0 && role !== "REVIEWER" && <section className="studio-queue" aria-label="Keputusan yang menunggu"><h2>Menunggu keputusan Anda</h2><div className="studio-book-list">{decisions.map(book => <button key={book.id} type="button" className="secondary-button" onClick={() => navigateTo("Review Naskah", book.id)}>{book.title}</button>)}</div></section>}
-        <div className="section-head"><h2>Di meja Anda</h2><span>{loading ? "Memuat…" : books.length + " naskah"}</span></div>
+        {decisions.length > 0 && <section className="studio-queue" aria-label="Keputusan yang menunggu"><h2>Menunggu keputusan Anda</h2><p className="form-hint">Buku ini menunggu keputusan Anda. Buka Review Naskah untuk membaca dan memutuskan.</p><div className="studio-book-list">{decisions.map(book => <button key={book.id} type="button" className="secondary-button" onClick={() => navigateTo("Review Naskah", book.id)}>{book.title} — Buka Review Naskah</button>)}</div></section>}
+        <div className="section-head"><h2>Di meja Anda</h2><span>{loading ? "Memuat…" : deskBooks.length + " naskah"}</span></div>
+        <BookQueryBar q={deskQ} status={deskStatus} stage={deskStage} onChange={next => { setDeskQ(next.q); setDeskStatus(next.status); setDeskStage(next.stage); setDeskLimit(20); }} />
+        {deskError && <p role="alert">{deskError}</p>}
         {booksError && <p role="alert">{booksError}</p>}
         {!loading && !books.length && <p className="panel studio-empty">Belum ada naskah. Kalimat pertama dimulai dari sebuah judul.</p>}
-        <div className="studio-book-list">{books.map(book => {
+        <div className="studio-book-list">{deskBooks.map(book => {
           const action = bookWorkspaceAction(role, book);
           const stageName = STAGE_PATH[action.stageIndex]?.name || "Ide";
-          return <article key={book.id} className="panel studio-book-row"><div><span className="studio-stage-pill">{stageName}</span><strong>{book.title}</strong><p>{book.isOwner === false ? "Penugasan" : "Milik Anda"} · {book.status === "DRAFT" ? "Draf" : book.status === "REVIEW" ? "Sedang ditinjau" : "Disetujui"}</p><p>{action.detail}</p></div><button type="button" className="secondary-button" onClick={() => navigateTo(action.module, book.id)}>{action.label}</button></article>;
+          const relation = book.isCollaborator ? "Buku kolaborasi" : book.isOwner === false ? "Penugasan" : "Milik Anda";
+          return <article key={book.id} className="panel studio-book-row"><div><span className="studio-stage-pill">{stageName}</span><strong>{book.title}</strong><p>{relation} · {book.status === "DRAFT" ? "Draf" : book.status === "REVIEW" ? "Sedang ditinjau" : "Disetujui"}</p><p>{action.detail}</p></div><button type="button" className="secondary-button" onClick={() => navigateTo(action.module, book.id)}>{action.label}</button></article>;
         })}</div>
+        {deskMore && <button type="button" className="secondary-button" onClick={() => setDeskLimit(value => value + 20)}>Muat lebih banyak</button>}
       </section> : <>
         {active === "ISBN & Legalitas" && (role === "ADMIN" || role === "SUPERADMIN") && <IsbnOfficeDashboard />}
         {!bookModules.includes(active) && active !== "ISBN & Legalitas" && <><div className="studio-page-intro"><h1 className="page-title">{active}</h1><p className="page-sub">Catatan tahap ini tersimpan terpisah. Naskah buku ada di Ide, Rancang, dan Tulis.</p></div><StudioWorkspace active={active} /></>}

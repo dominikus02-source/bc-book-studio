@@ -10,5 +10,7 @@ export async function reviewerAccess(req:NextRequest,bookId:string,client:Prisma
  if(!assigned)return null;
  const book=await client.book.findUnique({where:{id:bookId}});
  if(!book||book.archivedAt||book.ownerId===actor.id)return null;
+ const collaborator=await client.bookCollaborator.findFirst({where:{bookId,userId:actor.id,archivedAt:null},select:{id:true}});
+ if(collaborator)return null;
  return {actor,book};
 }

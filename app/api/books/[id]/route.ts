@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../../../../lib/db";
 import { identity, deny, sessionUser } from "../../../../lib/auth";
 import {manuscriptVisibilityWhere} from "../../../../lib/manuscript-access";
+import {draftParticipantWhere,lockDraftEditor} from "../../../../lib/draft-access";
 export const runtime = "nodejs";
 const briefFields=["title","subject","description","targetAudience","writingGoal","bookType","genre"] as const;
 const edit=z.object({
@@ -26,12 +27,15 @@ export async function GET(req:NextRequest,{params}:Ctx){
  const user=await sessionUser(req);if(!user)return deny();
  const {id}=await params;
  if(req.nextUrl.searchParams.get("briefHistory")==="1"){
-  const book=await db.book.findFirst({where:{id,ownerId:user.id,archivedAt:null},select:{briefRevisions:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:50}}});
+  const book=await db.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(user.id)},select:{briefRevisions:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:50}}});
   return book?NextResponse.json({history:book.briefRevisions},{headers:{"Cache-Control":"no-store"}}):fail("Book not found",404);
  }
  const where=manuscriptVisibilityWhere(user,{id});
- const book=await db.book.findFirst({where,include:{chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},reviews:true}});
- return book?NextResponse.json({book:{...book,isOwner:book.ownerId===user.id}},{headers:{"Cache-Control":"no-store"}}):fail("Book not found",404);
+ const book=await db.book.findFirst({where,include:{chapters:{where:{archivedAt:null},orderBy:{position:"asc"}},reviews:true,collaborators:{where:{userId:user.id,archivedAt:null},select:{id:true}}}});
+ if(!book)return fail("Book not found",404);
+ const {collaborators,...rest}=book;
+ const isOwner=book.ownerId===user.id;
+ return NextResponse.json({book:{...rest,isOwner,isCollaborator:!isOwner&&collaborators.length>0}},{headers:{"Cache-Control":"no-store"}});
 }
 export async function PATCH(req:NextRequest,{params}:Ctx){
  const ownerId=await identity(req);if(!ownerId)return deny();
@@ -42,8 +46,9 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
  if(!parsed.success)return fail("Invalid book input: "+parsed.error.issues.map(i=>i.message).join("; "),400);
  const {expectedVersion,...changes}=parsed.data;
  return db.$transaction(async tx=>{
-  await tx.$queryRaw`SELECT id FROM "Book" WHERE id = ${id} AND "ownerId" = ${ownerId} FOR UPDATE`;
-  const current=await tx.book.findFirst({where:{id,ownerId,archivedAt:null}});
+  const locked=await lockDraftEditor(tx,id,ownerId);
+  if(!locked)return fail("Book not found",404);
+  const current=await tx.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(ownerId)}});
   if(!current)return fail("Book not found",404);
   if(current.status!=="DRAFT")return fail("Only drafts can be edited",409);
   if(current.updatedAt.getTime()!==new Date(expectedVersion).getTime())return fail("Buku telah berubah pada sesi lain. Muat ulang sebelum menyimpan.",409,"BOOK_VERSION_CONFLICT");

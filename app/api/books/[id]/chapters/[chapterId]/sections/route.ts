@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../../../lib/db";
 import {identity,deny} from "../../../../../../../lib/auth";
+import {draftParticipantWhere,lockDraftEditor} from "../../../../../../../lib/draft-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string;chapterId:string}>};
 const fail=(error:string,status:number,code?:string)=>NextResponse.json({error,...(code?{code}:{})},{status,headers:{"Cache-Control":"no-store"}});
@@ -9,7 +10,7 @@ const input=z.object({title:z.string().trim().min(2).max(180),objective:z.string
 export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await identity(req);if(!actor)return deny();
  const {id,chapterId}=await params;
- const chapter=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{ownerId:actor,archivedAt:null}}});
+ const chapter=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...draftParticipantWhere(actor)}}});
  if(!chapter)return fail("Not found",404);
  const sections=await db.outlineSection.findMany({where:{bookId:id,chapterId},orderBy:[{position:"asc"},{createdAt:"asc"}],include:{revisions:{orderBy:{createdAt:"desc"},take:25}}});
  return NextResponse.json({sections},{headers:{"Cache-Control":"no-store"}});
@@ -19,7 +20,7 @@ export async function POST(req:NextRequest,{params}:Ctx){
  const {id,chapterId}=await params;
  const parsed=input.safeParse(await req.json().catch(()=>null));if(!parsed.success)return fail("Invalid section",400);
  return db.$transaction(async tx=>{
-  const [book]=await tx.$queryRaw<{id:string;status:string;editorialStage:string}[]>`SELECT id,status,"editorialStage" FROM "Book" WHERE id=${id} AND "ownerId"=${actor} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book=await lockDraftEditor(tx,id,actor);
   if(!book)return fail("Not found",404);
   if(book.status!=="DRAFT"||!["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))return fail("Outline is locked",409);
   const chapter=await tx.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null}});if(!chapter)return fail("Chapter not found",404);

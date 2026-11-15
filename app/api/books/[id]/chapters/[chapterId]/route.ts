@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "../../../../../../lib/db";
 import { identity, deny } from "../../../../../../lib/auth";
+import {draftParticipantWhere,lockDraftEditor} from "../../../../../../lib/draft-access";
 export const runtime = "nodejs";
 type Ctx = {params:Promise<{id:string;chapterId:string}>};
 const version=z.iso.datetime({precision:3}).optional();
@@ -16,7 +17,7 @@ const result=(error:string,status:number)=>NextResponse.json({error},{status});
 export async function GET(req:NextRequest,{params}:Ctx){
  const ownerId=await identity(req);if(!ownerId)return deny();
  const {id,chapterId}=await params;
- const c=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{ownerId,archivedAt:null}},include:{revisions:{orderBy:{revision:"desc"},take:50}}});
+ const c=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...draftParticipantWhere(ownerId)}},include:{revisions:{orderBy:{revision:"desc"},take:50}}});
  return c?NextResponse.json({chapter:c},{headers:{"Cache-Control":"no-store"}}):result("Not found",404);
 }
 export async function PATCH(req:NextRequest,{params}:Ctx){
@@ -24,7 +25,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
  const {id,chapterId}=await params;
  const parsed=schema.safeParse(await req.json().catch(()=>null));if(!parsed.success)return result("Invalid chapter input",400);
  return db.$transaction(async tx=>{
-  const [book] = await tx.$queryRaw<{status:string;editorialStage:string}[]>`SELECT status, "editorialStage" FROM "Book" WHERE id = ${id} AND "ownerId" = ${ownerId} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book = await lockDraftEditor(tx,id,ownerId);
   if(!book)return result("Not found",404);
   const c=await tx.chapter.findFirst({where:{id:chapterId,bookId:id}});
   if(!c)return result("Not found",404);
@@ -50,7 +51,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    const previous=await tx.chapterRevision.findUnique({where:{chapterId_revision:{chapterId,revision:parsed.data.restoreOutlineRevision}}});
    if(!previous||!previous.outlineObjective.trim())return result("Outline revision not found",404);
    const latest=await tx.chapterRevision.aggregate({where:{chapterId},_max:{revision:true}});
-   await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1}});
+   await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
    const chapter=await tx.chapter.update({where:{id:chapterId},data:{title:previous.title,outlineObjective:previous.outlineObjective,updatedAt:new Date(Math.max(Date.now(),c.updatedAt.getTime()+1))}});
    await tx.review.create({data:{bookId:id,decision:"outline:restore",note:"Chapter "+chapterId+" revision "+parsed.data.restoreOutlineRevision+" by "+ownerId}});
    return NextResponse.json({chapter});
@@ -59,7 +60,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    if(!["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))return result("Outline only",409);
    if(c.title===parsed.data.title&&c.outlineObjective===parsed.data.outlineObjective)return NextResponse.json({chapter:c,unchanged:true});
    const latest=await tx.chapterRevision.aggregate({where:{chapterId},_max:{revision:true}});
-   await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1}});
+   await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
    const updatedAt=new Date(Math.max(Date.now(),c.updatedAt.getTime()+1));
    const chapter=await tx.chapter.update({where:{id:chapterId},data:{title:parsed.data.title,outlineObjective:parsed.data.outlineObjective,updatedAt}});
    return NextResponse.json({chapter});
@@ -80,7 +81,8 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
   });
   if(!updated.count)return conflict();
   const latest=await tx.chapterRevision.aggregate({where:{chapterId},_max:{revision:true}});
-  await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1}});
+  await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
+  await tx.review.create({data:{bookId:id,decision:"chapter:edit",note:"Actor: "+ownerId+"; chapter: "+chapterId}});
   const chapter=await tx.chapter.findUniqueOrThrow({where:{id:chapterId}});
   return NextResponse.json({chapter});
  });
@@ -91,7 +93,7 @@ export async function DELETE(req:NextRequest,{params}:Ctx){
  const parsed=z.object({expectedVersion:z.iso.datetime({precision:3})}).strict().safeParse(await req.json().catch(()=>null));
  if(!parsed.success)return result("expectedVersion is required before archiving",428);
  return db.$transaction(async tx=>{
-  const [book]=await tx.$queryRaw<{status:string}[]>`SELECT status FROM "Book" WHERE id = ${id} AND "ownerId" = ${ownerId} AND "archivedAt" IS NULL FOR UPDATE`;
+  const book=await lockDraftEditor(tx,id,ownerId);
   if(!book)return result("Not found",404);
   if(book.status!=="DRAFT")return result("Draft only",409);
   const chapter=await tx.chapter.findFirst({where:{id:chapterId,bookId:id}});

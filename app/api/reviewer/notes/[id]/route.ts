@@ -15,7 +15,8 @@ async function owned(req:NextRequest,id:string,tx:Prisma.TransactionClient,allow
  const note=await tx.reviewerNote.findUnique({where:{id}});
  if(!note||(!allowArchived&&note.status==="ARCHIVED"))return null;
  const access=await reviewerAccess(req,note.bookId,tx);
- return access?.actor.id===note.reviewerId?{note,access}:null;
+ if(!access)return null;
+ return {note,access,own:access.actor.id===note.reviewerId};
 }
 export async function PATCH(req:NextRequest,{params}:Ctx){
  const {id}=await params;const p=schema.safeParse(await req.json().catch(()=>null));
@@ -26,9 +27,17 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
  if(found.access.book.status!=="REVIEW")return NextResponse.json({error:"Review closed"},{status:409});
  if(p.data.expectedVersion&&found.note.updatedAt.toISOString()!==p.data.expectedVersion)return NextResponse.json({error:"Catatan sudah berubah di sesi lain. Muat ulang dahulu."},{status:409});
  if("restore" in p.data){
+  if(!found.own)return NextResponse.json({error:"Not found"},{status:404});
   if(found.note.status!=="ARCHIVED")return NextResponse.json({error:"Catatan tidak diarsipkan."},{status:409});
   await tx.review.create({data:{bookId:found.note.bookId,decision:"note:restore",note:JSON.stringify({id,actor:found.access.actor.id})}});
   return NextResponse.json({note:await tx.reviewerNote.update({where:{id},data:{status:"OPEN"}})});
+ }
+ if(!found.own){
+  const acknowledge="status" in p.data&&p.data.status==="RESOLVED"&&Object.keys(p.data).every(key=>key==="status"||key==="expectedVersion");
+  const blocking=found.note.severity==="MAJOR"||found.note.severity==="CRITICAL";
+  if(!acknowledge||!blocking||found.note.status!=="OPEN")return NextResponse.json({error:"Hanya penulis catatan yang dapat mengubah isinya. Peninjau lain dapat menandai temuan mayor atau kritis sebagai selesai."},{status:403});
+  await tx.review.create({data:{bookId:found.note.bookId,decision:"note:acknowledge",note:JSON.stringify({id,actor:found.access.actor.id,originalReviewerId:found.note.reviewerId})}});
+  return NextResponse.json({note:await tx.reviewerNote.update({where:{id},data:{status:"RESOLVED"}})});
  }
  if(p.data.chapterId&&!await tx.chapter.findFirst({where:{id:p.data.chapterId,bookId:found.note.bookId,archivedAt:null}}))return NextResponse.json({error:"Bab tidak ditemukan atau telah diarsipkan"},{status:400});
  const {expectedVersion,...patch}=p.data;
@@ -40,7 +49,7 @@ export async function DELETE(req:NextRequest,{params}:Ctx){
  const {id}=await params;
  const version=z.object({expectedVersion:z.string().datetime()}).strict().safeParse(await req.json().catch(()=>null));
  if(!version.success)return NextResponse.json({error:"Versi catatan wajib diisi. Muat ulang dahulu."},{status:400});
- return db.$transaction(async tx=>{const found=await owned(req,id,tx);if(!found)return NextResponse.json({error:"Not found"},{status:404});
+ return db.$transaction(async tx=>{const found=await owned(req,id,tx);if(!found||!found.own)return NextResponse.json({error:"Not found"},{status:404});
  if(found.access.book.status!=="REVIEW")return NextResponse.json({error:"Review closed"},{status:409});
  if(found.note.updatedAt.toISOString()!==version.data.expectedVersion)return NextResponse.json({error:"Catatan sudah berubah di sesi lain. Muat ulang dahulu."},{status:409});
  await tx.review.create({data:{bookId:found.note.bookId,decision:"note:remove",note:JSON.stringify({previous:found.note,actor:found.access.actor.id})}});
