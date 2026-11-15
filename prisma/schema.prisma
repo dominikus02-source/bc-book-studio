@@ -36,10 +36,16 @@ model Book {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   approvedAt DateTime?
+  reviewPolicy ReviewPolicy @default(ANY)
+  reviewMinApprovals Int?
+  leadReviewerId String?
+  leadReviewer StudioUser? @relation("BookLeadReviewer", fields: [leadReviewerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   publication BookPublication?
   reviewNotes ReviewerNote[]
+  collaborators BookCollaborator[]
   @@index([ownerId, updatedAt])
   @@index([ownerId, archivedAt])
+  @@index([leadReviewerId])
 }
 model BookBriefRevision {
   id String @id @default(cuid())
@@ -74,6 +80,7 @@ model ChapterRevision {
   content String @db.Text
   outlineObjective String @default("")
   revision Int
+  actorId String?
   createdAt DateTime @default(now())
   @@unique([chapterId, revision])
 }
@@ -109,6 +116,21 @@ model BookReviewer {
   @@index([reviewerId, assignedAt])
 }
 
+model BookCollaborator {
+  id String @id @default(cuid())
+  bookId String
+  userId String
+  role String @default("EDITOR")
+  addedById String
+  createdAt DateTime @default(now())
+  archivedAt DateTime?
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user StudioUser @relation("CollaboratorMember", fields: [userId], references: [id], onDelete: Cascade)
+  addedBy StudioUser @relation("CollaboratorAddedBy", fields: [addedById], references: [id], onDelete: Restrict)
+  @@unique([bookId, userId])
+  @@index([userId, archivedAt])
+}
+
 model Review {
   id String @id @default(cuid())
   bookId String
@@ -121,6 +143,13 @@ enum BookStatus {
   DRAFT
   REVIEW
   APPROVED
+}
+enum ReviewPolicy {
+  ANY
+  ALL
+  MAJORITY
+  MIN_N
+  LEAD
 }
 
 model UsageCounter {
@@ -185,6 +214,9 @@ model StudioUser {
   sessions StudioSession[]
   tokens StudioAuthToken[]
   assignedBooks BookReviewer[]
+  collaborations BookCollaborator[] @relation("CollaboratorMember")
+  collaboratorsAdded BookCollaborator[] @relation("CollaboratorAddedBy")
+  leadReviewBooks Book[] @relation("BookLeadReviewer")
   formDrafts StudioFormDraft[]
   exportJobs ExportJob[]
   isbnEvents IsbnEvent[]

@@ -3,13 +3,14 @@ import { z } from "zod";
 import { db } from "../../../../../lib/db";
 import { identity, deny } from "../../../../../lib/auth";
 import { chapterInput, badInput } from "../../../../../lib/validation";
+import {draftParticipantWhere,lockDraftEditor} from "../../../../../lib/draft-access";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const ownerId = await identity(req);
   if (!ownerId) return deny();
   const {id}=await params;
   const book=await db.book.findFirst({
-    where:{id,ownerId,archivedAt:null},select:{chapters:{
+    where:{id,archivedAt:null,...draftParticipantWhere(ownerId)},select:{chapters:{
       where:{archivedAt:{not:null}}, orderBy:{archivedAt:"desc"},
       select:{id:true,title:true,outlineObjective:true,archivedAt:true,updatedAt:true},
     }},
@@ -25,8 +26,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const outline = z.object({title:z.string().trim().min(2).max(180),outlineObjective:z.string().trim().min(1).max(1500)}).strict();
     const input = z.union([outline,chapterInput.extend({outlineObjective:z.string().trim().min(1).max(1500).optional()}).strict()]).parse(await req.json());
     const chapter = await db.$transaction(async tx => {
-      await tx.$queryRaw`SELECT id FROM "Book" WHERE id = ${id} AND "ownerId" = ${ownerId} FOR UPDATE`;
-      const book = await tx.book.findFirst({ where: { id, ownerId, archivedAt:null }, include: { chapters: { where:{archivedAt:null}, orderBy: { position: "desc" }, take: 1 } } });
+      const locked=await lockDraftEditor(tx,id,ownerId);
+      if(!locked)throw new Error("NOT_FOUND");
+      const book = await tx.book.findFirst({ where: { id, archivedAt:null, ...draftParticipantWhere(ownerId) }, include: { chapters: { where:{archivedAt:null}, orderBy: { position: "desc" }, take: 1 } } });
       if (!book) throw new Error("NOT_FOUND");
       if (book.status !== "DRAFT") throw new Error("LOCKED");
       if("outlineObjective" in input && !["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))throw new Error("LOCKED");

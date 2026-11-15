@@ -69,8 +69,14 @@ export type BookWork = {
   status: string;
   editorialStage?: string;
   isOwner?: boolean;
+  isCollaborator?: boolean;
   stageReadiness?: { stages: StageGate[] };
 };
+
+export function waitingDecisionQueue<T extends { isOwner?: boolean; isCollaborator?: boolean; status: string }>(books: T[], role: string) {
+  if (role !== "REVIEWER" && role !== "ADMIN") return [];
+  return books.filter(book => book.isOwner === false && book.isCollaborator !== true && book.status === "REVIEW");
+}
 
 export type WorkAction = { label: string; detail: string; module: string; stageIndex: number };
 
@@ -78,6 +84,16 @@ export function bookWorkspaceAction(role: StudioRole, book: BookWork): WorkActio
   const index = stageIndexFor(book);
   const stages = book.stageReadiness?.stages ?? [];
   const here = stages[index]?.missing?.[0] || "";
+  if (book.isCollaborator && book.isOwner === false) {
+    if (book.status === "REVIEW" || book.status === "APPROVED") {
+      return { label: "Lihat catatan", detail: "Anda kolaborator. Keputusan review dan penerbitan tetap pada penulis utama.", module: "Review Naskah", stageIndex: index };
+    }
+    const writing = bookWorkspaceAction(role, { ...book, isCollaborator: false, isOwner: true });
+    if (writing.label === "Ajukan review") {
+      return { label: "Lanjutkan menulis", detail: "Anda kolaborator. Pengajuan review dilakukan penulis utama.", module: "Studio Penulisan", stageIndex: index };
+    }
+    return writing;
+  }
   if (book.isOwner === false) {
     if (showReviewDecision(role, { isOwner: false, canReview: true, status: book.status })) {
       return { label: "Beri keputusan", detail: "Bacalah dengan tenang, lalu setujui atau kembalikan.", module: "Review Naskah", stageIndex: index };

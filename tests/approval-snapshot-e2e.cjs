@@ -109,7 +109,7 @@ async function test() {
     assert.equal((await refreshed.inputValue()).trim(),content.trim());
     await editor.getByLabel("Judul bab (editor blok)").fill("Versi hasil pemulihan");
     await editor.getByRole("button",{name:"Simpan sekarang"}).click();
-    await editor.getByText("Naskah tersimpan.",{exact:true}).waitFor({timeout:15000});
+    await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
     assert.equal(JSON.parse(await call(chapterPath,200,owner)).chapter.title,"Versi hasil pemulihan");
     console.log("PASS modern block editor 409 conflict, local draft preserved, explicit recovery and autosave");
     const current=JSON.parse(await call(chapterPath,200,owner)).chapter;
@@ -121,7 +121,7 @@ async function test() {
     await editor.locator(".draft-revision-history li details summary").filter({hasText:/Revisi 1\b/}).click();
     page.once("dialog",dialog=>dialog.accept());
     await editor.getByRole("button",{name:"Pulihkan revisi 1",exact:true}).click();
-    await editor.getByText("Naskah tersimpan.",{exact:true}).waitFor({timeout:15000});
+    await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
     let restored;
     for(let attempt=0;attempt<50;attempt++){
       restored=JSON.parse(await call(chapterPath,200,owner)).chapter;

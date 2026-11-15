@@ -2,6 +2,7 @@ import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import {briefGenreIssues} from "./genre-policy";
 import {stageRequiredBefore,workflowAdvanceAllowed} from "./stage-guard";
+import {draftParticipantWhere,lockDraftEditor} from "./draft-access";
 
 const briefSelect = {
  id:true, approvedAt:true, status:true, editorialStage:true, title:true, subject:true, description:true,
@@ -41,7 +42,7 @@ export function stageReadiness(book:Brief){
 }
 
 function findOwnedBook(tx:Prisma.TransactionClient,bookId:string,actorId:string){
- return tx.book.findFirst({where:{id:bookId,ownerId:actorId,archivedAt:null},select:briefSelect});
+ return tx.book.findFirst({where:{id:bookId,archivedAt:null,...draftParticipantWhere(actorId)},select:briefSelect});
 }
 
 export async function workflowReadiness(bookId:string,actorId:string){
@@ -51,14 +52,15 @@ export async function workflowReadiness(bookId:string,actorId:string){
 
 export async function transition(bookId:string,to:"OUTLINE"|"WRITING",actor:{id:string}){
  return db.$transaction(async tx=>{
-  await tx.$queryRaw`SELECT id FROM "Book" WHERE id = ${bookId} AND "ownerId" = ${actor.id} FOR UPDATE`;
+  const locked=await lockDraftEditor(tx,bookId,actor.id);
+  if(!locked)return {status:404,body:{error:"Buku tidak ditemukan."}};
   const book=await findOwnedBook(tx,bookId,actor.id);
   if(!book)return {status:404,body:{error:"Buku tidak ditemukan."}};
   const state=stageReadiness(book);
   const from=stageRequiredBefore(to);
   if(!workflowAdvanceAllowed(state.stage,to,state.ready))return {status:409,body:{...state,error:"Tahap ini belum dapat dilanjutkan."}};
   const updated=await tx.book.updateMany({
-   where:{id:bookId,ownerId:actor.id,status:"DRAFT",editorialStage:from,updatedAt:book.updatedAt},
+   where:{id:bookId,status:"DRAFT",editorialStage:from,updatedAt:book.updatedAt,...draftParticipantWhere(actor.id)},
    data:{editorialStage:to},
   });
   if(!updated.count)return {status:409,body:{error:"Buku berubah. Muat ulang sebelum melanjutkan."}};

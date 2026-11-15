@@ -1,6 +1,7 @@
 import {NextRequest,NextResponse} from "next/server";
 import {db} from "../../../../../lib/db";
 import {sessionUser,deny} from "../../../../../lib/auth";
+import {draftParticipantWhere} from "../../../../../lib/draft-access";
 import {readFile,stat} from "node:fs/promises";
 import {resolve,dirname,relative,sep,basename} from "node:path";
 export const runtime="nodejs";
@@ -15,7 +16,7 @@ const fail=(error:string,status:number)=>NextResponse.json({error},{status,heade
 export async function GET(req:NextRequest,{params}:Context){
  const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;
- const book=await db.book.findFirst({where:{id,ownerId:actor.id,archivedAt:null},select:{title:true,status:true}});
+ const book=await db.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(actor.id)},select:{title:true,status:true}});
  if(!book)return fail("Buku tidak ditemukan atau bukan milik Anda.",404);
  const type=req.nextUrl.searchParams.get("type")||"manifest";
  if(type!=="manifest"&&!types.includes(type as typeof types[number]))return fail("Format tidak dikenal.",400);

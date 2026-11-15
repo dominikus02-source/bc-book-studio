@@ -28,7 +28,7 @@ async function main(){
  await editor.locator(".draft-palette-item").filter({hasText:"Blok kode"}).getByRole("button",{name:"Tambah"}).click();
  await editor.getByRole("button",{name:"Duplikat blok 1"}).click();
  await editor.getByRole("button",{name:"Simpan sekarang"}).click();
- await editor.getByText("Naskah tersimpan.",{exact:true}).waitFor({timeout:15000});
+ await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
  const saved=await db.chapter.findUniqueOrThrow({where:{id:chapter.id}});
  assert(saved.content.includes("## Orientasi cerita"));assert(saved.content.includes("| Aspek | Penjelasan |"));assert(saved.content.includes("- [ ] Langkah pertama"));assert(saved.content.includes("Contoh kode"));
  await editor.getByText("Riwayat revisi naskah").click();
@@ -36,7 +36,7 @@ async function main(){
  await editor.locator(".draft-revision-history li details summary").first().click();
  const first=editor.getByRole("button",{name:/Pulihkan revisi/}).first();
  await first.waitFor({timeout:15000});await first.click();
- await editor.getByText("Naskah tersimpan.",{exact:true}).waitFor({timeout:15000});
+ await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
  const reverted=await db.chapter.findUniqueOrThrow({where:{id:chapter.id}});
  assert(reverted.content.length>20);
  for(const theme of ["light","dark"]){

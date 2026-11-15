@@ -11,6 +11,7 @@ import {MediaImageEditor,MediaVideoEditor,InsertYouTube} from "./media-controls"
 import {marked} from "marked";
 import {cleanAlignmentArtifacts,renderBookPreview} from "../lib/quarto-book-preview";
 import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
+import FontSizeToggle from "./font-size-toggle";
 
 const WRITING_TRANSFER_FIELDS:TransferField[]=[
  {key:"title",label:"Judul bab",required:true,maxLength:180},
@@ -227,13 +228,21 @@ export default function DraftBlockCanvas({bookId,chapters,bookContext="",initial
   }catch(e){setChapterError(e instanceof Error?e.message:"Bab gagal dibuat.")}
   finally{setAdding(false)}
  }
+ const chapterIndex=chapters.findIndex(item=>item.id===chapter?.id);
+ const previousChapter=chapterIndex>0?chapters[chapterIndex-1]:null;
+ const nextChapter=chapterIndex>=0&&chapterIndex<chapters.length-1?chapters[chapterIndex+1]:null;
  return <section className="panel layout-output writing-workspace" role="region" aria-label="Kanvas naskah draf" style={{fontFamily:"DM Sans Variable, sans-serif"}}>
-  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Naskah</h2><p className="form-hint">Tulis di sini. Perubahan yang valid tersimpan sendiri dan tetap bisa dipulihkan.</p></div><span>{chapters.length} bab</span></div>
-  <details className="writing-chapter-manager"><summary>Kelola bab · tambah dan pilih bab</summary>
-   <div className="writing-chapter-list">{chapters.map((c,i)=><div className="writing-chapter-item" key={c.id}><button type="button" className={c.id===chapter?.id?"primary-button":"secondary-button"} disabled={adding||pending} onClick={()=>setSelected(c.id)}>{i+1}. {c.title}</button><button type="button" className="secondary-button" aria-label={"Arsipkan "+c.title} title={"Arsipkan "+c.title} disabled={adding||pending} onClick={()=>void archiveChapter(c)}>Arsip</button></div>)}</div>
+  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Naskah</h2><p className="form-hint">Tulis di sini. Perubahan yang valid tersimpan sendiri. Ukuran huruf bisa diperbesar.</p></div><FontSizeToggle /><span>{chapters.length} bab</span></div>
+  <section className="writing-chapter-manager" aria-label="Daftar bab">
+   <h3>Daftar bab</h3>
+   <div className="writing-chapter-nav">
+    <button type="button" className="secondary-button" disabled={!previousChapter||adding||pending} onClick={()=>previousChapter&&setSelected(previousChapter.id)}>Bab sebelumnya</button>
+    <button type="button" className="secondary-button" disabled={!nextChapter||adding||pending} onClick={()=>nextChapter&&setSelected(nextChapter.id)}>Bab berikutnya</button>
+   </div>
+   <div className="writing-chapter-list">{chapters.map((c,i)=><div className="writing-chapter-item" key={c.id}><button type="button" className={c.id===chapter?.id?"primary-button":"secondary-button"} disabled={adding||pending} onClick={()=>setSelected(c.id)}>{i+1}. {c.title}</button><button type="button" className="secondary-button" disabled={adding||pending} onClick={()=>void archiveChapter(c)}>Arsipkan</button></div>)}</div>
    <form onSubmit={event=>{event.preventDefault();void createChapter()}} className="writing-chapter-create"><label className="studio-field"><span>Bab baru</span><input value={newTitle} maxLength={180} onChange={e=>setNewTitle(e.target.value)} placeholder="Judul bab berikutnya"/></label><button className="primary-button" type="submit" disabled={adding||pending||newTitle.trim().length<2}>{adding?"Membuat…":"Tambah bab"}</button></form>
    {chapterError&&<p role="alert">{chapterError}</p>}
-  </details>
+  </section>
   {chapter?<DraftChapterCanvas key={chapter.id} bookId={bookId} chapter={chapter} chapters={chapters} bookContext={bookContext} onSelect={setSelected} onChanged={onChanged} onPendingChange={setPending}/>
    :<p className="writing-invite">Belum ada bab. Tambah satu judul, lalu tulis kalimat pertama.</p>}
  </section>;
@@ -617,7 +626,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
    </div>
    <button type="button" className="secondary-button" onClick={()=>{const target="/studio/editor?bookId="+encodeURIComponent(bookId)+"&chapterId="+encodeURIComponent(chapter.id);const popup=window.open(target,"_blank");if(!popup)setError("Browser memblokir tab editor. Izinkan pop-up untuk situs ini.");else popup.focus()}}>Buka editor layar penuh</button>
     <button type="button" className="secondary-button" onClick={openLivePreview} title="Buka pratinjau pada tab browser terpisah; perubahan CRUD ditampilkan langsung">↗ Buka tab pratinjau live</button>
-   <button type="button" className="secondary-button" aria-pressed={focus} onClick={()=>setFocus(x=>!x)}>{focus?"Tampilkan alat":"Fokus menulis"}</button>
+   <button type="button" className="secondary-button" aria-pressed={!focus} aria-expanded={!focus} onClick={()=>setFocus(x=>!x)}>{focus?"Opsi lainnya":"Sembunyikan opsi lainnya"}</button>
    <span className="writing-word-count">{wordCount.toLocaleString("id-ID")} kata · {blocks.length} blok</span>
   </div>
   <div className={"writing-studio-shell"+(focus?" is-focused":"")+(view==="split"?" is-split":"")}>
@@ -699,8 +708,16 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
    {qualityIssues.length===0?<p role="status">Tidak ada masalah struktur dasar yang terdeteksi. Periksa tetap ketepatan fakta dan kesinambungan isi.</p>:
    <ul>{qualityIssues.map(item=><li key={item.id}><strong>{item.severity==="warning"?"Perlu perhatian":"Saran"}: {item.label}</strong><p>{item.detail}</p></li>)}</ul>}
   </details>
-  <div className="draft-save-toolbar"><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.past.length} onClick={()=>stepHistory("undo")} aria-keyshortcuts="Control+Z Meta+Z">Undo</button><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.future.length} onClick={()=>stepHistory("redo")} aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Redo</button><button type="button" className="primary-button" disabled={!dirty||!valid||busy||Boolean(recovery)} onClick={()=>void saveNow()}>Simpan sekarang</button><span className="form-hint">Autosave tetap aktif; naskah tidak akan ditimpa bila versi berubah.</span></div>
-  <p role="status">{busy?"Menyimpan revisi…":error?"Perubahan belum tersimpan.":dirty&&!valid?"Judul minimal 2 karakter dan isi 20–200.000 karakter.":dirty?"Menunggu simpan otomatis…":"Naskah tersimpan."}</p>
+  <section className="senior-checklist" aria-label="Yang masih kurang sebelum lanjut">
+   <h3>Sebelum lanjut</h3>
+   <ul>
+    <li>{title.trim().length>=2?"Judul bab sudah diisi.":"Judul bab masih kurang."}</li>
+    <li>{content.trim().length>=20?"Isi bab sudah cukup panjang.":"Isi bab masih kurang dari 20 karakter."}</li>
+    {qualityIssues.filter(item=>item.severity==="warning").map(item=><li key={item.id}>{item.label}. {item.detail}</li>)}
+   </ul>
+  </section>
+  <div className="draft-save-toolbar"><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.past.length} onClick={()=>stepHistory("undo")} aria-keyshortcuts="Control+Z Meta+Z">Urungkan</button><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.future.length} onClick={()=>stepHistory("redo")} aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Ulangi</button><button type="button" className="primary-button" disabled={!dirty||!valid||busy||Boolean(recovery)} onClick={()=>void saveNow()}>Simpan sekarang</button><span className="form-hint">Penyimpanan otomatis tetap jalan. Jika orang lain mengubah bab yang sama, simpan akan berhenti dan meminta Anda memuat ulang.</span></div>
+  <p className="writing-save-status" role="status">{error?"Gagal menyimpan — coba lagi":busy||dirty?"Menyimpan…":"Tersimpan otomatis"}</p>
   {error&&<><p role="alert">{error}</p><button type="button" className="secondary-button" onClick={()=>downloadDraft({title,content})}>Unduh draf lokal</button><button type="button" className="secondary-button" onClick={()=>{if(confirm("Muat versi server dan buang perubahan yang belum tersimpan?")){try{sessionStorage.removeItem(recoveryKey)}catch{}window.location.reload()}}}>Muat versi server</button></>}
   <details className="draft-revision-history"><summary>Riwayat revisi naskah</summary>
    <button type="button" className="secondary-button" disabled={revisionBusy||busy} onClick={()=>void loadRevisions()}>Muat riwayat</button>
@@ -736,7 +753,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
      </details>
      {!sidebar&&!opener&&block.kind!=="image"&&block.kind!=="video"&&<details className="draft-format-details"><summary>Format teks dan sisipan</summary><div className="draft-word-toolbar draft-format-grid" role="group" aria-label={"Pemformatan blok "+(index+1)}>
       <div className="draft-word-toolbar-group" aria-label="Format teks">
-       {([["bold","B"],["italic","I"],["underline","U"],["strike","S"],["highlight","Sorot"],["link","Tautan"]] as const).map(([cmd,label])=><button key={cmd} type="button" title={{bold:"Tebal",italic:"Miring",underline:"Garis bawah",strike:"Coret",highlight:"Sorot",link:"Tautan"}[cmd]} aria-label={{bold:"Tebal",italic:"Miring",underline:"Garis bawah",strike:"Coret",highlight:"Sorot",link:"Tautan"}[cmd]} onClick={()=>applyTextFormat(block,cmd)}>{label}</button>)}
+       {([["bold","Tebal"],["italic","Miring"],["underline","Garis bawah"],["strike","Coret"],["highlight","Sorot"],["link","Tautan"]] as const).map(([cmd,label])=><button key={cmd} type="button" aria-label={label} onClick={()=>applyTextFormat(block,cmd)}>{label}</button>)}
       </div>
       <div className="draft-word-toolbar-group" aria-label="Jenis, ukuran dan warna huruf">
        <select aria-label="Jenis huruf" defaultValue="" onChange={e=>{if(e.target.value)applyTextFormat(block,"font",e.target.value);e.target.value=""}}><option value="">Jenis font</option>{TYPEFACES.map(font=><option key={font.name} value={font.value}>{font.name}</option>)}</select>
@@ -780,7 +797,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
       <button type="button" className="secondary-button" aria-label={"Naikkan blok "+(index+1)} disabled={busy||index===0} onClick={()=>move(block.id,blocks[index-1].id)}>Naikkan</button>
       <button type="button" className="secondary-button" aria-label={"Turunkan blok "+(index+1)} disabled={busy||index===blocks.length-1} onClick={()=>{setBodyEdited(true);setBlocks(current=>{const next=current.slice();const i=next.findIndex(b=>b.id===block.id);if(i<0||i>=next.length-1)return current;[next[i],next[i+1]]=[next[i+1],next[i]];return next})}}>Turunkan</button>
       <button type="button" className="secondary-button" aria-label={"Duplikat blok "+(index+1)} disabled={busy} onClick={()=>duplicateBlock(block.id)}>Duplikat</button>
-      <button type="button" className="secondary-button" aria-label={"Hapus blok "+(index+1)} disabled={busy} onClick={()=>{if(confirm("Hapus blok ini dari draf?")){setBodyEdited(true);setBlocks(current=>current.filter(item=>item.id!==block.id))}}}>Hapus</button>
+      <button type="button" className="secondary-button" aria-label={"Hapus blok "+(index+1)} disabled={busy} onClick={()=>{if(confirm("Hapus bagian ini dari draf? Bagian yang dihapus baru hilang setelah tersimpan.")){setBodyEdited(true);setBlocks(current=>current.filter(item=>item.id!==block.id))}}}>Hapus</button>
      </div>
      </details>
     </li>;

@@ -50,11 +50,12 @@ test("assigned readers keep access only while their current role is reviewer or 
   const editorWhere = access.manuscriptVisibilityWhere({ id: "editor", role: "EDITOR" }, { id: "book-1" });
   assert.equal(editorWhere.id, "book-1");
   assert.equal(editorWhere.archivedAt, null);
-  assert.equal(editorWhere.OR.length, 1);
+  assert.equal(editorWhere.OR.length, 2);
   assert.equal(editorWhere.OR[0].ownerId, "editor");
+  assert.equal(editorWhere.OR[1].collaborators.some.userId, "editor");
   const reviewerWhere = access.manuscriptVisibilityWhere({ id: "reviewer", role: "REVIEWER" });
-  assert.equal(reviewerWhere.OR.length, 2);
-  assert.equal(reviewerWhere.OR[1].assignedReviewers.some.reviewerId, "reviewer");
+  assert.equal(reviewerWhere.OR.length, 3);
+  assert.equal(reviewerWhere.OR[2].assignedReviewers.some.reviewerId, "reviewer");
   const archived = access.manuscriptVisibilityWhere({ id: "editor", role: "ADMIN" }, { archived: true });
   assert.equal(archived.ownerId, "editor");
   assert.equal(archived.archivedAt.not, null);
@@ -70,6 +71,8 @@ test("authors cannot decide their own review, and a stale assignment is not enou
   assert.equal(access.canDecideReview({ id: "reviewer", role: "REVIEWER" }, book, false), false);
   assert.equal(access.canDecideReview({ id: "reviewer", role: "REVIEWER" }, book, true), true);
   assert.equal(access.canDecideReview({ id: "admin", role: "ADMIN" }, book, true), true);
+  assert.equal(access.canDecideReview({ id: "partner", role: "EDITOR" }, book, false, true), false);
+  assert.equal(access.canReadManuscript({ id: "partner", role: "EDITOR" }, book, false, true), true);
 });
 
 test("workflow next-button cannot skip Ide or Rancang", () => {
@@ -104,7 +107,7 @@ test("transition refuses a direct jump from Ide to Tulis", async () => {
     chapters: [{ title: "Bab 1", outlineObjective: "Tujuan bab", content: "Isi bab yang sudah cukup panjang." }],
   };
   const tx = {
-    $queryRaw: async () => [],
+    $queryRaw: async () => [{ id: "book-1", status: "DRAFT", editorialStage: "BRIEF", ownerId: "owner" }],
     book: {
       findFirst: async () => book,
       updateMany: async (args) => { updates.push(args); return { count: 1 }; },

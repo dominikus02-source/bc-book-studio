@@ -83,3 +83,27 @@ test("navigation keeps office tools off editor and reviewer sessions", () => {
   assert.match(home.roleHomeCopy("SUPERADMIN").lead, /bukan peninjau/i);
   assert.match(home.roleHomeCopy("ADMIN").lead, /Perpusnas/i);
 });
+
+test("reviewer and admin see assigned review decisions; other roles do not", () => {
+  const books = [
+    { id: "a", title: "Menunggu", isOwner: false, status: "REVIEW" },
+    { id: "b", title: "Milik", isOwner: true, status: "REVIEW" },
+    { id: "c", title: "Kolaborasi", isOwner: false, isCollaborator: true, status: "REVIEW" },
+    { id: "d", title: "Draf", isOwner: false, status: "DRAFT" },
+  ];
+  assert.deepEqual(home.waitingDecisionQueue(books, "REVIEWER").map(book => book.id), ["a"]);
+  assert.deepEqual(home.waitingDecisionQueue(books, "ADMIN").map(book => book.id), ["a"]);
+  assert.deepEqual(home.waitingDecisionQueue(books, "EDITOR"), []);
+  assert.deepEqual(home.waitingDecisionQueue(books, "SUPERADMIN"), []);
+});
+
+test("collaborators keep writing actions and cannot submit review", () => {
+  const action = home.bookWorkspaceAction("EDITOR", {
+    status: "DRAFT", editorialStage: "WRITING", isOwner: false, isCollaborator: true,
+    stageReadiness: { stages: [{}, {}, { complete: true }, { available: true }, {}] },
+  });
+  assert.equal(action.label, "Lanjutkan menulis");
+  assert.match(action.detail, /penulis utama/i);
+  const review = home.bookWorkspaceAction("EDITOR", { status: "REVIEW", editorialStage: "WRITING", isOwner: false, isCollaborator: true });
+  assert.equal(review.label, "Lihat catatan");
+});

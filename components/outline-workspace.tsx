@@ -103,7 +103,7 @@ export default function OutlineWorkspace({id,stage,genre,bookContext="",chapters
   </li>)}</ol>
   <ChapterArchive key={id} id={id} activeChapters={chapters} onChanged={onChanged}/>
   <details className="stage-transfer-panel"><summary>Impor massal hingga 200 subbagian pada satu buku</summary><BulkOutlineManager bookId={id} bookContext={bookContext} onChanged={onChanged}/></details>
-  <details className="stage-transfer-panel" open>
+  <details className="stage-transfer-panel">
    <summary>Template Stage 2 — Rancang bab dan prompt AI</summary>
    <p className="form-hint">Pilih Ubah kerangka pada bab untuk mengisi template dari bab tersebut. Jika tidak memilih bab, isian membentuk kerangka bab baru.</p>
    <FormTransfer name="Stage 2 Kerangka Bab" bookId={id} fields={OUTLINE_TRANSFER_FIELDS} onPersist={async(r:TransferRecord)=>{const nextTitle=typeof r.title==="string"?r.title:title,nextObjective=typeof r.outlineObjective==="string"?r.outlineObjective:objective;if(nextTitle.trim().length<2||!nextObjective.trim())throw Error("Judul dan tujuan bab wajib diisi sebelum autosave.");if(!selected&&chapters.some(item=>item.title.trim().toLowerCase()===nextTitle.trim().toLowerCase()))throw Error("Bab dengan judul tersebut sudah ada. Pilih Ubah kerangka sebelum mengimpor revisi.");await send(path+"/chapters"+(selected?"/"+selected.id:""),selected?"PATCH":"POST",{title:nextTitle,outlineObjective:nextObjective,...(selected?{expectedVersion:selected.updatedAt}:{})});setSelected(null);await onChanged();setNotice("Kerangka Stage 2 tersimpan otomatis ke database.");}}
@@ -130,7 +130,7 @@ export default function OutlineWorkspace({id,stage,genre,bookContext="",chapters
    <button className="secondary-button" disabled={busy||title.trim().length<2||!objective.trim()}>{selected?"Simpan kerangka":"Tambah bab kerangka"}</button>
    {pending&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>{setSelected(null);setTitle("");setObjective("")}}>Batal</button>}
   </form>
-  {!!readiness?.missing.length&&<ul>{readiness.missing.map((field,index)=><li key={index}>{field}</li>)}</ul>}
+  <section className="senior-checklist" aria-label="Yang masih kurang sebelum lanjut"><h3>Sebelum lanjut</h3>{!readiness?<p>Memuat daftar yang masih kurang.</p>:readiness.missing.length?<ul>{readiness.missing.map((field,index)=><li key={index}>{field}</li>)}</ul>:<p>Kerangka ini sudah cukup untuk lanjut ke Tulis.</p>}</section>
   <button type="button" className="primary-button" disabled={busy||pending||(stage==="OUTLINE"&&!readiness?.ready)} onClick={()=>void run(async()=>{
    if(stage==="OUTLINE")await send(path+"/workflow","POST",{to:"WRITING"});await onChanged();onWrite();
   })}>Lanjut ke Tulis</button>
