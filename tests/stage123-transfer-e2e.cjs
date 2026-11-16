@@ -54,7 +54,7 @@ async function main(){
  await project.waitFor({timeout:30000});
  const projectPrompts=project.getByText(/Prompt AI sesuai isian/);
  await projectPrompts.click();
- await project.getByRole("button",{name:"Bantu: Brief / deskripsi buku"}).click();
+ await project.getByRole("button",{name:"Bantu: Sinopsis"}).click();
  let prompt=await project.getByRole("textbox",{name:"Pratinjau prompt AI Metadata proyek buku"}).inputValue();
  assert(prompt.includes("Uji Template Awal")&&prompt.includes("Memahami konsep IPA")&&prompt.includes("field_id description"));
  await project.getByRole("button",{name:"Periksa koherensi"}).click();

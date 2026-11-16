@@ -12,8 +12,6 @@ import {mediaImageMarkdown} from "../lib/book-media";
 import {marked} from "marked";
 import {cleanAlignmentArtifacts,renderBookPreview} from "../lib/quarto-book-preview";
 import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
-import FontSizeToggle from "./font-size-toggle";
-
 const WRITING_TRANSFER_FIELDS:TransferField[]=[
  {key:"title",label:"Judul bab",required:true,maxLength:180},
  {key:"content",label:"Isi naskah Markdown",required:true,maxLength:200000},
@@ -233,18 +231,18 @@ export default function DraftBlockCanvas({bookId,chapters,bookContext="",initial
  const previousChapter=chapterIndex>0?chapters[chapterIndex-1]:null;
  const nextChapter=chapterIndex>=0&&chapterIndex<chapters.length-1?chapters[chapterIndex+1]:null;
  return <section className="panel layout-output writing-workspace" role="region" aria-label="Kanvas naskah draf" style={{fontFamily:"DM Sans Variable, sans-serif"}}>
-  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Naskah</h2><p className="form-hint">Tulis di sini. Perubahan yang valid tersimpan sendiri. Ukuran huruf bisa diperbesar.</p></div><FontSizeToggle /><span>{chapters.length} bab</span></div>
+  <div className="writing-workspace-heading"><div><h2 id="draft-block-title">Naskah</h2><p className="form-hint">Tulis di sini. Perubahan yang valid tersimpan sendiri. Ukuran huruf ada di bagian atas studio.</p></div><span>{chapters.length} bab</span></div>
   <section className="writing-chapter-manager" aria-label="Daftar bab">
    <h3>Daftar bab</h3>
    <div className="writing-chapter-nav">
-    <button type="button" className="secondary-button" disabled={!previousChapter||adding||pending} onClick={()=>previousChapter&&setSelected(previousChapter.id)}>Bab sebelumnya</button>
-    <button type="button" className="secondary-button" disabled={!nextChapter||adding||pending} onClick={()=>nextChapter&&setSelected(nextChapter.id)}>Bab berikutnya</button>
+    <button type="button" className="secondary-button writing-chapter-arrow" aria-label="Bab sebelumnya" disabled={!previousChapter||adding||pending} onClick={()=>previousChapter&&setSelected(previousChapter.id)}>←</button>
+    <button type="button" className="secondary-button writing-chapter-arrow" aria-label="Bab berikutnya" disabled={!nextChapter||adding||pending} onClick={()=>nextChapter&&setSelected(nextChapter.id)}>→</button>
    </div>
    <div className="writing-chapter-list">{chapters.map((c,i)=><div className="writing-chapter-item" key={c.id}><button type="button" className={c.id===chapter?.id?"primary-button":"secondary-button"} disabled={adding||pending} onClick={()=>setSelected(c.id)}>{i+1}. {c.title}</button><button type="button" className="secondary-button" disabled={adding||pending} onClick={()=>void archiveChapter(c)}>Arsipkan</button></div>)}</div>
    <form onSubmit={event=>{event.preventDefault();void createChapter()}} className="writing-chapter-create"><label className="studio-field"><span>Bab baru</span><input value={newTitle} maxLength={180} onChange={e=>setNewTitle(e.target.value)} placeholder="Judul bab berikutnya"/></label><button className="primary-button" type="submit" disabled={adding||pending||newTitle.trim().length<2}>{adding?"Membuat…":"Tambah bab"}</button></form>
    {chapterError&&<p role="alert">{chapterError}</p>}
   </section>
-  {chapter?<DraftChapterCanvas key={chapter.id} bookId={bookId} chapter={chapter} chapters={chapters} bookContext={bookContext} onSelect={setSelected} onChanged={onChanged} onPendingChange={setPending}/>
+  {chapter?<DraftChapterCanvas key={chapter.id} bookId={bookId} chapter={chapter} chapters={chapters} bookContext={bookContext} onChanged={onChanged} onPendingChange={setPending}/>
    :<p className="writing-invite">Belum ada bab. Tambah satu judul, lalu tulis kalimat pertama.</p>}
  </section>;
 }
@@ -259,8 +257,8 @@ function editHistory(history:DraftHistory,action:DraftAction):DraftHistory{
  return next.title===present.title&&next.blocks===present.blocks?history:{past:[...past.slice(-79),present],present:next,future:[]};
 }
 
-function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onChanged,onPendingChange}:{
- bookId:string;chapter:Chapter;chapters:Chapter[];bookContext?:string;onSelect:(id:string)=>void;onChanged:()=>Promise<void>;onPendingChange:(value:boolean)=>void;
+function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onChanged,onPendingChange}:{
+ bookId:string;chapter:Chapter;chapters:Chapter[];bookContext?:string;onChanged:()=>Promise<void>;onPendingChange:(value:boolean)=>void;
 }){
  const [history,dispatchEdit]=useReducer(editHistory,chapter,item=>({past:[],present:{title:item.title,blocks:split(item.content)},future:[]}));
  const {title,blocks}=history.present;
@@ -658,7 +656,6 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
   <div className="writing-studio-editor" hidden={view==="preview"}>
   <fieldset disabled={!recoveryReady||Boolean(recovery)} style={{border:0,padding:0,margin:0,minWidth:0}}>
   <legend className="sr-only">Penyuntingan bab</legend>
-  <label className="studio-field"><span>Bab aktif</span><select value={chapter.id} disabled={busy||dirty||Boolean(error)} onChange={event=>onSelect(event.target.value)}>{chapters.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
   <label className="studio-field"><span>Judul bab (editor blok)</span><input maxLength={180} value={title} onChange={event=>setTitle(event.target.value)}/></label>
   <section className="panel" aria-label="Daftar isi otomatis dari Quarto Markdown">
    <h3>Judul dan daftar isi otomatis (Quarto Markdown)</h3>
@@ -680,7 +677,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
      if(typeof data.title==="string")setTitle(data.title);
      if(typeof data.content==="string"){setBodyEdited(true);setRecoveredContent(null);setBlocks(split(data.content))}
     }}/>
-   <p className="form-hint">Impor memuat isi ke editor blok dahulu. Periksa dan ubah sesuai kebutuhan, lalu gunakan Simpan sekarang (autosave juga tersedia). Versi lama tetap tercatat sebagai revisi.</p>
+   <p className="form-hint">Impor memuat isi ke editor blok dahulu. Periksa dan ubah sesuai kebutuhan. Naskah tersimpan otomatis. Versi lama tetap tercatat sebagai revisi.</p>
   </details>
   <details className="draft-outline-context writing-optional"><summary>Kerangka Stage 2 untuk bab ini</summary>
    <p className="form-hint">Kerangka berfungsi sebagai panduan. Tombol Sisipkan hanya menambah judul di draf dan tidak mengubah naskah yang telah disetujui.</p>
@@ -724,8 +721,8 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
     {qualityIssues.filter(item=>item.severity==="warning").map(item=><li key={item.id}>{item.label}. {item.detail}</li>)}
    </ul>
   </section>
-  <div className="draft-save-toolbar"><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.past.length} onClick={()=>stepHistory("undo")} aria-keyshortcuts="Control+Z Meta+Z">Urungkan</button><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.future.length} onClick={()=>stepHistory("redo")} aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Ulangi</button><button type="button" className="primary-button" disabled={!dirty||!valid||busy||Boolean(recovery)} onClick={()=>void saveNow()}>Simpan sekarang</button><span className="form-hint">Penyimpanan otomatis tetap jalan. Jika orang lain mengubah bab yang sama, simpan akan berhenti dan meminta Anda memuat ulang.</span></div>
-  <p className="writing-save-status" role="status">{error?"Gagal menyimpan — coba lagi":busy||dirty?"Menyimpan…":"Tersimpan otomatis"}</p>
+  <p className="writing-save-status" role="status">{error?"Gagal menyimpan — coba lagi":busy||dirty?"Menyimpan…":"Tersimpan otomatis ✓"}</p>
+  <div className="draft-save-toolbar"><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.past.length} onClick={()=>stepHistory("undo")} aria-keyshortcuts="Control+Z Meta+Z">Urungkan</button><button type="button" className="secondary-button" disabled={busy||Boolean(recovery)||!history.future.length} onClick={()=>stepHistory("redo")} aria-keyshortcuts="Control+Y Control+Shift+Z Meta+Shift+Z">Ulangi</button><button type="button" className="secondary-button writing-save-manual" disabled={!dirty||!valid||busy||Boolean(recovery)} onClick={()=>void saveNow()}>Simpan sekarang</button><span className="form-hint">Jika orang lain mengubah bab yang sama, simpan berhenti dan meminta Anda memuat ulang.</span></div>
   {error&&<><p role="alert">{error}</p><button type="button" className="secondary-button" onClick={()=>downloadDraft({title,content})}>Unduh draf lokal</button><button type="button" className="secondary-button" onClick={()=>{if(confirm("Muat versi server dan buang perubahan yang belum tersimpan?")){try{sessionStorage.removeItem(recoveryKey)}catch{}window.location.reload()}}}>Muat versi server</button></>}
   <details className="draft-revision-history"><summary>Riwayat revisi naskah</summary>
    <button type="button" className="secondary-button" disabled={revisionBusy||busy} onClick={()=>void loadRevisions()}>Muat riwayat</button>

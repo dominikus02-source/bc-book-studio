@@ -1550,7 +1550,11 @@ body:has(.writing-stage-layout), .writing-stage-layout, .writing-stage-layout .w
 .collaborator-results button{min-height:44px}
 .writing-workspace,.stage-readiness-panel,.senior-checklist{font-size:18px;line-height:1.6}
 .writing-workspace textarea,[data-draft-block],.writing-studio-editor textarea,.writing-studio-editor input,.writing-chapter-create input{font-size:18px;line-height:1.65;color:#172033}
-.writing-save-status{font-size:18px;font-weight:700;margin:8px 0}
+.writing-save-status{font-size:1.15rem;font-weight:700;margin:8px 0}
+.writing-save-manual{font-size:.95rem}
+.missing-field-list{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:8px 0 0;padding:0}
+.missing-field-list button{min-height:44px;text-align:left}
+.book-switcher select{min-height:44px;width:min(100%,32rem)}
 .writing-chapter-nav{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .writing-chapter-nav button,.writing-chapter-list button,.draft-word-toolbar button,.draft-palette-item button{min-height:44px}
 .senior-checklist{border:1px solid #cbd5e1;border-radius:12px;padding:12px 16px;background:#f8fafc}

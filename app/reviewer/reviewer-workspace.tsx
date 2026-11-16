@@ -16,7 +16,7 @@ type Draft={content:string;category:string;severity:string;chapterId:string;edit
 const emptyDraft:Draft={content:"",category:"CONTENT",severity:"SUGGESTION",chapterId:"",editId:"",editVersion:"",note:"",proposalId:""};
 const categories:Record<string,string>={CONTENT:"Isi",FACT:"Fakta",CITATION:"Sitasi",LANGUAGE:"Bahasa",ACCESSIBILITY:"Aksesibilitas",COPYRIGHT:"Hak cipta",PEDAGOGY:"Pedagogi"};
 const priorities:Record<string,string>={SUGGESTION:"Saran",MAJOR:"Mayor",CRITICAL:"Kritis"};
-const statuses:Record<string,string>={DRAFT:"Persiapan review",REVIEW:"Sedang ditinjau",APPROVED:"Disetujui",OPEN:"Terbuka",RESOLVED:"Selesai",ARCHIVED:"Diarsipkan"};
+const statuses:Record<string,string>={DRAFT:"Persiapan review",REVIEW:"Ditinjau",APPROVED:"Disetujui",OPEN:"Terbuka",RESOLVED:"Selesai",ARCHIVED:"Diarsipkan"};
 async function request(path:string,init?:RequestInit){
  let r:Response;try{r=await fetch(path,{...init,credentials:"same-origin",headers:{"Content-Type":"application/json",...init?.headers},cache:"no-store"})}catch{throw Error("Koneksi terputus. Draf catatan tetap tersedia; coba kembali.")}
  const d=await r.json().catch(()=>({}));
