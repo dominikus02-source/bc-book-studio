@@ -57,8 +57,11 @@ async function fonts() {
   };
 }
 
+/** PNG comes from the qrcode package's pngjs renderer. Do not switch this to a Skia or native canvas binding. */
 async function qrPng(url: string) {
-  return QRCode.toBuffer(url, { type: "png", width: 240, margin: 1, errorCorrectionLevel: "M" });
+  const png = await QRCode.toBuffer(url, { type: "png", width: 240, margin: 1, errorCorrectionLevel: "M" });
+  if (png[0] !== 0x89 || png[1] !== 0x50 || png[2] !== 0x4e || png[3] !== 0x47) throw new Error("QR renderer did not return a PNG");
+  return png;
 }
 
 function assetBytes(assets: RenderAsset[], id: string) {

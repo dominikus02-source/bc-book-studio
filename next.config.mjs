@@ -5,9 +5,9 @@ const config = {
   ...(qaDistDir ? { distDir: qaDistDir } : {}),
   output: "standalone",
   // pdfjs-dist loads its own worker file at runtime; bundling it into a server vendor chunk breaks worker resolution.
-  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
+  serverExternalPackages: ["pdfjs-dist"],
   outputFileTracingIncludes: {
-    "/*": ["./node_modules/.prisma/client/**/*", "./node_modules/@prisma/client/**/*", "./node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf", "./node_modules/katex/dist/fonts/KaTeX_Main-Bold.ttf", "./assets/fonts/**/*", "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", "./node_modules/@napi-rs/**/*"],
+    "/*": ["./node_modules/.prisma/client/**/*", "./node_modules/@prisma/client/**/*", "./node_modules/katex/dist/fonts/KaTeX_Main-Regular.ttf", "./node_modules/katex/dist/fonts/KaTeX_Main-Bold.ttf", "./assets/fonts/**/*", "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
   },
 };
 export default config;

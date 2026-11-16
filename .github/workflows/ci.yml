@@ -41,3 +41,16 @@ jobs:
         with:
           name: browser-failure
           path: test-results/
+  cpu-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/strip-napi-canvas.cjs
+      - run: npm run build
+      - run: sudo apt-get update && sudo apt-get install -y qemu-user-static gcc
+      - run: sh scripts/qemu-cpu-guard.sh
