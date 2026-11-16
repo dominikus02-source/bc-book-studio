@@ -43,19 +43,17 @@ jobs:
           path: test-results/
   cpu-guard:
     runs-on: ubuntu-latest
+    # Ubuntu 26's glibc is x86-64-v3, so qemu -cpu qemu64 SIGILLs in the host loader.
+    # Bookworm's glibc and Node are baseline and can run under that CPU model.
+    container: node:22-bookworm
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
+      - name: Install QEMU user-mode and gcc
+        run: |
+          apt-get update
+          apt-get install -y gcc qemu-user-static
+          command -v qemu-x86_64 || command -v qemu-x86_64-static
       - run: npm ci --no-audit --no-fund
       - run: node scripts/strip-napi-canvas.cjs
       - run: npm run build
-      - name: Install QEMU user-mode and gcc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc
-          sudo apt-get install -y qemu-user-binfmt || sudo apt-get install -y qemu-user-static || sudo apt-get install -y qemu-user
-          command -v qemu-x86_64 || command -v qemu-x86_64-static
       - run: sh scripts/qemu-cpu-guard.sh
