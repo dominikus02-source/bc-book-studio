@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import {genreGuide} from "../lib/genre-policy";
+import {briefFieldId} from "../lib/brief-fields";
 type Book={id:string;updatedAt:string;targetAudience:string;writingGoal:string;genre?:string;bookType?:string};
 type Readiness={stage:string;ready:boolean;missing:string[]};
 type History={id:string;createdAt:string;snapshot:{title:string;subject:string;description:string;targetAudience:string;writingGoal:string}};
@@ -21,11 +22,11 @@ export default function BriefGate({book,onChanged,onOutline}:{book:Book;onChange
   <p className="form-hint">Tombol utama ada di bawah. Lengkapi yang masih kurang, simpan, lalu lanjut.</p>
   <p className="form-hint">Edit judul, sinopsis, pembaca dan tujuan pada formulir proyek buku di atas. Unggah XLSX/Markdown pada form yang sama; tidak ada input brief kedua yang dapat menimpa perubahan.</p>
   {error&&<p role="alert">{error}</p>}
-  {readiness?.stage==="BRIEF"&&readiness.missing.length>0&&<><p role="status">Masih perlu dilengkapi:</p><ul>{readiness.missing.map(field=><li key={field}>{field}</li>)}</ul></>}
   <div className="stage-primary-actions">
    {readiness&&readiness.stage!=="BRIEF"
     ?<button type="button" className="primary-button" disabled={busy} onClick={onOutline}>Buka Rancang</button>
     :<button type="button" className="primary-button" disabled={busy||!readiness?.ready} onClick={()=>void run(async()=>{await request(path+"/workflow","POST",{to:"OUTLINE"});await onChanged();onOutline()})}>Lanjut ke Rancang</button>}
+   {readiness?.stage==="BRIEF"&&!readiness.ready&&readiness.missing.length>0&&<ul className="missing-field-list" aria-label="Yang masih kurang">{readiness.missing.map(field=>{const id=briefFieldId(field);return <li key={field}>{id?<button type="button" onClick={()=>{const el=document.getElementById(id);el?.scrollIntoView({block:"center"});el?.focus();}}>{field}</button>:<span>{field}</span>}</li>})}</ul>}
   </div>
   <details className="stage-advanced-tools"><summary>Riwayat brief dan panduan editorial (opsional)</summary>
    <p className="form-hint">{guide?.name||"Genre"}: {guide?.proof||"Sesuaikan standar isi dengan genre."} ISBN hanya diterbitkan oleh lembaga berwenang melalui prosedur resmi.</p>

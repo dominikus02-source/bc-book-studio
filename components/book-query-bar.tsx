@@ -19,7 +19,7 @@ export default function BookQueryBar({q,status,stage,scope,onChange,onScope}:{
    <select value={status} onChange={event=>onChange({q,status:event.target.value,stage})}>
     <option value="">Semua status</option>
     <option value="DRAFT">Draf</option>
-    <option value="REVIEW">Sedang ditinjau</option>
+    <option value="REVIEW">Ditinjau</option>
     <option value="APPROVED">Disetujui</option>
    </select>
   </label>

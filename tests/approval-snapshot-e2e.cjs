@@ -90,7 +90,7 @@ async function test() {
     await page.goto("http://127.0.0.1:32979/studio?module=Studio+Penulisan&bookId=" + bookId);
     const editor = page.getByRole("region",{name:"Kanvas naskah draf"});
     await editor.waitFor({timeout:20000});
-    await editor.getByLabel("Bab aktif").selectOption(winner.id);
+    await editor.getByRole("button",{name:winner.title}).click();
     const field = editor.locator("textarea[data-draft-block]").first();
     assert.equal((await field.inputValue()).trim(),content.trim());
     await call(chapterPath,200,owner,{title:"Dari tab lain",content,expectedVersion:saved.updatedAt},"PATCH");
@@ -104,12 +104,12 @@ async function test() {
     await recover.click();
     await page.waitForLoadState("domcontentloaded");
     await editor.waitFor({timeout:15000});
-    await editor.getByLabel("Bab aktif").selectOption(winner.id);
+    await editor.getByRole("button",{name:winner.title}).click();
     const refreshed=editor.locator("textarea[data-draft-block]").first();
     assert.equal((await refreshed.inputValue()).trim(),content.trim());
     await editor.getByLabel("Judul bab (editor blok)").fill("Versi hasil pemulihan");
     await editor.getByRole("button",{name:"Simpan sekarang"}).click();
-    await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
+    await editor.getByText("Tersimpan otomatis ✓",{exact:true}).waitFor({timeout:15000});
     assert.equal(JSON.parse(await call(chapterPath,200,owner)).chapter.title,"Versi hasil pemulihan");
     console.log("PASS modern block editor 409 conflict, local draft preserved, explicit recovery and autosave");
     const current=JSON.parse(await call(chapterPath,200,owner)).chapter;
@@ -121,7 +121,7 @@ async function test() {
     await editor.locator(".draft-revision-history li details summary").filter({hasText:/Revisi 1\b/}).click();
     page.once("dialog",dialog=>dialog.accept());
     await editor.getByRole("button",{name:"Pulihkan revisi 1",exact:true}).click();
-    await editor.getByText("Tersimpan otomatis",{exact:true}).waitFor({timeout:15000});
+    await editor.getByText("Tersimpan otomatis ✓",{exact:true}).waitFor({timeout:15000});
     let restored;
     for(let attempt=0;attempt<50;attempt++){
       restored=JSON.parse(await call(chapterPath,200,owner)).chapter;
@@ -145,7 +145,7 @@ async function test() {
     const next = brief.getByRole("button", { name: "Lanjut ke Rancang" });
     await brief.getByText("Sinopsis (minimal 20 karakter)", { exact: true }).waitFor();
     assert.equal(await next.isDisabled(), true);
-    await page.getByLabel("Brief / deskripsi buku").fill("Buku untuk mengenalkan dasar struktur cerita kepada pembaca pemula.");
+    await page.getByLabel("Sinopsis").fill("Buku untuk mengenalkan dasar struktur cerita kepada pembaca pemula.");
     await page.getByRole("button", { name: "Simpan perubahan", exact: true }).click();
     await page.getByLabel("Pembaca sasaran").fill("Siswa SMP kelas tujuh");
     await page.getByLabel("Tujuan penulisan").fill("Menyusun kerangka cerita pendek.");

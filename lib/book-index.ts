@@ -6,6 +6,18 @@ type Entry = {number:string; title:string; line:number};
 type ChapterIndex = {sections:Entry[]; figures:Entry[]; graphs:Entry[]; tables:Entry[]; equations:Entry[]};
 type Chapter = {title:string;content:string};
 
+export function plainHeading(text:string) {
+ const cleaned=text
+  .replace(/\{#[^}]*\}/g,"")
+  .replace(/!\[[^\]]*\]\([^)]*\)/g,"")
+  .replace(/\[([^\]]+)\]\([^)]*\)/g,"$1")
+  .replace(/[#>*_~`]+/g," ")
+  .replace(/\s+/g," ")
+  .trim();
+ if(cleaned.length>120)return "";
+ if(cleaned.length<=72)return cleaned;
+ return cleaned.slice(0,69).trimEnd()+"…";
+}
 function plain(text:string) {
  return text.replace(/\{#[^}]*\}/g,"").replace(/[\r\n\\<>\[\]*_\u0060]/g," ").replace(/\s+/g," ").trim();
 }
@@ -41,7 +53,9 @@ export function indexChapter(content:string, chapterNumber:number):ChapterIndex 
   if(heading&&!divisions.includes(true)){
    const depth=heading[1].length-2;
    if(depth===0){levels[0]++;levels[1]=0}else{if(!levels[0])levels[0]=1;levels[1]++}
-   index.sections.push({number:[chapterNumber,...levels.slice(0,depth+1)].join("."),title:plain(heading[2]),line:i});
+   const title=plainHeading(heading[2]);
+   if(!title)continue;
+   index.sections.push({number:[chapterNumber,...levels.slice(0,depth+1)].join("."),title,line:i});
   }
   const visible=line.replace(/\x60+[^\x60]*\x60+/g,"");
   for(const image of visible.matchAll(/!\[([^\]\n]*)\]\(asset:[a-z0-9]{6,100}\)/gi)) add(/^(?:grafik|graph)\b/i.test(image[1].trim())?"graphs":"figures",image[1]||"Ilustrasi",i);

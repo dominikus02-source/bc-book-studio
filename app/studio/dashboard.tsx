@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { briefFieldId } from "@/lib/brief-fields";
 import BetaWorkspace, { useBooks } from "@/components/beta-workspace";
 import StudioWorkspace from "@/components/studio-workspace";
 import IsbnOfficeDashboard from "@/components/isbn-office-dashboard";
@@ -74,6 +75,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
       complete: saved?.complete ?? false,
       available: saved?.available ?? index === 0,
       missing: saved?.missing?.join(" ") || "Pilih buku untuk melanjutkan.",
+      missingItems: saved?.missing ?? [],
     };
   });
   function stageAllowed(index: number) { return stageOpenAllowed(stageChecks, index); }
@@ -217,9 +219,9 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
             const current = workflow.findIndex(step => step.modules.includes(active));
             if (current < 0 || !workflowBook) return null;
             return <div className="writing-stage-navigation">
-              <p className="stage-guidance" role="status">{stageChecks[current].missing}</p>
               {current < 4 && <button type="button" className="primary-button" disabled={!stageAllowed(current + 1)} onClick={() => openStage(current + 1)}>Berikutnya: {workflow[current + 1].name}</button>}
-              {current < 4 && !stageAllowed(current + 1) && <p className="form-hint">Selesaikan tahap ini dulu. Urutannya Ide, lalu Rancang, lalu Tulis.</p>}
+              {current < 4 && !stageAllowed(current + 1) && stageChecks[current].missingItems.length > 0 && <ul className="missing-field-list" aria-label="Yang masih kurang">{stageChecks[current].missingItems.map(field => { const id = briefFieldId(field); return <li key={field}>{id ? <button type="button" onClick={() => { const el = document.getElementById(id); el?.scrollIntoView({ block: "center" }); el?.focus(); }}>{field}</button> : <span>{field}</span>}</li>; })}</ul>}
+              {current < 4 && !stageAllowed(current + 1) && stageChecks[current].missingItems.length === 0 && <p className="stage-guidance" role="status">{stageChecks[current].missing}</p>}
             </div>;
           })()}
         </>}
@@ -256,7 +258,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
           const action = bookWorkspaceAction(role, book);
           const stageName = STAGE_PATH[action.stageIndex]?.name || "Ide";
           const relation = book.isCollaborator ? "Buku kolaborasi" : book.isOwner === false ? (role === "SUPERADMIN" ? "Semua buku" : "Penugasan") : "Milik Anda";
-          return <article key={book.id} className="panel studio-book-row"><div><span className="studio-stage-pill">{stageName}</span><strong>{book.title}</strong><p>{relation} · {book.status === "DRAFT" ? "Draf" : book.status === "REVIEW" ? "Sedang ditinjau" : "Disetujui"}</p><p>{action.detail}</p></div><button type="button" className="secondary-button" onClick={() => navigateTo(action.module, book.id)}>{action.label}</button></article>;
+          return <article key={book.id} className="panel studio-book-row"><div><span className="studio-stage-pill">{stageName}</span><strong>{book.title}</strong><p>{relation} · {book.status === "DRAFT" ? "Draf" : book.status === "REVIEW" ? "Ditinjau" : "Disetujui"}</p><p>{action.detail}</p></div><button type="button" className="secondary-button" onClick={() => navigateTo(action.module, book.id)}>{action.label}</button></article>;
         })}</div>
         {deskMore && <button type="button" className="secondary-button" onClick={() => setDeskLimit(value => value + 20)}>Muat lebih banyak</button>}
       </section> : <>

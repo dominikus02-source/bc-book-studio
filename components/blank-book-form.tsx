@@ -11,7 +11,7 @@ const fields:readonly TransferField[]=[
  {key:"genre",label:"Genre",options:["REFERENCE","TEXTBOOK","GUIDE","WORKBOOK","NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]},
  {key:"grade",label:"Jenjang",options:["Referensi","1","2","3","4","5","6","7","8","9","10","11","12"]},
  {key:"pageSize",label:"Ukuran halaman",options:["A4","A5","B5"]},
- {key:"description",label:"Brief / deskripsi buku",maxLength:12000},
+ {key:"description",label:"Sinopsis",maxLength:12000},
  {key:"targetAudience",label:"Pembaca sasaran",maxLength:300},
  {key:"writingGoal",label:"Tujuan penulisan",maxLength:1500}
 ];
@@ -63,7 +63,7 @@ export default function BlankBookForm({onCreated}:{onCreated:(book:CreatedBook)=
    <label className="studio-field"><span>Genre</span><select value={data.genre} onChange={e=>change("genre",e.target.value)}>{(data.bookType==="FICTION"?["NOVEL","SHORT_STORY","ANTHOLOGY","POETRY"]:["REFERENCE","TEXTBOOK","GUIDE","WORKBOOK"]).map(g=><option key={g} value={g}>{g.replaceAll("_"," ")}</option>)}</select></label>
    <label className="studio-field"><span>Jenjang</span><select value={data.grade} onChange={e=>change("grade",e.target.value)}>{["Referensi","1","2","3","4","5","6","7","8","9","10","11","12"].map(g=><option key={g}>{g}</option>)}</select></label>
    <label className="studio-field"><span>Ukuran halaman</span><select value={data.pageSize} onChange={e=>change("pageSize",e.target.value)}>{["A4","A5","B5"].map(g=><option key={g}>{g}</option>)}</select></label>
-   <label className="studio-field"><span>Brief / deskripsi</span><textarea rows={5} maxLength={12000} value={data.description} onChange={e=>change("description",e.target.value)}/></label>
+   <label className="studio-field"><span>Sinopsis</span><textarea rows={5} maxLength={12000} value={data.description} onChange={e=>change("description",e.target.value)}/></label>
    <label className="studio-field"><span>Pembaca sasaran</span><input maxLength={300} value={data.targetAudience} onChange={e=>change("targetAudience",e.target.value)}/></label>
    <label className="studio-field"><span>Tujuan penulisan</span><textarea rows={3} maxLength={1500} value={data.writingGoal} onChange={e=>change("writingGoal",e.target.value)}/></label>
    {error&&<p role="alert">{error}</p>}
