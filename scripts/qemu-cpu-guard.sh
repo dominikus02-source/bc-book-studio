@@ -12,9 +12,13 @@ if ! command -v gcc >/dev/null 2>&1; then
   exit 1
 fi
 node_bin=$(command -v node)
-gcc -O2 -o /tmp/cpu-check "$root/scripts/cpu-check.c"
+# Ubuntu 26 GCC defaults to x86-64-v3. That baseline SIGILLs under -cpu qemu64 before main.
+gcc -O2 -march=x86-64 -mtune=generic -mno-sse4.1 -mno-sse4.2 -mno-avx -mno-avx2 -o /tmp/cpu-check "$root/scripts/cpu-check.c"
+echo "checking cpuid"
 "$qemu" -cpu qemu64 /tmp/cpu-check
+echo "loading server modules"
 "$qemu" -cpu qemu64 "$node_bin" "$root/scripts/load-server-modules.cjs"
+echo "starting server"
 
 if [ ! -f "$root/.next/standalone/server.js" ]; then
   echo "Missing .next/standalone/server.js. Run npm run build first." >&2
