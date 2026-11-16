@@ -52,5 +52,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: node scripts/strip-napi-canvas.cjs
       - run: npm run build
-      - run: sudo apt-get update && sudo apt-get install -y qemu-user-static gcc
+      - name: Install QEMU user-mode and gcc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc
+          sudo apt-get install -y qemu-user-binfmt || sudo apt-get install -y qemu-user-static || sudo apt-get install -y qemu-user
+          command -v qemu-x86_64 || command -v qemu-x86_64-static
       - run: sh scripts/qemu-cpu-guard.sh
