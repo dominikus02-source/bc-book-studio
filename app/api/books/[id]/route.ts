@@ -3,7 +3,8 @@ import { z } from "zod";
 import { db } from "../../../../lib/db";
 import { identity, deny, sessionUser } from "../../../../lib/auth";
 import {manuscriptVisibilityWhere} from "../../../../lib/manuscript-access";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../lib/draft-access";
+import {lockDraftEditor,managerLockSql,participantWhere} from "../../../../lib/draft-access";
+import {adminOverrideNote} from "../../../../lib/admin-override";
 export const runtime = "nodejs";
 const briefFields=["title","subject","description","targetAudience","writingGoal","bookType","genre"] as const;
 const edit=z.object({
@@ -27,7 +28,7 @@ export async function GET(req:NextRequest,{params}:Ctx){
  const user=await sessionUser(req);if(!user)return deny();
  const {id}=await params;
  if(req.nextUrl.searchParams.get("briefHistory")==="1"){
-  const book=await db.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(user.id)},select:{briefRevisions:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:50}}});
+  const book=await db.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(db,user.id))},select:{briefRevisions:{orderBy:[{createdAt:"desc"},{id:"desc"}],take:50}}});
   return book?NextResponse.json({history:book.briefRevisions},{headers:{"Cache-Control":"no-store"}}):fail("Book not found",404);
  }
  const where=manuscriptVisibilityWhere(user,{id});
@@ -48,7 +49,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
  return db.$transaction(async tx=>{
   const locked=await lockDraftEditor(tx,id,ownerId);
   if(!locked)return fail("Book not found",404);
-  const current=await tx.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(ownerId)}});
+  const current=await tx.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(tx,ownerId))}});
   if(!current)return fail("Book not found",404);
   if(current.status!=="DRAFT")return fail("Only drafts can be edited",409);
   if(current.updatedAt.getTime()!==new Date(expectedVersion).getTime())return fail("Buku telah berubah pada sesi lain. Muat ulang sebelum menyimpan.",409,"BOOK_VERSION_CONFLICT");
@@ -59,23 +60,27 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    const snapshot=Object.fromEntries(briefFields.map(field=>[field,current[field]]));
    await tx.bookBriefRevision.create({data:{bookId:id,actorId:ownerId,snapshot}});
   }
+  if("editorialChecks" in changes){
+   const actor=await tx.studioUser.findUnique({where:{id:ownerId},select:{role:true,active:true}});
+   await tx.review.create({data:{bookId:id,decision:"editorial:checklist",note:adminOverrideNote({id:ownerId,role:actor?.active?actor.role:""},current.ownerId,"Actor: "+ownerId)}});
+  }
   return NextResponse.json({book},{headers:{"Cache-Control":"no-store"}});
  });
 }
 export async function DELETE(req:NextRequest,{params}:Ctx){
- const ownerId=await identity(req);if(!ownerId)return deny();
+ const actor=await sessionUser(req);if(!actor)return deny();
  const {id}=await params;
  const data=await req.json().catch(()=>null);
  const parsed=z.object({expectedVersion:z.string().datetime({offset:true})}).strict().safeParse(data);
  if(!parsed.success)return fail("Versi buku wajib diisi sebelum pengarsipan.",428,"BOOK_VERSION_REQUIRED");
  return db.$transaction(async tx=>{
-  await tx.$queryRaw`SELECT id FROM "Book" WHERE id = ${id} AND "ownerId" = ${ownerId} FOR UPDATE`;
-  const book=await tx.book.findFirst({where:{id,ownerId}});
+  await tx.$queryRaw(managerLockSql(id,actor.id));
+  const book=await tx.book.findFirst({where:actor.role==="SUPERADMIN"?{id}:{id,ownerId:actor.id}});
   if(!book)return fail("Book not found",404);
   if(book.archivedAt||book.status!=="DRAFT")return fail("Only active drafts can be archived",409);
   if(book.updatedAt.getTime()!==new Date(parsed.data.expectedVersion).getTime())return fail("Buku telah berubah. Muat ulang sebelum mengarsipkan.",409,"BOOK_VERSION_CONFLICT");
   await tx.book.update({where:{id},data:{archivedAt:new Date()}});
-  await tx.review.create({data:{bookId:id,decision:"brief:archive",note:"Actor: "+ownerId}});
+  await tx.review.create({data:{bookId:id,decision:"brief:archive",note:adminOverrideNote(actor,book.ownerId,"Actor: "+actor.id)}});
   return NextResponse.json({archived:true},{headers:{"Cache-Control":"no-store"}});
  });
 }

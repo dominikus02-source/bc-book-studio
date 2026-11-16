@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "../../../../../../lib/db";
 import { identity, deny } from "../../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../../lib/draft-access";
+import {overrideNoteFor} from "../../../../../../lib/admin-override";
 export const runtime = "nodejs";
 type Ctx = {params:Promise<{id:string;chapterId:string}>};
 const version=z.iso.datetime({precision:3}).optional();
@@ -17,7 +18,7 @@ const result=(error:string,status:number)=>NextResponse.json({error},{status});
 export async function GET(req:NextRequest,{params}:Ctx){
  const ownerId=await identity(req);if(!ownerId)return deny();
  const {id,chapterId}=await params;
- const c=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...draftParticipantWhere(ownerId)}},include:{revisions:{orderBy:{revision:"desc"},take:50}}});
+ const c=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...(await participantWhere(db,ownerId))}},include:{revisions:{orderBy:{revision:"desc"},take:50}}});
  return c?NextResponse.json({chapter:c},{headers:{"Cache-Control":"no-store"}}):result("Not found",404);
 }
 export async function PATCH(req:NextRequest,{params}:Ctx){
@@ -42,7 +43,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    const last=await tx.chapter.aggregate({where:{bookId:id,archivedAt:null},_max:{position:true}});
    const updatedAt=new Date(Math.max(Date.now(),c.updatedAt.getTime()+1));
    const chapter=await tx.chapter.update({where:{id:chapterId},data:{archivedAt:null,position:(last._max.position??0)+1,updatedAt}});
-   await tx.review.create({data:{bookId:id,decision:"chapter:restore",note:chapterId+" · "+ownerId}});
+   await tx.review.create({data:{bookId:id,decision:"chapter:restore",note:await overrideNoteFor(tx,ownerId,book.ownerId,chapterId+" · "+ownerId)}});
    return NextResponse.json({chapter});
   }
   if(c.archivedAt)return result("Chapter is archived",409);
@@ -53,7 +54,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    const latest=await tx.chapterRevision.aggregate({where:{chapterId},_max:{revision:true}});
    await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
    const chapter=await tx.chapter.update({where:{id:chapterId},data:{title:previous.title,outlineObjective:previous.outlineObjective,updatedAt:new Date(Math.max(Date.now(),c.updatedAt.getTime()+1))}});
-   await tx.review.create({data:{bookId:id,decision:"outline:restore",note:"Chapter "+chapterId+" revision "+parsed.data.restoreOutlineRevision+" by "+ownerId}});
+   await tx.review.create({data:{bookId:id,decision:"outline:restore",note:await overrideNoteFor(tx,ownerId,book.ownerId,"Chapter "+chapterId+" revision "+parsed.data.restoreOutlineRevision+" by "+ownerId)}});
    return NextResponse.json({chapter});
   }
   if("outlineObjective" in parsed.data){
@@ -63,6 +64,7 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
    await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
    const updatedAt=new Date(Math.max(Date.now(),c.updatedAt.getTime()+1));
    const chapter=await tx.chapter.update({where:{id:chapterId},data:{title:parsed.data.title,outlineObjective:parsed.data.outlineObjective,updatedAt}});
+   await tx.review.create({data:{bookId:id,decision:"outline:edit",note:await overrideNoteFor(tx,ownerId,book.ownerId,"Actor: "+ownerId+"; chapter: "+chapterId)}});
    return NextResponse.json({chapter});
   }
   const source = "restoreRevision" in parsed.data
@@ -82,7 +84,8 @@ export async function PATCH(req:NextRequest,{params}:Ctx){
   if(!updated.count)return conflict();
   const latest=await tx.chapterRevision.aggregate({where:{chapterId},_max:{revision:true}});
   await tx.chapterRevision.create({data:{chapterId,title:c.title,content:c.content,outlineObjective:c.outlineObjective,revision:(latest._max.revision??0)+1,actorId:ownerId}});
-  await tx.review.create({data:{bookId:id,decision:"chapter:edit",note:"Actor: "+ownerId+"; chapter: "+chapterId}});
+  const restoring="restoreRevision" in parsed.data;
+  await tx.review.create({data:{bookId:id,decision:restoring?"chapter:revision-restore":"chapter:edit",note:await overrideNoteFor(tx,ownerId,book.ownerId,"Actor: "+ownerId+"; chapter: "+chapterId)}});
   const chapter=await tx.chapter.findUniqueOrThrow({where:{id:chapterId}});
   return NextResponse.json({chapter});
  });
@@ -107,7 +110,7 @@ export async function DELETE(req:NextRequest,{params}:Ctx){
   for(const [index,row] of rest.entries()){
    if(row.position!==index+1)await tx.chapter.update({where:{id:row.id},data:{position:index+1}});
   }
-  await tx.review.create({data:{bookId:id,decision:"chapter:archive",note:chapterId+" · "+ownerId}});
+  await tx.review.create({data:{bookId:id,decision:"chapter:archive",note:await overrideNoteFor(tx,ownerId,book.ownerId,chapterId+" · "+ownerId)}});
   return NextResponse.json({deleted:true,archived:true});
  });
 }

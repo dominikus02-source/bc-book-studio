@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../../lib/db";
 import {identity,deny} from "../../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../../lib/draft-access";
 export const runtime="nodejs";
 const schema=z.object({
  ids:z.array(z.string().min(1).max(100)).min(1).max(500),
@@ -21,7 +21,7 @@ export async function PATCH(req:NextRequest,{params}:{params:Promise<{id:string}
  return db.$transaction(async tx=>{
   const locked=await lockDraftEditor(tx,id,ownerId);
   if(!locked)return fail("Book not found",404);
-  const book=await tx.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(ownerId)},select:{status:true,editorialStage:true}});
+  const book=await tx.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(tx,ownerId))},select:{status:true,editorialStage:true}});
   if(!book)return fail("Book not found",404);
   if(book.status!=="DRAFT"||!["OUTLINE","WRITING","EDITING"].includes(book.editorialStage))return fail("Outline is not editable",409);
   const chapters=await tx.chapter.findMany({where:{bookId:id,archivedAt:null},select:{id:true,position:true},orderBy:[{position:"asc"},{id:"asc"}]});

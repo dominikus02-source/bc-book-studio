@@ -49,4 +49,19 @@ test("collaborator RBAC matrix stays owner-only for review, publish, and account
   assert.equal(access.stagePermission(adminLoose, "decide", review, { assigned: false, collaborator: false }), false);
   assert.equal(access.stagePermission(null, "read", draft, { assigned: false, collaborator: false }), false);
   assert.equal(access.stagePermission(owner, "decide", draft, { assigned: true, collaborator: false }), false);
+  const superadmin = { id: "root", role: "SUPERADMIN" };
+  assert.deepEqual(row(superadmin, draft, { assigned: false, collaborator: false }), {
+    read: true, "edit-draft": true, submit: false, decide: false, publish: false, collaborators: true, "archive-book": true, "assign-reviewer": true,
+  });
+  assert.equal(access.stagePermission(superadmin, "decide", review, { assigned: true, collaborator: false }), true);
+  assert.equal(access.stagePermission(superadmin, "decide", review, { assigned: false, collaborator: false }), false);
+  assert.equal(access.stagePermission(superadmin, "decide", review, { assigned: true, collaborator: true }), false);
+  assert.equal(access.stagePermission({ id: "owner", role: "SUPERADMIN" }, "decide", review, { assigned: true, collaborator: false }), false);
+  assert.equal(access.stagePermission({ id: "owner", role: "SUPERADMIN" }, "submit", draft, { assigned: false, collaborator: false }), true);
+  const all = access.manuscriptVisibilityWhere(superadmin);
+  assert.equal(all.archivedAt, null);
+  assert.equal(Object.hasOwn(all, "OR"), false);
+  assert.equal(Object.hasOwn(all, "ownerId"), false);
+  const mine = access.manuscriptVisibilityWhere(superadmin, { mine: true });
+  assert.equal(mine.OR[0].ownerId, "root");
 });

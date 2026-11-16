@@ -15,17 +15,18 @@ export function isManuscriptReviewerRole(role: string) {
   return role === "REVIEWER" || role === "ADMIN";
 }
 
-/** Owner, or a current REVIEWER/ADMIN who is still assigned. SUPERADMIN is not a manuscript reader of other people's books. */
+/** Owner, assigned reviewer/admin, or superadmin. Superadmin can open every book. */
 export function canReadManuscript(actor: { id: string; role: string }, book: { ownerId: string }, assigned: boolean) {
+  if (actor.role === "SUPERADMIN") return true;
   if (actor.id === book.ownerId) return true;
   return assigned && isManuscriptReviewerRole(actor.role);
 }
 
-/** Author cannot decide. Assignment and a live REVIEWER/ADMIN role are both required, and only while status is REVIEW. */
+/** Author cannot decide. SUPERADMIN decides only when assigned, and never as the author. */
 export function canDecideReview(actor: { id: string; role: string }, book: { ownerId: string; status: string }, assigned: boolean) {
   if (actor.id === book.ownerId) return false;
-  if (book.status !== "REVIEW") return false;
-  return assigned && isManuscriptReviewerRole(actor.role);
+  if (book.status !== "REVIEW" || !assigned) return false;
+  return isManuscriptReviewerRole(actor.role) || actor.role === "SUPERADMIN";
 }
 
 /** Flags already returned by GET /api/reviewer. */
@@ -38,7 +39,7 @@ export function showReviewDecision(role: string, book: { isOwner: boolean; canRe
 }
 
 export function showManuscriptBody(role: string, book: { isOwner: boolean; canReview: boolean }) {
-  if (book.isOwner) return true;
+  if (book.isOwner || role === "SUPERADMIN") return true;
   return isManuscriptReviewerRole(role) && book.canReview;
 }
 
@@ -70,12 +71,13 @@ export type BookWork = {
   editorialStage?: string;
   isOwner?: boolean;
   isCollaborator?: boolean;
+  canReview?: boolean;
   stageReadiness?: { stages: StageGate[] };
 };
 
-export function waitingDecisionQueue<T extends { isOwner?: boolean; isCollaborator?: boolean; status: string }>(books: T[], role: string) {
-  if (role !== "REVIEWER" && role !== "ADMIN") return [];
-  return books.filter(book => book.isOwner === false && book.isCollaborator !== true && book.status === "REVIEW");
+export function waitingDecisionQueue<T extends { isOwner?: boolean; isCollaborator?: boolean; status: string; canReview?: boolean }>(books: T[], role: string) {
+  if (role !== "REVIEWER" && role !== "ADMIN" && role !== "SUPERADMIN") return [];
+  return books.filter(book => book.isOwner === false && book.isCollaborator !== true && book.status === "REVIEW" && (role !== "SUPERADMIN" || book.canReview === true));
 }
 
 export type WorkAction = { label: string; detail: string; module: string; stageIndex: number };
@@ -94,8 +96,22 @@ export function bookWorkspaceAction(role: StudioRole, book: BookWork): WorkActio
     }
     return writing;
   }
+  if (role === "SUPERADMIN" && book.isOwner === false && book.isCollaborator !== true) {
+    if (book.canReview && book.status === "REVIEW") {
+      return { label: "Beri keputusan", detail: "Anda ditugaskan pada buku ini dan bukan penulisnya. Setujui atau kembalikan.", module: "Review Naskah", stageIndex: index };
+    }
+    if (book.status === "DRAFT") {
+      const writing = bookWorkspaceAction(role, { ...book, isOwner: true, isCollaborator: false, canReview: false });
+      if (writing.label === "Ajukan review") {
+        return { label: "Kelola naskah", detail: "Anda mengelola buku ini sebagai superadmin. Pengajuan review tetap pada penulis utama.", module: writing.module, stageIndex: writing.stageIndex };
+      }
+      return { ...writing, detail: "Anda mengelola buku ini sebagai superadmin. " + writing.detail };
+    }
+    return { label: "Buka buku", detail: "Anda mengelola buku ini sebagai superadmin. Tindakan pada buku orang lain tercatat sebagai admin override.", module: book.status === "APPROVED" ? "Tata Letak" : "Review Naskah", stageIndex: index };
+  }
   if (book.isOwner === false) {
-    if (showReviewDecision(role, { isOwner: false, canReview: true, status: book.status })) {
+    const canReview = book.canReview ?? (role === "REVIEWER" || role === "ADMIN");
+    if (showReviewDecision(role, { isOwner: false, canReview, status: book.status })) {
       return { label: "Beri keputusan", detail: "Bacalah dengan tenang, lalu setujui atau kembalikan.", module: "Review Naskah", stageIndex: index };
     }
     return { label: "Baca tinjauan", detail: "Naskah ini terbuka karena penugasan. Penulis yang mengubahnya.", module: "Review Naskah", stageIndex: index };
@@ -135,7 +151,7 @@ export function studioPrimaryNav(role: StudioRole) {
 export function roleHomeCopy(role: StudioRole) {
   if (role === "REVIEWER") return { title: "Lanjutkan naskah", lead: "Keputusan yang menunggu ada di antrean. Naskah milik Anda tetap berjalan dari Ide sampai Terbit." };
   if (role === "ADMIN") return { title: "Lanjutkan naskah", lead: "Buku Anda dan penugasan review ada di meja ini. Berkas ISBN disiapkan di kantor penerbit; ISBN, barcode, dan KDT diterbitkan Perpusnas." };
-  if (role === "SUPERADMIN") return { title: "Kantor akun", lead: "Anda mengelola akun. Superadmin bukan peninjau naskah orang lain." };
+  if (role === "SUPERADMIN") return { title: "Semua buku", lead: "Anda dapat melihat dan mengelola setiap buku. Persetujuan tetap membutuhkan peninjau yang ditugaskan, dan Anda tidak dapat menyetujui buku yang Anda tulis atau kolaborasikan. Tindakan pada buku orang lain tercatat sebagai admin override." };
   return { title: "Lanjutkan naskah", lead: "Satu naskah di depan Anda. Ide, Rancang, Tulis, Review, lalu Terbit — masing-masing membuka yang berikutnya." };
 }
 

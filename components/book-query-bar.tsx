@@ -1,13 +1,20 @@
 "use client";
 
-export default function BookQueryBar({q,status,stage,onChange}:{
- q:string;status:string;stage:string;
+export default function BookQueryBar({q,status,stage,scope,onChange,onScope}:{
+ q:string;status:string;stage:string;scope?:string;
  onChange:(next:{q:string;status:string;stage:string})=>void;
+ onScope?:(scope:string)=>void;
 }){
  return <form className="book-query-bar" role="search" aria-label="Cari buku" onSubmit={event=>event.preventDefault()}>
   <label className="studio-field">Cari judul
    <input value={q} onChange={event=>onChange({q:event.target.value,status,stage})} placeholder="Ketik judul buku" />
   </label>
+  {onScope&&<label className="studio-field">Lingkup
+   <select value={scope||""} aria-label="Lingkup buku" onChange={event=>onScope(event.target.value)}>
+    <option value="">Semua buku</option>
+    <option value="mine">Buku saya</option>
+   </select>
+  </label>}
   <label className="studio-field">Status
    <select value={status} onChange={event=>onChange({q,status:event.target.value,stage})}>
     <option value="">Semua status</option>

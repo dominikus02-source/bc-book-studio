@@ -31,6 +31,8 @@ test("publisher dossier is admin-only and book packet follows owner and collabor
   assert.equal(packet.canEditIsbnPacket({ id: "reviewer", role: "REVIEWER" }, book, false), false);
   assert.equal(packet.canEditIsbnPacket({ id: "stranger", role: "EDITOR" }, book, false), false);
   assert.equal(packet.canEditIsbnPacket({ id: "admin", role: "ADMIN" }, book, false), false);
+  assert.equal(packet.canEditIsbnPacket({ id: "root", role: "SUPERADMIN" }, book, false), true);
+  assert.equal(packet.canEditIsbnPacket({ id: "root", role: "SUPERADMIN" }, { ...book, companionKind: "LKPD" }, false), false);
   assert.equal(packet.canEditIsbnPacket({ id: "owner", role: "EDITOR" }, { ...book, companionKind: "LKPD" }, false), false);
   assert.equal(packet.canEditIsbnPacket(null, book, true), false);
 });

@@ -2,7 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../../../lib/db";
 import {identity,deny} from "../../../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../../../lib/draft-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string;chapterId:string}>};
 const fail=(error:string,status:number,code?:string)=>NextResponse.json({error,...(code?{code}:{})},{status,headers:{"Cache-Control":"no-store"}});
@@ -10,7 +10,7 @@ const input=z.object({title:z.string().trim().min(2).max(180),objective:z.string
 export async function GET(req:NextRequest,{params}:Ctx){
  const actor=await identity(req);if(!actor)return deny();
  const {id,chapterId}=await params;
- const chapter=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...draftParticipantWhere(actor)}}});
+ const chapter=await db.chapter.findFirst({where:{id:chapterId,bookId:id,archivedAt:null,book:{archivedAt:null,...(await participantWhere(db,actor))}}});
  if(!chapter)return fail("Not found",404);
  const sections=await db.outlineSection.findMany({where:{bookId:id,chapterId},orderBy:[{position:"asc"},{createdAt:"asc"}],include:{revisions:{orderBy:{createdAt:"desc"},take:25}}});
  return NextResponse.json({sections},{headers:{"Cache-Control":"no-store"}});

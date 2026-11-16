@@ -46,6 +46,13 @@ test("q, status, and stage are optional filters and pagination defaults to 20 wi
   assert.equal(page.hasMore, true);
 });
 
+test("review and layout filters still match books saved before the stage was updated", () => {
+  const review = query.bookListFilter(query.parseBookListQuery(new URLSearchParams("stage=REVIEW")));
+  assert.deepEqual(review.OR, [{ editorialStage: "REVIEW" }, { status: "REVIEW" }]);
+  const layout = query.bookListFilter(query.parseBookListQuery(new URLSearchParams("stage=LAYOUT")));
+  assert.deepEqual(layout.OR, [{ editorialStage: "LAYOUT" }, { status: "APPROVED" }]);
+});
+
 test("unknown status or stage is rejected", () => {
   assert.equal(query.parseBookListQuery(new URLSearchParams("status=PUBLISHED")).error, "Status tidak dikenal.");
   assert.equal(query.parseBookListQuery(new URLSearchParams("stage=EXPORTED")).error, "Tahap tidak dikenal.");

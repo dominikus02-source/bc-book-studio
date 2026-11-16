@@ -42,7 +42,7 @@ test("assigned readers keep access only while their current role is reviewer or 
   const book = { ownerId: "owner" };
   assert.equal(access.canReadManuscript({ id: "owner", role: "EDITOR" }, book, false), true);
   assert.equal(access.canReadManuscript({ id: "editor", role: "EDITOR" }, book, true), false);
-  assert.equal(access.canReadManuscript({ id: "former", role: "SUPERADMIN" }, book, true), false);
+  assert.equal(access.canReadManuscript({ id: "former", role: "SUPERADMIN" }, book, true), true);
   assert.equal(access.canReadManuscript({ id: "reviewer", role: "REVIEWER" }, book, true), true);
   assert.equal(access.canReadManuscript({ id: "reviewer", role: "REVIEWER" }, book, false), false);
   assert.equal(access.canReadManuscript({ id: "admin", role: "ADMIN" }, book, true), true);
@@ -68,7 +68,10 @@ test("authors cannot decide their own review, and a stale assignment is not enou
   assert.equal(access.canDecideReview({ id: "author", role: "ADMIN" }, book, true), false);
   assert.equal(access.canDecideReview({ id: "author", role: "REVIEWER" }, book, true), false);
   assert.equal(access.canDecideReview({ id: "editor", role: "EDITOR" }, book, true), false);
-  assert.equal(access.canDecideReview({ id: "super", role: "SUPERADMIN" }, book, true), false);
+  assert.equal(access.canDecideReview({ id: "super", role: "SUPERADMIN" }, book, true), true);
+  assert.equal(access.canDecideReview({ id: "super", role: "SUPERADMIN" }, book, false), false);
+  assert.equal(access.canDecideReview({ id: "author", role: "SUPERADMIN" }, book, true), false);
+  assert.equal(access.canDecideReview({ id: "super", role: "SUPERADMIN" }, book, true, true), false);
   assert.equal(access.canDecideReview({ id: "reviewer", role: "REVIEWER" }, book, false), false);
   assert.equal(access.canDecideReview({ id: "reviewer", role: "REVIEWER" }, book, true), true);
   assert.equal(access.canDecideReview({ id: "admin", role: "ADMIN" }, book, true), true);
@@ -93,6 +96,7 @@ test("transition refuses a direct jump from Ide to Tulis", async () => {
   const book = {
     editorialStage: "BRIEF",
     status: "DRAFT",
+    ownerId: "owner",
     title: "Buku Uji",
     subject: "Bahasa",
     description: "Sinopsis yang cukup panjang untuk lolos gerbang ide.",
@@ -114,6 +118,7 @@ test("transition refuses a direct jump from Ide to Tulis", async () => {
       updateMany: async (args) => { updates.push(args); return { count: 1 }; },
     },
     review: { create: async () => ({}) },
+    studioUser: { findUnique: async () => ({ role: "EDITOR", active: true }) },
   };
   const workflow = loadTs("lib/workflow.ts", { "./db": { db: { $transaction: async (fn) => fn(tx) } } });
   const skipped = await workflow.transition("book-1", "WRITING", { id: "owner" });

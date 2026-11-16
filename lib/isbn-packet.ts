@@ -71,7 +71,7 @@ export function canEditPublisherDossier(role: string) {
 
 export function canEditIsbnPacket(actor: { id: string; role: string } | null, book: { ownerId: string; companionKind?: string | null }, collaborating: boolean) {
   if (!actor || book.companionKind || actor.role === "REVIEWER") return false;
-  if (actor.id === book.ownerId) return true;
+  if (actor.role === "SUPERADMIN" || actor.id === book.ownerId) return true;
   return collaborating && (actor.role === "EDITOR" || actor.role === "ADMIN");
 }
 

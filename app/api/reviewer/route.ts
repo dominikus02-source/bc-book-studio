@@ -4,7 +4,7 @@ import {sessionUser,deny} from "../../../lib/auth";
 import {reviewSubmissionMissing} from "../../../lib/review-readiness";
 import {isManuscriptReviewerRole,manuscriptVisibilityWhere} from "../../../lib/manuscript-access";
 import {bookListFilter,bookListPage,parseBookListQuery} from "../../../lib/book-list-query";
-import {currentRoundApproverIds,policyVerdict,type ReviewPolicyName} from "../../../lib/review-policy";
+import {COUNTED_REVIEWER_ROLES,currentRoundApproverIds,policyVerdict,type ReviewPolicyName} from "../../../lib/review-policy";
 export const runtime="nodejs";
 
 export async function GET(req:NextRequest){
@@ -34,16 +34,17 @@ export async function GET(req:NextRequest){
   viewer:{id:actor.id,email:actor.email,role:actor.role},
   ...page,
   assignments:books.map(book=>{
-   const activeAssigned=book.assignedReviewers.filter(a=>a.reviewer.active&&["REVIEWER","ADMIN"].includes(a.reviewer.role));
+   const activeAssigned=book.assignedReviewers.filter(a=>a.reviewer.active&&(COUNTED_REVIEWER_ROLES as readonly string[]).includes(a.reviewer.role));
    const approvers=currentRoundApproverIds(book.reviews,activeAssigned.map(row=>row.reviewerId));
    const progress=policyVerdict({policy:(book.reviewPolicy||"ANY") as ReviewPolicyName,assignedIds:activeAssigned.map(row=>row.reviewerId),approverIds:approvers,leadReviewerId:book.leadReviewerId,minN:book.reviewMinApprovals});
    const {collaborators,...rest}=book;
    const isOwner=book.ownerId===actor.id;
    const isCollaborator=!isOwner&&collaborators.length>0;
+   const assignedToActor=book.assignedReviewers.some(row=>row.reviewerId===actor.id&&row.reviewer.active);
    return {book:{...rest,archivedNotes:archivedByBook.get(book.id)||[],
     reviewSubmissionMissing:reviewSubmissionMissing(book,activeAssigned.length),
     reviewProgress:progress,
-    isOwner,isCollaborator,canReview:reviewer&&!isOwner&&!isCollaborator}};
+    isOwner,isCollaborator,canReview:!isOwner&&!isCollaborator&&assignedToActor&&(reviewer||actor.role==="SUPERADMIN")}};
   })
  },{headers:{"Cache-Control":"no-store"}});
 }

@@ -58,7 +58,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
   const [progress, setProgress] = useState<{ bookId: string; stages: Stage[] } | null>(null);
   const [progressError, setProgressError] = useState("");
   useEffect(() => {
-    if (!workflowBook || workflowBook.isOwner === false) { setProgress(null); return; }
+    if (!workflowBook || (workflowBook.isOwner === false && role !== "SUPERADMIN")) { setProgress(null); return; }
     const controller = new AbortController();
     setProgressError("");
     fetch("/api/books/" + workflowBook.id + "/workflow", { cache: "no-store", signal: controller.signal })
@@ -66,7 +66,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
       .then(data => { if (!controller.signal.aborted) setProgress({ bookId: workflowBook.id, stages: data.stages }); })
       .catch(error => { if (!controller.signal.aborted) { setProgress(null); setProgressError(error instanceof Error ? error.message : "Gagal memuat"); } });
     return () => controller.abort();
-  }, [workflowBook]);
+  }, [workflowBook, role]);
   const stageChecks = workflow.map((step, index) => {
     const saved = progress?.bookId === workflowBook?.id ? progress?.stages[index] : workflowBook?.stageReadiness?.stages[index];
     return {
@@ -147,6 +147,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
   const [deskQ, setDeskQ] = useState("");
   const [deskStatus, setDeskStatus] = useState("");
   const [deskStage, setDeskStage] = useState("");
+  const [deskScope, setDeskScope] = useState("");
   const [deskLimit, setDeskLimit] = useState(20);
   const [desk, setDesk] = useState<DeskBook[] | null>(null);
   const [deskMore, setDeskMore] = useState(false);
@@ -157,6 +158,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
     if (deskQ.trim()) params.set("q", deskQ.trim());
     if (deskStatus) params.set("status", deskStatus);
     if (deskStage) params.set("stage", deskStage);
+    if (role === "SUPERADMIN" && deskScope === "mine") params.set("mine", "1");
     params.set("page", "1");
     params.set("limit", String(deskLimit));
     fetch("/api/books?" + params.toString(), { cache: "no-store", signal: controller.signal })
@@ -164,7 +166,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
       .then(data => { if (!controller.signal.aborted) { setDesk(data.books); setDeskMore(Boolean(data.hasMore)); setDeskError(""); } })
       .catch(error => { if (!controller.signal.aborted && !(error instanceof DOMException)) setDeskError(error instanceof Error ? error.message : "Gagal memuat"); });
     return () => controller.abort();
-  }, [deskQ, deskStatus, deskStage, deskLimit, books]);
+  }, [deskQ, deskStatus, deskStage, deskScope, deskLimit, books, role]);
   const deskBooks = desk ?? books;
   const ownedDraft = books.find(book => book.isOwner !== false && book.status === "DRAFT");
   const focusBook = role === "REVIEWER" && decisions[0] ? decisions[0] : (ownedDraft || books.find(book => book.isOwner !== false) || books[0]);
@@ -197,7 +199,8 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
 
       {showWorkflow && <section className={"panel studio-workflow" + (active === "Studio Penulisan" ? " writing-workflow-summary" : "")} aria-label="Tahapan pembuatan buku">
         <div className="panel-toolbar"><div><p className="form-hint">{active === "Studio Penulisan" ? "SEDANG DITULIS" : "BUKU YANG DIKERJAKAN"}</p><strong>{workflowBook?.title || "Mulai dari Ide"}</strong></div></div>
-        {workflowBook?.isOwner === false ? <p>Anda membaca sebagai peninjau. Keputusan ada di Review.</p> : active === "Studio Penulisan" ? (() => {
+        {role === "SUPERADMIN" && workflowBook?.isOwner === false && <p>Anda mengelola buku ini sebagai superadmin. Tindakan pada buku orang lain tercatat sebagai admin override.</p>}
+        {workflowBook?.isOwner === false && role !== "SUPERADMIN" ? <p>Anda membaca sebagai peninjau. Keputusan ada di Review.</p> : active === "Studio Penulisan" ? (() => {
           const current = workflow.findIndex(step => step.modules.includes(active));
           return <div className="writing-stage-navigation">{current < 4 && <button type="button" className="secondary-button" disabled={!stageAllowed(current + 1)} onClick={() => openStage(current + 1)}>Berikutnya: {workflow[current + 1].name}</button>}</div>;
         })() : <>
@@ -233,7 +236,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
             <button type="button" className="primary-button" onClick={() => navigateTo("Buat Buku")}>Buat Buku Baru</button>
             {role === "SUPERADMIN" && <button type="button" className="secondary-button" onClick={() => navigateTo("Manajemen Akun")}>Kelola akun</button>}
             {(role === "ADMIN" || role === "SUPERADMIN") && <button type="button" className="secondary-button" onClick={() => navigateTo("ISBN & Legalitas")}>Kantor penerbit</button>}
-            {(role === "REVIEWER" || role === "ADMIN") && <button type="button" className="secondary-button" onClick={() => navigateTo("Review Naskah")}>Antrean review</button>}
+            {(role === "REVIEWER" || role === "ADMIN" || role === "SUPERADMIN") && <button type="button" className="secondary-button" onClick={() => navigateTo("Review Naskah")}>Antrean review</button>}
           </div>
         </header>
         {focusBook && focusAction && <article className="studio-hero">
@@ -245,14 +248,14 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
         </article>}
         {decisions.length > 0 && <section className="studio-queue" aria-label="Keputusan yang menunggu"><h2>Menunggu keputusan Anda</h2><p className="form-hint">Buku ini menunggu keputusan Anda. Buka Review Naskah untuk membaca dan memutuskan.</p><div className="studio-book-list">{decisions.map(book => <button key={book.id} type="button" className="secondary-button" onClick={() => navigateTo("Review Naskah", book.id)}>{book.title} — Buka Review Naskah</button>)}</div></section>}
         <div className="section-head"><h2>Di meja Anda</h2><span>{loading ? "Memuat…" : deskBooks.length + " naskah"}</span></div>
-        <BookQueryBar q={deskQ} status={deskStatus} stage={deskStage} onChange={next => { setDeskQ(next.q); setDeskStatus(next.status); setDeskStage(next.stage); setDeskLimit(20); }} />
+        <BookQueryBar q={deskQ} status={deskStatus} stage={deskStage} {...(role === "SUPERADMIN" ? { scope: deskScope, onScope: (scope: string) => { setDeskScope(scope); setDeskLimit(20); } } : {})} onChange={next => { setDeskQ(next.q); setDeskStatus(next.status); setDeskStage(next.stage); setDeskLimit(20); }} />
         {deskError && <p role="alert">{deskError}</p>}
         {booksError && <p role="alert">{booksError}</p>}
         {!loading && !books.length && <p className="panel studio-empty">Belum ada naskah. Kalimat pertama dimulai dari sebuah judul.</p>}
         <div className="studio-book-list">{deskBooks.map(book => {
           const action = bookWorkspaceAction(role, book);
           const stageName = STAGE_PATH[action.stageIndex]?.name || "Ide";
-          const relation = book.isCollaborator ? "Buku kolaborasi" : book.isOwner === false ? "Penugasan" : "Milik Anda";
+          const relation = book.isCollaborator ? "Buku kolaborasi" : book.isOwner === false ? (role === "SUPERADMIN" ? "Semua buku" : "Penugasan") : "Milik Anda";
           return <article key={book.id} className="panel studio-book-row"><div><span className="studio-stage-pill">{stageName}</span><strong>{book.title}</strong><p>{relation} · {book.status === "DRAFT" ? "Draf" : book.status === "REVIEW" ? "Sedang ditinjau" : "Disetujui"}</p><p>{action.detail}</p></div><button type="button" className="secondary-button" onClick={() => navigateTo(action.module, book.id)}>{action.label}</button></article>;
         })}</div>
         {deskMore && <button type="button" className="secondary-button" onClick={() => setDeskLimit(value => value + 20)}>Muat lebih banyak</button>}

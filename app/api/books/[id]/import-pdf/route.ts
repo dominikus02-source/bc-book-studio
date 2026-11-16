@@ -3,7 +3,7 @@ import {join} from "node:path";
 import {pathToFileURL} from "node:url";
 import {db} from "../../../../../lib/db";
 import {identity,deny} from "../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../lib/draft-access";
 
 export const runtime="nodejs";
 export const maxDuration=120;
@@ -82,7 +82,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
  const result=await db.$transaction(async tx=>{
   const locked=await lockDraftEditor(tx,id,ownerId);
   if(!locked)return {error:"Buku tidak ditemukan.",status:404 as const};
-  const book=await tx.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(ownerId)}});
+  const book=await tx.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(tx,ownerId))}});
   if(!book)return {error:"Buku tidak ditemukan.",status:404 as const};
   if(book.status!=="DRAFT")return {error:"Hanya buku berstatus DRAFT yang dapat diimpor.",status:409 as const};
   const current=await tx.chapter.findMany({where:{bookId:id,archivedAt:null},select:{title:true,position:true}});

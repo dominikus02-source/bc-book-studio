@@ -8,6 +8,7 @@ import {quartoExport} from "../../../../../lib/quarto";
 import { db } from "../../../../../lib/db";
 import { sessionUser, deny } from "../../../../../lib/auth";
 import {manuscriptVisibilityWhere} from "../../../../../lib/manuscript-access";
+import {adminOverrideNote} from "../../../../../lib/admin-override";
 import {applyLayout,storedLayout} from "../../../../../lib/book-layout";
 import {manuscriptBlocks,manuscriptHtml,docxBody,docxStyles} from "../../../../../lib/structured-manuscript";
 import { approvedManuscript, referencedAssets } from "../../../../../lib/approval-snapshot";
@@ -45,6 +46,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const preview = req.nextUrl.searchParams.get("preview") === "1";
   const source = await db.book.findFirst({ where: manuscriptVisibilityWhere(actor,{id}), include: { chapters: { where:{archivedAt:null}, orderBy: { position: "asc" } } } });
   if (!source) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  if (actor.role === "SUPERADMIN" && source.ownerId !== actor.id) {
+    await db.review.create({ data: { bookId: id, decision: "export:download", note: adminOverrideNote(actor, source.ownerId, "Actor: " + actor.id + "; format: " + format) } });
+  }
   const paginationRow=await db.bookPagination.findUnique({where:{bookId:id}});
   const parsedPagination=paginationSchema.safeParse(paginationRow?.settings);
   const pagination=parsedPagination.success?parsedPagination.data:DEFAULT_PAGINATION;
