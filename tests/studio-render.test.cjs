@@ -31,6 +31,13 @@ const chapter = {
   content: "Teks Indonesia — ukuran °C.\n\n![Air jernih di gelas](asset:gambar01){.bc-media width=\"80%\" fig-align=\"center\" data-bc-padding=\"0\" data-bc-radius=\"0\" data-bc-caption=\"Gambar 1. Air\"}\n\n[Video: Percobaan air](https://www.youtube.com/watch?v=dQw4w9wgxcQ){.bc-youtube}",
 };
 
+test("lists and tables stay structured in pdf, docx, and epub", () => {
+  const pieces = render.exportPieces("## Bagian\n\n- Hujan\n- Sungai\n\n| Unsur | Peran |\n| --- | --- |\n| Awan | Sumber |\n\n> Air mengalir.");
+  assert.deepEqual(pieces.map(piece => piece.type), ["heading", "list", "table", "quote"]);
+  assert.deepEqual(pieces[1].items, ["Hujan", "Sungai"]);
+  assert.deepEqual(pieces[2].rows[1], ["Awan", "Sumber"]);
+});
+
 test("pdf, docx, and epub keep the image, caption, and video QR", async () => {
   const input = { id: "buku-1", title: "Siklus Air", author: "Sari", subject: "IPA", grade: "4", pageSize: "a4", preview: true, chapters: [chapter], assets: [{ id: "gambar01", mime: "image/png", data: png.toString("base64"), altText: "Air jernih di gelas" }] };
   const pdf = Buffer.from(await render.renderStudioPdf(input));
