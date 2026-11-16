@@ -9,7 +9,7 @@ Jika `QUARTO_BIN` atau `QUARTO_WORKER_URL` tidak diisi, PDF, DOCX, dan EPUB dibu
 - `GET /api/books/:id/export?format=zip` membuat paket lima format tanpa antrean worker.
 - Antrean `/export-jobs` tetap ada, tetapi hanya berguna bila proses worker ekspor benar-benar berjalan.
 
-Image Docker menyalin `assets/fonts` dan `node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`. Impor PDF server memakai berkas worker itu. Perkiraan tambahan image: font sekitar 1,1 MB ditambah berkas worker pdf.js.
+Image Docker menyalin `assets/fonts`, `node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs`, dan `@napi-rs/canvas` (agar impor PDF tidak memperingatkan canvas yang hilang). `compose.yml` tidak mengisi `QUARTO_*`, jadi layanan web memakai perender aplikasi. `compose.staging.yml` masih dapat menunjuk Quarto Worker; jika worker gagal, ekspor final tetap jatuh ke perender aplikasi dan tidak mengembalikan 503. Perkiraan tambahan image: font sekitar 1,1 MB, berkas worker pdf.js, dan biner canvas platform.
 
 ## Kelengkapan ISBN
 Modul Dasbor **Kelengkapan Penerbitan** menyimpan data penerbit di `PublisherDossier` dan data buku di `IsbnPacket`.

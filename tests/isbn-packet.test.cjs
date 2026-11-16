@@ -52,6 +52,7 @@ test("isbn packet round-trips and the zip marks missing fields", async () => {
   const versoXml = await verso.file("word/document.xml").async("string");
   assert.match(versoXml, /Teras Kata/);
   assert.match(versoXml, /BELUM DIISI/);
-  assert.ok(zip.file("01-surat-permohonan-isbn.docx"));
-  assert.ok(zip.file("12-checklist.docx"));
+  for (const name of ["01-surat-permohonan-isbn", "02-spkk", "03-pernyataan-penerbit", "04-halaman-judul", "05-halaman-hak-cipta", "06-kdt", "07-kata-pengantar", "08-daftar-isi", "09-sinopsis", "10-biodata", "11-data-perpusnas", "12-checklist"]) {
+    assert.ok(zip.file(name + ".docx"), name);
+  }
 });
