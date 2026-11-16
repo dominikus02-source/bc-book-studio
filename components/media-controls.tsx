@@ -34,6 +34,7 @@ export function MediaImageEditor({raw,bookId,assets,disabled,onChange,onUploaded
     <legend className="sr-only">Pengaturan gambar</legend>
     <label className="studio-field"><span>Gambar dari pustaka</span><select value={form.assetId} onChange={e=>{const asset=assets.find(a=>a.id===e.target.value);if(asset)setForm(f=>({...f,assetId:asset.id,alt:asset.altText.slice(0,180)}))}}>{!assets.some(a=>a.id===form.assetId)&&<option value={form.assetId}>Gambar saat ini</option>}{assets.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
     <label className="studio-field"><span>Teks alternatif gambar</span><input value={form.alt} maxLength={180} onChange={e=>patch("alt",e.target.value)}/></label>
+    <label className="studio-field"><span>Keterangan gambar</span><input value={form.caption} maxLength={180} onChange={e=>patch("caption",e.target.value)} placeholder="Kalimat yang tampil di bawah gambar"/></label>
     <div className="media-settings-grid">
      <label className="studio-field"><span>Lebar gambar</span><input type="number" min={1} max={form.unit==="%"?100:2000} value={form.width||""} onChange={e=>patch("width",Number(e.target.value))}/></label>
      <label className="studio-field"><span>Satuan lebar</span><select value={form.unit} onChange={e=>{const unit=e.target.value as "%"|"px";setForm(f=>({...f,unit,width:unit==="%"?Math.min(f.width,100):f.width}))}}><option value="%">% kolom</option><option value="px">px</option></select></label>
@@ -79,4 +80,4 @@ function VideoFields({raw,disabled,onApply}:{raw?:string;disabled:boolean;onAppl
  </div>;
 }
 export function MediaVideoEditor({raw,disabled,onChange}:{raw:string;disabled:boolean;onChange:(value:string)=>void}){return <VideoFields raw={raw} disabled={disabled} onApply={onChange}/>}
-export function InsertYouTube({disabled,onInsert}:{disabled:boolean;onInsert:(value:string)=>void}){return <details className="writing-optional media-settings"><summary>+ Sisipkan video YouTube</summary><VideoFields disabled={disabled} onApply={onInsert}/></details>}
+export function InsertYouTube({disabled,onInsert}:{disabled:boolean;onInsert:(value:string)=>void}){return <details className="media-settings" open><summary>Sisipkan video YouTube</summary><VideoFields disabled={disabled} onApply={onInsert}/></details>}

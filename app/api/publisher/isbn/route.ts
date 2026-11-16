@@ -18,8 +18,9 @@ export async function POST(req:NextRequest){
  const parsed=payload.safeParse(await req.json().catch(()=>null));if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message},{status:400});
  const profile=await db.publisherProfile.findUnique({where:{id:"bci-publisher"}});
  if(!profile)return NextResponse.json({error:"Save legal publisher profile first"},{status:409});
- const b=await db.book.findUnique({where:{id:parsed.data.bookId},select:{id:true,archivedAt:true}});
+ const b=await db.book.findUnique({where:{id:parsed.data.bookId},select:{id:true,archivedAt:true,companionKind:true}});
  if(!b||b.archivedAt)return NextResponse.json({error:"Book not found"},{status:404});
+ if(b.companionKind)return NextResponse.json({error:"Bahan pendamping tidak memakai ISBN."},{status:409});
  const {plannedPublicationYear,...rest}=parsed.data;
  const created=await db.$transaction(async tx=>{
   const app=await tx.isbnApplication.create({data:{...rest,plannedPublicationYear:plannedPublicationYear??null,createdById:actor.id,publisherId:profile.id}});

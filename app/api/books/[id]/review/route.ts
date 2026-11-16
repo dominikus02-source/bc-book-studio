@@ -6,7 +6,8 @@ import {checkpointsFor} from "../../../../../lib/editorial";
 import {briefMissing} from "../../../../../lib/workflow";
 import {canDecideReview,canSubmitReview} from "../../../../../lib/manuscript-access";
 import {completeApproval,roundState} from "../../../../../lib/review-decision";
-import {policyVerdict,type ReviewPolicyName} from "../../../../../lib/review-policy";
+import {COUNTED_REVIEWER_ROLES,policyVerdict,type ReviewPolicyName} from "../../../../../lib/review-policy";
+import {adminOverrideNote} from "../../../../../lib/admin-override";
 import {finishWithNotify,reviewMail,sendEach,type MailRecipient} from "../../../../../lib/notify";
 export const runtime="nodejs";
 const fail=(error:string,status:number)=>NextResponse.json({error},{status});
@@ -36,18 +37,18 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
    if(chapters.some(chapter=>chapter.content.trim().length<20))return {response:fail("Complete manuscript content for each chapter before review",409),mail:null};
    const checks=(book.editorialChecks||{}) as Record<string,unknown>;
    if(checkpointsFor(book.bookType).some(item=>checks[item.key]!==true))return {response:fail("Missing editorial checkpoints",409),mail:null};
-   const assigned=await tx.bookReviewer.findMany({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:["REVIEWER","ADMIN"]}}},select:{reviewerId:true}});
+   const assigned=await tx.bookReviewer.findMany({where:{bookId:id,reviewerId:{not:actor.id},reviewer:{active:true,role:{in:[...COUNTED_REVIEWER_ROLES]}}},select:{reviewerId:true}});
    if(!assigned.length)return {response:fail("Assign independent reviewer",409),mail:null};
    if(policy==="LEAD"&&(!book.leadReviewerId||!assigned.some(row=>row.reviewerId===book.leadReviewerId)))return {response:fail("Tentukan reviewer utama di antara peninjau yang ditugaskan.",409),mail:null};
    if(policy==="MIN_N"&&((book.reviewMinApprovals??0)<1||(book.reviewMinApprovals??0)>assigned.length))return {response:fail("Jumlah persetujuan minimum harus antara 1 dan jumlah peninjau.",409),mail:null};
-   const updatedCount=await tx.book.updateMany({where:{id,status:"DRAFT"},data:{status:"REVIEW",approvedAt:null}});
+   const updatedCount=await tx.book.updateMany({where:{id,status:"DRAFT"},data:{status:"REVIEW",editorialStage:"REVIEW",approvedAt:null}});
    if(!updatedCount.count)return {response:fail("Invalid transition",409),mail:null};
    await tx.review.create({data:{bookId:id,decision:"submit",note:"Submitted by owner"}});
    const people=await tx.studioUser.findMany({where:{id:{in:assigned.map(row=>row.reviewerId)},active:true},select:{email:true,name:true,active:true}});
    const saved=await tx.book.findUniqueOrThrow({where:{id}});
    return {response:NextResponse.json({book:saved}),mail:tell(people,"submitted",saved)};
   }
-  const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:["REVIEWER","ADMIN"]}},select:{id:true}});
+  const eligible=await tx.studioUser.findFirst({where:{id:actor.id,active:true,role:{in:[...COUNTED_REVIEWER_ROLES]}},select:{id:true}});
   const assignedRow=await tx.bookReviewer.findUnique({where:{bookId_reviewerId:{bookId:id,reviewerId:actor.id}}});
   if(!eligible||!canDecideReview(actor,book,Boolean(assignedRow),collaborating))return {response:fail("Not authorized",403),mail:null};
   if(book.status!=="REVIEW")return {response:fail("Invalid transition",409),mail:null};
@@ -55,9 +56,9 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   if(action==="approve"&&await tx.reviewerNote.count({where:{bookId:id,severity:{in:["CRITICAL","MAJOR"]},status:"OPEN"}}))return {response:fail("Selesaikan semua temuan MAJOR dan CRITICAL sebelum persetujuan akhir.",409),mail:null};
   const owner=await tx.studioUser.findUnique({where:{id:book.ownerId},select:{email:true,name:true,active:true}});
   if(action==="reject"){
-   const updatedCount=await tx.book.updateMany({where:{id,status:"REVIEW"},data:{status:"DRAFT",approvedAt:null}});
+   const updatedCount=await tx.book.updateMany({where:{id,status:"REVIEW"},data:{status:"DRAFT",editorialStage:"WRITING",approvedAt:null}});
    if(!updatedCount.count)return {response:fail("Invalid transition",409),mail:null};
-   await tx.review.create({data:{bookId:id,decision:"reject",note:reviewerNote(note,actor.id)+" Persetujuan pada putaran ini tidak lagi berlaku."}});
+   await tx.review.create({data:{bookId:id,decision:"reject",note:adminOverrideNote(actor,book.ownerId,reviewerNote(note,actor.id)+" Persetujuan pada putaran ini tidak lagi berlaku.")}});
    const saved=await tx.book.findUniqueOrThrow({where:{id}});
    return {response:NextResponse.json({book:saved,progress:{label:"Naskah dikembalikan. Persetujuan pada putaran ini tidak lagi berlaku."}}),mail:owner?tell([owner],"returned",saved):null};
   }
@@ -66,7 +67,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   const next=new Set(state.approverIds);
   next.add(actor.id);
   const verdict=policyVerdict({policy,assignedIds:state.assignedIds,approverIds:next,leadReviewerId:book.leadReviewerId,minN:book.reviewMinApprovals});
-  if(!already)await tx.review.create({data:{bookId:id,decision:"approve",note:reviewerNote(note,actor.id)}});
+  if(!already)await tx.review.create({data:{bookId:id,decision:"approve",note:adminOverrideNote(actor,book.ownerId,reviewerNote(note,actor.id))}});
   if(!verdict.met){
    const pendingBook=await tx.book.findUniqueOrThrow({where:{id}});
    return {response:NextResponse.json({book:pendingBook,pending:true,progress:verdict}),mail:null};

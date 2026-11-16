@@ -40,12 +40,18 @@ model Book {
   reviewMinApprovals Int?
   leadReviewerId String?
   leadReviewer StudioUser? @relation("BookLeadReviewer", fields: [leadReviewerId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  parentBookId String?
+  companionKind String?
+  parent Book? @relation("BookCompanions", fields: [parentBookId], references: [id], onDelete: Cascade)
+  companions Book[] @relation("BookCompanions")
+  isbnPacket IsbnPacket?
   publication BookPublication?
   reviewNotes ReviewerNote[]
   collaborators BookCollaborator[]
   @@index([ownerId, updatedAt])
   @@index([ownerId, archivedAt])
   @@index([leadReviewerId])
+  @@index([parentBookId])
 }
 model BookBriefRevision {
   id String @id @default(cuid())
@@ -417,7 +423,7 @@ model ExportJob {
 model PublisherProfile {
  id String @id @default("bci-publisher")
  legalName String @default("PT Bahasa Cerdas Indonesia")
- imprintName String @default("Bahasa Cerdas Indonesia")
+ imprintName String @default("Teras Kata")
  directorName String @default("")
  legalAddress String @default("") @db.Text
  correspondenceAddress String @default("") @db.Text
@@ -454,7 +460,7 @@ model IsbnApplication {
  format String @default("PRINT")
  binding String @default("PAPERBACK")
  paperSize String @default("a5")
- imprint String @default("Bahasa Cerdas Indonesia")
+ imprint String @default("Teras Kata")
  plannedPublicationYear Int?
  catalogUrl String @default("")
  territory String @default("GLOBAL")
@@ -547,4 +553,19 @@ model BookPaginationRevision {
  createdAt DateTime @default(now())
  book Book @relation(fields:[bookId],references:[id],onDelete:Restrict)
  @@unique([bookId,version])
+}
+
+model PublisherDossier {
+ id String @id @default("bci-publisher")
+ payload Json
+ updatedById String
+ updatedAt DateTime @updatedAt
+}
+
+model IsbnPacket {
+ bookId String @id
+ book Book @relation(fields:[bookId], references:[id], onDelete: Cascade)
+ payload Json
+ updatedById String
+ updatedAt DateTime @updatedAt
 }

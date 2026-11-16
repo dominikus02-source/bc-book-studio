@@ -1,23 +1,11 @@
 import {createHash} from "node:crypto";
 import {parseMediaImage,richImageRegex,youtubeRegex,type MediaImage} from "./book-media";
+import {styleRaster} from "./pure-image";
 type Asset={id:string;mime:string;data:string;altText:string};
 type Source={chapters:{title:string;content:string}[];assets?:Asset[]};
 async function styledAsset(asset:Asset,m:MediaImage,id:string):Promise<Asset>{
- const {default:sharp}=await import("sharp");
- const input=Buffer.from(asset.data,"base64");if(input.length>550000)throw Error("Image exceeds supported size");
- let image=await sharp(input,{limitInputPixels:10000000}).rotate().resize({width:1200,height:1200,fit:"inside",withoutEnlargement:true}).ensureAlpha().png().toBuffer({resolveWithObject:true});
- const {width,height}=image.info;
- const radius=Math.min(m.radius,Math.floor(Math.min(width,height)/2));
- if(radius){
-  const mask=Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'"><rect width="'+width+'" height="'+height+'" rx="'+radius+'" fill="white"/></svg>');
-  image=await sharp(image.data).composite([{input:mask,blend:"dest-in"}]).png().toBuffer({resolveWithObject:true});
- }
- if(m.padding)image=await sharp(image.data).extend({top:m.padding,right:m.padding,bottom:m.padding,left:m.padding,background:{r:0,g:0,b:0,alpha:0}}).png().toBuffer({resolveWithObject:true});
- for(let i=0;image.data.length>540000&&i<6;i++){
-  image=await sharp(image.data).resize({width:Math.round(image.info.width*.8),withoutEnlargement:true}).png({compressionLevel:9}).toBuffer({resolveWithObject:true});
- }
- if(image.data.length>550000)throw Error("Styled image exceeds export size; reduce dimensions");
- return {id,mime:"image/png",data:image.data.toString("base64"),altText:asset.altText};
+ const bytes=styleRaster(asset.mime,Buffer.from(asset.data,"base64"),{radius:m.radius,padding:m.padding});
+ return {id,mime:"image/png",data:bytes.toString("base64"),altText:asset.altText};
 }
 export async function normalizeMediaForExport<T extends Source>(book:T):Promise<T>{
  if(!book.chapters.some(ch=>ch.content.includes("{.bc-media ")||ch.content.includes("{.bc-youtube")))return book;

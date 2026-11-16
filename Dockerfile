@@ -6,7 +6,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
+COPY scripts/strip-napi-canvas.cjs scripts/strip-napi-canvas.cjs
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund && node scripts/strip-napi-canvas.cjs
 
 # Migration tooling is separate from the small web runtime.
 FROM deps AS migrator
@@ -29,6 +30,8 @@ LABEL org.opencontainers.image.revision=$REVISION
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/assets/fonts ./assets/fonts
+COPY --from=builder --chown=node:node /app/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs ./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs
 COPY --from=builder --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=node:node /app/node_modules/@prisma/client ./node_modules/@prisma/client
 USER node

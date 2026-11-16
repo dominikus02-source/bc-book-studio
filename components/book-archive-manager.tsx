@@ -25,7 +25,7 @@ export default function BookArchiveManager({onChanged}:{onChanged:()=>Promise<vo
   }catch(e){setError(e instanceof Error?e.message:"Gagal memulihkan")}finally{setBusy(false)}
  }
  return <details className="optional-tools" aria-label="Arsip buku"><summary>Arsip buku dan pemulihan</summary>
-  <p className="form-hint">Arsip tidak menghapus bab atau riwayat. Hanya pemilik yang dapat memulihkan draf.</p>
+  <p className="form-hint">Arsip tidak menghapus bab atau riwayat. Pemilik dan superadmin dapat memulihkan draf.</p>
   <button className="secondary-button" type="button" disabled={busy} onClick={()=>void doLoad()}>Muat daftar arsip</button>
   {busy&&<p role="status">Memproses…</p>}{error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
   {loaded&&!books.length&&<p>Belum ada buku di arsip.</p>}

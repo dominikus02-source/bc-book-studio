@@ -29,12 +29,15 @@ test("review decisions follow assignment, role, and REVIEW status", () => {
   const book = { ownerId: "own", status: "REVIEW" };
   assert.equal(home.canDecideReview(reviewer, book, true), true);
   assert.equal(home.canDecideReview({ id: "own", role: "ADMIN" }, book, true), false);
-  assert.equal(home.canDecideReview({ id: "sup", role: "SUPERADMIN" }, book, true), false);
+  assert.equal(home.canDecideReview({ id: "sup", role: "SUPERADMIN" }, book, true), true);
+  assert.equal(home.canDecideReview({ id: "sup", role: "SUPERADMIN" }, book, false), false);
+  assert.equal(home.canDecideReview({ id: "own", role: "SUPERADMIN" }, book, true), false);
   assert.equal(home.canDecideReview({ id: "ed", role: "EDITOR" }, book, true), false);
   assert.equal(home.canDecideReview(reviewer, book, false), false);
   assert.equal(home.canDecideReview(reviewer, { ...book, status: "DRAFT" }, true), false);
   assert.equal(home.showReviewDecision("REVIEWER", { isOwner: false, canReview: true, status: "REVIEW" }), true);
-  assert.equal(home.showReviewDecision("SUPERADMIN", { isOwner: false, canReview: true, status: "REVIEW" }), false);
+  assert.equal(home.showReviewDecision("SUPERADMIN", { isOwner: false, canReview: true, status: "REVIEW" }), true);
+  assert.equal(home.showReviewDecision("SUPERADMIN", { isOwner: false, canReview: false, status: "REVIEW" }), false);
   assert.equal(home.showReviewDecision("ADMIN", { isOwner: true, canReview: false, status: "REVIEW" }), false);
 });
 
@@ -42,8 +45,8 @@ test("manuscript body stays with the owner or a live reviewer assignment", () =>
   assert.equal(home.canReadManuscript({ id: "own", role: "EDITOR" }, { ownerId: "own" }, false), true);
   assert.equal(home.canReadManuscript({ id: "rev", role: "REVIEWER" }, { ownerId: "own" }, true), true);
   assert.equal(home.canReadManuscript({ id: "rev", role: "EDITOR" }, { ownerId: "own" }, true), false);
-  assert.equal(home.canReadManuscript({ id: "sup", role: "SUPERADMIN" }, { ownerId: "own" }, true), false);
-  assert.equal(home.showManuscriptBody("SUPERADMIN", { isOwner: false, canReview: true }), false);
+  assert.equal(home.canReadManuscript({ id: "sup", role: "SUPERADMIN" }, { ownerId: "own" }, false), true);
+  assert.equal(home.showManuscriptBody("SUPERADMIN", { isOwner: false, canReview: false }), true);
   assert.equal(home.showManuscriptBody("ADMIN", { isOwner: false, canReview: true }), true);
 });
 
@@ -64,7 +67,10 @@ test("owner next action does not offer a jump or a review withdrawal", () => {
   const assigned = home.bookWorkspaceAction("REVIEWER", { status: "REVIEW", editorialStage: "WRITING", isOwner: false });
   assert.equal(assigned.label, "Beri keputusan");
   const superadmin = home.bookWorkspaceAction("SUPERADMIN", { status: "REVIEW", editorialStage: "WRITING", isOwner: false });
-  assert.notEqual(superadmin.label, "Beri keputusan");
+  assert.equal(superadmin.label, "Buka buku");
+  assert.match(superadmin.detail, /superadmin/i);
+  const assignedSuperadmin = home.bookWorkspaceAction("SUPERADMIN", { status: "REVIEW", editorialStage: "REVIEW", isOwner: false, canReview: true });
+  assert.equal(assignedSuperadmin.label, "Beri keputusan");
 });
 
 test("navigation keeps office tools off editor and reviewer sessions", () => {
@@ -80,7 +86,7 @@ test("navigation keeps office tools off editor and reviewer sessions", () => {
   assert.equal(admin.includes("Manajemen Akun"), false);
   assert.equal(superadmin.includes("Manajemen Akun"), true);
   assert.equal(superadmin.includes("ISBN & Legalitas"), true);
-  assert.match(home.roleHomeCopy("SUPERADMIN").lead, /bukan peninjau/i);
+  assert.match(home.roleHomeCopy("SUPERADMIN").lead, /admin override/i);
   assert.match(home.roleHomeCopy("ADMIN").lead, /Perpusnas/i);
 });
 

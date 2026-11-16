@@ -2,10 +2,11 @@ import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import {briefGenreIssues} from "./genre-policy";
 import {stageRequiredBefore,workflowAdvanceAllowed} from "./stage-guard";
-import {draftParticipantWhere,lockDraftEditor} from "./draft-access";
+import {lockDraftEditor,participantWhere} from "./draft-access";
+import {overrideNoteFor} from "./admin-override";
 
 const briefSelect = {
- id:true, approvedAt:true, status:true, editorialStage:true, title:true, subject:true, description:true,
+ id:true, ownerId:true, approvedAt:true, status:true, editorialStage:true, title:true, subject:true, description:true,
  targetAudience:true, writingGoal:true, author:true, genre:true, bookType:true, pageSize:true, updatedAt:true,
  publication:{select:{unpublishedAt:true}}, approvalSnapshots:{select:{approvedAt:true}},
  chapters:{where:{archivedAt:null},orderBy:{position:"asc"},select:{title:true,outlineObjective:true,content:true}},
@@ -41,8 +42,9 @@ export function stageReadiness(book:Brief){
  return {stage:book.editorialStage,ready:book.status==="DRAFT"&&["BRIEF","OUTLINE"].includes(book.editorialStage)&&missing.length===0,missing,stages};
 }
 
-function findOwnedBook(tx:Prisma.TransactionClient,bookId:string,actorId:string){
- return tx.book.findFirst({where:{id:bookId,archivedAt:null,...draftParticipantWhere(actorId)},select:briefSelect});
+async function findOwnedBook(tx:Prisma.TransactionClient,bookId:string,actorId:string){
+ const access=await participantWhere(tx,actorId);
+ return tx.book.findFirst({where:{id:bookId,archivedAt:null,...access},select:briefSelect});
 }
 
 export async function workflowReadiness(bookId:string,actorId:string){
@@ -59,12 +61,13 @@ export async function transition(bookId:string,to:"OUTLINE"|"WRITING",actor:{id:
   const state=stageReadiness(book);
   const from=stageRequiredBefore(to);
   if(!workflowAdvanceAllowed(state.stage,to,state.ready))return {status:409,body:{...state,error:"Tahap ini belum dapat dilanjutkan."}};
+  const access=await participantWhere(tx,actor.id);
   const updated=await tx.book.updateMany({
-   where:{id:bookId,status:"DRAFT",editorialStage:from,updatedAt:book.updatedAt,...draftParticipantWhere(actor.id)},
+   where:{id:bookId,status:"DRAFT",editorialStage:from,updatedAt:book.updatedAt,...access},
    data:{editorialStage:to},
   });
   if(!updated.count)return {status:409,body:{error:"Buku berubah. Muat ulang sebelum melanjutkan."}};
-  await tx.review.create({data:{bookId,decision:"stage:"+from+":"+to,note:"Actor: "+actor.id}});
+  await tx.review.create({data:{bookId,decision:"stage:"+from+":"+to,note:await overrideNoteFor(tx,actor.id,book.ownerId,"Actor: "+actor.id)}});
   return {status:200,body:{stage:to}};
  });
 }

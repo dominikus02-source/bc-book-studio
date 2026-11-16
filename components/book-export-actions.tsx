@@ -41,6 +41,21 @@ export default function BookExportActions({bookId,status,disabled=false,bookPage
   void refresh();
   return()=>{mounted=false;window.clearInterval(timer)};
  },[active,job?.id,jobsBase]);
+ async function downloadZip(){
+  if(creating||running||disabled)return;
+  setCreating(true);setError("");setMessage("");
+  try{
+   const endpoint="/api/books/"+encodeURIComponent(bookId)+"/export?format=zip"+(approved?"":"&preview=1")+"&size="+encodeURIComponent(paperSize);
+   const response=await fetch(endpoint,{cache:"no-store",credentials:"same-origin"});
+   if(!response.ok){const detail=await response.json().catch(()=>null);throw Error(typeof detail?.error==="string"?detail.error:"Paket ZIP gagal.");}
+   const bytes=await response.blob();
+   const url=URL.createObjectURL(bytes);
+   const anchor=document.createElement("a");anchor.href=url;anchor.download="paket-"+bookId+".zip";document.body.appendChild(anchor);anchor.click();anchor.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(url),60000);
+   setMessage("Paket lima format berhasil diunduh.");
+  }catch(e){setError(e instanceof Error?e.message:"Paket ZIP gagal.")}
+  finally{setCreating(false)}
+ }
  async function createZip(allSizes:boolean){
   if(creating||active||running||disabled)return;
   setCreating(true);setError("");setMessage("");
@@ -90,11 +105,16 @@ export default function BookExportActions({bookId,status,disabled=false,bookPage
    <select id="export-paper-size" value={paperSize} disabled={disabled||running!==null||creating} onChange={e=>setPaperSize(e.target.value)}>{paperSizes.map(x=><option key={x.id} value={x.id}>{x.label} - {x.widthMm} x {x.heightMm} mm</option>)}</select>
   </div>
   <p className="form-hint">PDF dan DOCX memakai ukuran fisik. EPUB tetap reflowable. Paket ZIP dilengkapi manifest SHA-256 dan status validator yang belum dijalankan.</p>
-  <div className="publishing-exports" aria-label="Format ekspor">{formats.map(format=><button key={format} type="button" className="secondary-button" disabled={disabled||running!==null} aria-busy={running===format} onClick={()=>void exportBook(format)}>{running===format?"Memproses "+format+"...":format==="flipbook"?"Buka Flipbook":format==="html"?"Buka HTML":(approved?"Unduh ":"Pratinjau ")+format.toUpperCase()}</button>)}</div>
-  <div className="publishing-exports" style={{marginTop:12}} aria-label="Unduh ZIP menggunakan antrean">
-   <button className="secondary-button" type="button" disabled={disabled||running!==null||creating||active} onClick={()=>void createZip(false)}>Buat ZIP ukuran {paperSize.toUpperCase()}</button>
-   <button className="secondary-button" type="button" disabled={disabled||running!==null||creating||active} onClick={()=>void createZip(true)}>Buat ZIP semua 13 ukuran</button>
+  <div className="publishing-exports" aria-label="Format ekspor">{formats.map(format=><button key={format} type="button" className="secondary-button" disabled={disabled||running===format} aria-busy={running===format} onClick={()=>void exportBook(format)}>{running===format?"Memproses "+format+"...":format==="flipbook"?"Buka Flipbook":format==="html"?"Buka HTML":(approved?"Unduh ":"Pratinjau ")+format.toUpperCase()}</button>)}</div>
+  {running==="html"&&<p role="status">HTML sedang dibuat. Flipbook tetap bisa dibuka.</p>}
+  <div className="publishing-exports" style={{marginTop:12}} aria-label="Unduh paket format">
+   <button className="primary-button" type="button" disabled={disabled||creating} onClick={()=>void downloadZip()}>{creating?"Menyusun paket…":"Unduh paket 5 format (ZIP)"}</button>
   </div>
+  <details>
+   <summary>Opsi lainnya: antrean ukuran kertas</summary>
+   <p className="form-hint">Antrean ini hanya jalan jika worker ekspor sudah dipasang. Paket di atas dibuat langsung di aplikasi.</p>
+   <button className="secondary-button" type="button" disabled={disabled||creating||active} onClick={()=>void createZip(false)}>Antrekan ZIP ukuran {paperSize.toUpperCase()}</button>
+  </details>
   {job&&<div className="panel" aria-label="Progres pekerjaan ekspor" style={{marginTop:12,display:"grid",gap:8}}>
    <strong>Status ekspor: {job.status}</strong>
    <progress value={Math.max(0,Math.min(100,job.progress))} max={100} aria-label="Progres ekspor">{job.progress}%</progress>

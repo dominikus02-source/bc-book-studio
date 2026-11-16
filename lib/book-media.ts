@@ -1,4 +1,4 @@
-export type MediaImage={assetId:string;alt:string;width:number;unit:"%"|"px";height:number|null;align:"left"|"center"|"right";padding:number;radius:number;href:string};
+export type MediaImage={assetId:string;alt:string;caption:string;width:number;unit:"%"|"px";height:number|null;align:"left"|"center"|"right";padding:number;radius:number;href:string};
 export const assetImageRegex=/^!\[([^\]\n]*)\]\(asset:([a-z0-9]{6,100})\)(?:\{\.bc-media ([^}\n]*)\})?$/i;
 export const richImageRegex=/!\[([^\]\n]*)\]\(asset:([a-z0-9]{6,100})\)\{\.bc-media ([^}\n]*)\}/g;
 export const youtubeRegex=/\[Video: ([^\]\n]+)\]\((https:\/\/www\.youtube\.com\/watch\?v=[A-Za-z0-9_-]{11})\)\{\.bc-youtube(?: width="(\d{1,4})(%|px)" align="(left|center|right)")?\}/g;
@@ -30,7 +30,7 @@ export function parseMediaImage(raw:string):MediaImage|null{
  const w=/^(\d+)(%|px)$/.exec(get("width"));const h=/^(\d+)px$/.exec(get("height"));
  let href="";try{href=safeMediaLink(decodeURIComponent(get("data-bc-link")))}catch{}
  const bounded=(v:string,max:number)=>Math.max(0,Math.min(max,Math.round(Number(v)||0)));
- return {assetId:m[2],alt:m[1],width:w?Math.max(1,Math.min(w[2]==="%"?100:2000,Number(w[1]))):100,unit:w?.[2]==="px"?"px":"%",height:h?Math.max(1,Math.min(2000,Number(h[1]))):null,align:["left","right"].includes(get("fig-align"))?get("fig-align") as "left"|"right":"center",padding:bounded(get("data-bc-padding"),96),radius:bounded(get("data-bc-radius"),128),href};
+ return {assetId:m[2],alt:m[1],caption:get("data-bc-caption").slice(0,180),width:w?Math.max(1,Math.min(w[2]==="%"?100:2000,Number(w[1]))):100,unit:w?.[2]==="px"?"px":"%",height:h?Math.max(1,Math.min(2000,Number(h[1]))):null,align:["left","right"].includes(get("fig-align"))?get("fig-align") as "left"|"right":"center",padding:bounded(get("data-bc-padding"),96),radius:bounded(get("data-bc-radius"),128),href};
 }
 export function mediaImageMarkdown(value:MediaImage):string{
  if(!/^[a-z0-9]{6,100}$/.test(value.assetId))throw Error("Pilih gambar terlebih dahulu.");
@@ -38,7 +38,8 @@ export function mediaImageMarkdown(value:MediaImage):string{
  const href=safeMediaLink(value.href);if(value.href.trim()&&!href)throw Error("Hyperlink gambar harus berupa URL HTTPS yang valid.");
  if(!Number.isInteger(value.width)||value.width<1||value.width>(value.unit==="%"?100:2000)||value.height!==null&&(!Number.isInteger(value.height)||value.height<1||value.height>2000)||!Number.isInteger(value.padding)||value.padding<0||value.padding>96||!Number.isInteger(value.radius)||value.radius<0||value.radius>128)throw Error("Ukuran, padding, atau radius gambar di luar batas.");
  const alt=clean(value.alt);if(alt.length<5)throw Error("Isi minimal 5 karakter teks alternatif gambar.");
- const attrs=['width="'+value.width+value.unit+'"',...(value.height?['height="'+value.height+'px"']:[]),'fig-align="'+value.align+'"','data-bc-padding="'+value.padding+'"','data-bc-radius="'+value.radius+'"',...(href?['data-bc-link="'+encodeURIComponent(href)+'"']:[])].join(" ");
+ const caption=clean(value.caption||"");
+ const attrs=['width="'+value.width+value.unit+'"',...(value.height?['height="'+value.height+'px"']:[]),'fig-align="'+value.align+'"','data-bc-padding="'+value.padding+'"','data-bc-radius="'+value.radius+'"',...(caption?['data-bc-caption="'+caption.replace(/"/g,"")+'"']:[]),...(href?['data-bc-link="'+encodeURIComponent(href)+'"']:[])].join(" ");
  return "!["+alt+"](asset:"+value.assetId+"){.bc-media "+attrs+"}";
 }
 export function prepareMediaHtml(markdown:string,resolveAsset:(id:string)=>string,embedVideo=true){
@@ -47,7 +48,7 @@ export function prepareMediaHtml(markdown:string,resolveAsset:(id:string)=>strin
   const m=parseMediaImage(all);if(!m)return all;const src=resolveAsset(m.assetId);if(!src)return "";
   const margin=m.align==="left"?"1em auto 1em 0":m.align==="right"?"1em 0 1em auto":"1em auto";
   const img='<img src="'+esc(src)+'" alt="'+esc(m.alt)+'" style="display:block;width:100%;max-width:100%;height:'+(m.height?m.height+"px":"auto")+';object-fit:contain;border-radius:'+m.radius+'px" loading="lazy"/>';
-  return stash('<figure class="book-rich-image" style="box-sizing:border-box;max-width:100%;width:'+m.width+m.unit+';padding:'+m.padding+'px;margin:'+margin+'">'+(m.href?'<a href="'+esc(m.href)+'" target="_blank" rel="noopener noreferrer">'+img+'</a>':img)+'</figure>');
+  return stash('<figure class="book-rich-image" style="box-sizing:border-box;max-width:100%;width:'+m.width+m.unit+';padding:'+m.padding+'px;margin:'+margin+'">'+(m.href?'<a href="'+esc(m.href)+'" target="_blank" rel="noopener noreferrer">'+img+'</a>':img)+(m.caption?'<figcaption>'+esc(m.caption)+'</figcaption>':'')+'</figure>');
  });
  source=source.replace(youtubeRegex,(all,title,url)=>{
   const {layout}=parseVideo(all)!;

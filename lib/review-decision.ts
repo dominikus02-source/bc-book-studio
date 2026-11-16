@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { referencedAssets } from "./approval-snapshot";
 import { publishingSequence, resolvedPublishingPackage } from "./publishing-package";
-import { currentRoundApproverIds, policyVerdict, type ReviewPolicyName } from "./review-policy";
+import { COUNTED_REVIEWER_ROLES, currentRoundApproverIds, policyVerdict, type ReviewPolicyName } from "./review-policy";
 
 type ApprovalBook = {
   id: string;
@@ -24,7 +24,7 @@ type ApprovalBook = {
 
 export async function roundState(tx: Prisma.TransactionClient, book: ApprovalBook) {
   const assigned = await tx.bookReviewer.findMany({
-    where: { bookId: book.id, reviewer: { active: true, role: { in: ["REVIEWER", "ADMIN"] } } },
+    where: { bookId: book.id, reviewer: { active: true, role: { in: [...COUNTED_REVIEWER_ROLES] } } },
     select: { reviewerId: true },
   });
   const assignedIds = assigned.map(row => row.reviewerId);
@@ -74,7 +74,7 @@ export async function completeApproval(tx: Prisma.TransactionClient, book: Appro
   const { title, author, subject, grade, description, bookType, genre, pageSize } = book;
   const updated = await tx.book.updateMany({
     where: { id: book.id, status: "REVIEW" },
-    data: { status: "APPROVED", approvedAt },
+    data: { status: "APPROVED", editorialStage: "LAYOUT", approvedAt },
   });
   if (!updated.count) return { ok: false as const, error: "Invalid transition", status: 409 };
   await tx.bookApprovalSnapshot.create({

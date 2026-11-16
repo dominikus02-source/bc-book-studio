@@ -35,12 +35,22 @@ export function parseBookListQuery(params: { get(name: string): string | null })
   };
 }
 
-/** Extra Prisma filters. Callers AND this with the existing visibility scope. */
-export function bookListFilter(query: BookListQuery): { title?: { contains: string; mode: "insensitive" }; status?: BookListStatus; editorialStage?: BookListStage } {
+/**
+ * Extra Prisma filters. Callers AND this with the existing visibility scope.
+ * Review and Terbit also match the status, so books submitted before editorialStage was updated still appear.
+ */
+export function bookListFilter(query: BookListQuery) {
+  const stage = !query.stage
+    ? {}
+    : query.stage === "REVIEW"
+      ? { OR: [{ editorialStage: "REVIEW" as const }, { status: "REVIEW" as const }] }
+      : query.stage === "LAYOUT"
+        ? { OR: [{ editorialStage: "LAYOUT" as const }, { status: "APPROVED" as const }] }
+        : { editorialStage: query.stage };
   return {
     ...(query.q ? { title: { contains: query.q, mode: "insensitive" as const } } : {}),
     ...(query.status ? { status: query.status } : {}),
-    ...(query.stage ? { editorialStage: query.stage } : {}),
+    ...stage,
   };
 }
 

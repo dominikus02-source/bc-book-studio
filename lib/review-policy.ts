@@ -1,4 +1,6 @@
 export const REVIEW_POLICIES = ["ANY", "ALL", "MAJORITY", "MIN_N", "LEAD"] as const;
+/** Assigned accounts that count toward the approval threshold. SUPERADMIN counts only after an explicit assignment. */
+export const COUNTED_REVIEWER_ROLES = ["REVIEWER", "ADMIN", "SUPERADMIN"] as const;
 export type ReviewPolicyName = (typeof REVIEW_POLICIES)[number];
 
 export type PolicyVerdict = {

@@ -2,7 +2,8 @@ import {NextRequest,NextResponse} from "next/server";
 import {z} from "zod";
 import {db} from "../../../../../lib/db";
 import {identity,deny} from "../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../lib/draft-access";
+import {overrideNoteFor} from "../../../../../lib/admin-override";
 type Ctx={params:Promise<{id:string}>};
 const err=(error:string,status:number)=>NextResponse.json({error},{status});
 const input=z.object({
@@ -34,7 +35,7 @@ function dimensions(bytes:Buffer,mime:string):[number,number]{
 export async function GET(req:NextRequest,{params}:Ctx){
  const userId=await identity(req);if(!userId)return deny();
  const {id}=await params;
- const owner=await db.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(userId)},select:{id:true}});
+ const owner=await db.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(db,userId))},select:{id:true}});
  if(!owner)return err("Not found",404);
  const archived=req.nextUrl.searchParams.get("archived")==="1";
  const assets=await db.bookAsset.findMany({where:{bookId:id,...(archived?{archivedAt:{not:null}}:{archivedAt:null})},select:{id:true,name:true,mime:true,size:true,width:true,height:true,altText:true,license:true,sourceUrl:true,createdAt:true,updatedAt:true,archivedAt:true,revisions:{orderBy:{createdAt:"desc"},take:20}},orderBy:{createdAt:"desc"}});
@@ -58,6 +59,7 @@ export async function POST(req:NextRequest,{params}:Ctx){
   const count=await tx.bookAsset.count({where:{bookId:id}});
   if(count>=20)return err("Maximum 20 images per book",409);
   const asset=await tx.bookAsset.create({data:{bookId:id,name:b.name,mime:b.mime,bytes,size:bytes.length,width,height,altText:b.altText,license:b.license,sourceUrl:b.sourceUrl}});
+  await tx.review.create({data:{bookId:id,decision:"asset:upload",note:await overrideNoteFor(tx,userId,book.ownerId,"Actor: "+userId+"; asset: "+asset.id)}});
   return NextResponse.json({asset:{id:asset.id,name:asset.name,altText:asset.altText,license:asset.license,size:asset.size,width,height,updatedAt:asset.updatedAt}},{status:201});
  });
 }

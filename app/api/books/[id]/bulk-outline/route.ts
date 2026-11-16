@@ -4,7 +4,7 @@ import type {Prisma} from "@prisma/client";
 import {z} from "zod";
 import {db} from "../../../../../lib/db";
 import {identity,deny} from "../../../../../lib/auth";
-import {draftParticipantWhere,lockDraftEditor} from "../../../../../lib/draft-access";
+import {lockDraftEditor,participantWhere} from "../../../../../lib/draft-access";
 export const runtime="nodejs";
 type Ctx={params:Promise<{id:string}>};
 const genre=z.enum(["FANTASY","ROMANCE","SCI_FI","NONFICTION","THRILLER"]);
@@ -31,7 +31,7 @@ async function snapshot(tx:Prisma.TransactionClient,id:string){
 export async function GET(req:NextRequest,{params}:Ctx){
  const ownerId=await identity(req);if(!ownerId)return deny();
  const {id}=await params;
- const book=await db.book.findFirst({where:{id,archivedAt:null,...draftParticipantWhere(ownerId)},select:{id:true,title:true,status:true,editorialStage:true}});
+ const book=await db.book.findFirst({where:{id,archivedAt:null,...(await participantWhere(db,ownerId))},select:{id:true,title:true,status:true,editorialStage:true}});
  if(!book)return fail("Book not found",404);
  const state=await db.$transaction(async tx=>snapshot(tx,id));
  const archived=await db.outlineSection.findMany({where:{bookId:id,archivedAt:{not:null},parentId:null,chapter:{archivedAt:null}},select:{id:true,chapterId:true,title:true,updatedAt:true,chapter:{select:{title:true}}},orderBy:{archivedAt:"desc"}});
