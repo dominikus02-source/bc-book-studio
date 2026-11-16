@@ -32,9 +32,24 @@ export function manuscriptVisibilityWhere(
       },
     },
   ];
+  const parentAccess: Prisma.BookWhereInput[] = [
+    { ownerId: actor.id },
+    {
+      collaborators: {
+        some: {
+          userId: actor.id,
+          archivedAt: null,
+          role: "EDITOR",
+          user: { active: true, role: { in: ["EDITOR", "ADMIN"] } },
+        },
+      },
+    },
+  ];
   if (isManuscriptReviewerRole(actor.role)) {
     or.push({ assignedReviewers: { some: { reviewerId: actor.id } } });
+    parentAccess.push({ assignedReviewers: { some: { reviewerId: actor.id } } });
   }
+  or.push({ parent: { archivedAt: null, OR: parentAccess } });
   return { ...(scope.id ? { id: scope.id } : {}), archivedAt: null, OR: or };
 }
 

@@ -124,6 +124,7 @@ export function studioPrimaryNav(role: StudioRole) {
     { label: "Dasbor", title: "Beranda" },
     { label: "Proyek Buku", title: "Buku saya" },
     { label: "Review Naskah", title: role === "REVIEWER" ? "Antrean" : "Review" },
+    { label: "Kelengkapan Penerbitan", title: "ISBN" },
   ];
   if (role === "ADMIN" || role === "SUPERADMIN") items.push({ label: "ISBN & Legalitas", title: "Kantor penerbit" });
   if (role === "SUPERADMIN") items.push({ label: "Manajemen Akun", title: "Akun" });

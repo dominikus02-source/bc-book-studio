@@ -4,7 +4,7 @@ export const RELEASE_FORMATS=["DOCX","PDF","EPUB","HTML","FLIPBOOK"] as const;
 export type ReleaseFormat=typeof RELEASE_FORMATS[number];
 export const PUBLISHING_EVIDENCE_KINDS=["RIGHTS","ISBN","PUBLISHER","KDT","BARCODE","CATALOG","DISTRIBUTION_PLAN","ACCESSIBILITY","CITATIONS","RELEASE_SIGNOFF","DISTRIBUTION_RECEIPT","DEPOSIT_RECEIPT",...RELEASE_FORMATS.map(f=>"FORMAT_"+f)] as const;
 export type EvidenceKind=typeof PUBLISHING_EVIDENCE_KINDS[number];
-type SourceBook={id:string;title:string;author:string;bookType:string;genre:string;pageSize:string;subject:string;targetAudience:string;writingGoal:string;description:string;status:string;approvedAt:Date|null;chapters:{title:string;outlineObjective:string;content:string;archivedAt?:Date|null}[]};
+type SourceBook={id:string;title:string;author:string;bookType:string;genre:string;pageSize:string;subject:string;targetAudience:string;writingGoal:string;description:string;status:string;approvedAt:Date|null;companionKind?:string|null;chapters:{title:string;outlineObjective:string;content:string;archivedAt?:Date|null}[]};
 export type EvidenceRow={id:string;kind:string;status:string;approvedAt:Date;layoutVersion:number;createdAt:Date;referenceUrl:string|null;checksum:string|null;isbn:string|null;validator:string|null;validatorVersion:string|null;artifactBytes:number|null;actorId:string;note:string};
 type LayoutInfo={saved:boolean;version:number};
 const profile:Record<ReleaseFormat,{validator:string;proof:string;implemented:boolean}>={
@@ -38,7 +38,8 @@ export function publicationReadiness(book:SourceBook,layout:LayoutInfo,hasSnapsh
  const checks=auditKinds.map(kind=>{
   const item=latest[kind],isIsbn=kind==="ISBN",format=kind.startsWith("FORMAT_")?kind.slice(7) as ReleaseFormat:null;
   const supported=!format||profile[format].implemented;
-  const ok=supported&&Boolean(item&&(item.status==="VERIFIED"||(isIsbn&&item.status==="NOT_APPLICABLE")));
+  const companionIsbn=["ISBN","KDT","BARCODE"].includes(kind)&&Boolean(book.companionKind);
+  const ok=companionIsbn||supported&&Boolean(item&&(item.status==="VERIFIED"||(isIsbn&&item.status==="NOT_APPLICABLE")));
   const isbnOfficial=latest.ISBN?.status==="VERIFIED";
   const conditional=kind==="KDT"||kind==="BARCODE";
   const prePublish=!postrelease.includes(kind)&&(!conditional||isbnOfficial);

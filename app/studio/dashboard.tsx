@@ -15,11 +15,12 @@ import {
 } from "@/lib/studio-home";
 import FontSizeToggle from "@/components/font-size-toggle";
 import BookQueryBar from "@/components/book-query-bar";
+import IsbnPacketForm from "@/components/isbn-packet-form";
 import {
   BookMarked, BookOpen, ChevronRight, FolderOpen, Menu, Settings2, ShieldCheck,
 } from "lucide-react";
 
-const knownModules = ["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Rancang","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Review Naskah","Tinjauan Pedagogis","Tata Letak","Penerbitan","Pusat Agen","Pengaturan","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan","Manajemen Akun"];
+const knownModules = ["Dasbor","Proyek Buku","Buat Buku","Idea Lab","Rancang","Kurikulum","Studio Penulisan","Studio Latihan","Studio Visual","Penyuntingan","Review Naskah","Tinjauan Pedagogis","Tata Letak","Penerbitan","Kelengkapan Penerbitan","Pusat Agen","Pengaturan","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan","Manajemen Akun"];
 const bookModules = ["Proyek Buku","Rancang","Studio Penulisan","Penyuntingan","Tata Letak","Penerbitan"];
 const workflow = [
   { name: "Ide", modules: ["Proyek Buku","Idea Lab"] },
@@ -141,7 +142,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [mobileOpen]);
 
-  const showWorkflow = !["Review Naskah","Dasbor","Pengaturan","Buat Buku","ISBN & Legalitas","Percetakan","Petunjuk Penggunaan","Manajemen Akun"].includes(active);
+  const showWorkflow = !["Review Naskah","Dasbor","Pengaturan","Buat Buku","ISBN & Legalitas","Kelengkapan Penerbitan","Percetakan","Petunjuk Penggunaan","Manajemen Akun"].includes(active);
   const decisions = waitingDecisionQueue(books, role);
   const [deskQ, setDeskQ] = useState("");
   const [deskStatus, setDeskStatus] = useState("");
@@ -221,7 +222,7 @@ export default function Home({ role, name }: { role: StudioRole; name: string })
         </>}
       </section>}
 
-      {active === "Manajemen Akun" && role === "SUPERADMIN" ? <AccountManagement /> : active === "Percetakan" ? <PrintingWorkspace key={workflowBookId} initialBookId={workflowBookId} /> : active === "Petunjuk Penggunaan" ? <StudioUserGuide navigate={navigateTo} bookId={workflowBook?.id} role={role} /> : active === "Review Naskah" ? <ReviewerWorkspace initialBookId={workflowBookId} onSelectBook={id => navigateTo("Review Naskah", id)} onNavigate={navigateTo} /> : active === "Buat Buku" ? <><div className="studio-page-intro"><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Judul dan bidang cukup untuk memulai. Gagasan lengkapnya menyusul di Ide.</p></div><BlankBookForm onCreated={created => { setWorkflowBookId(created.id); void refresh(); navigateTo("Proyek Buku", created.id); }} /></> : active === "Dasbor" ? <section className="studio-home" aria-label="Beranda studio">
+      {active === "Manajemen Akun" && role === "SUPERADMIN" ? <AccountManagement /> : active === "Kelengkapan Penerbitan" ? <IsbnPacketForm bookId={workflowBook?.id || ""} role={role} /> : active === "Percetakan" ? <PrintingWorkspace key={workflowBookId} initialBookId={workflowBookId} /> : active === "Petunjuk Penggunaan" ? <StudioUserGuide navigate={navigateTo} bookId={workflowBook?.id} role={role} /> : active === "Review Naskah" ? <ReviewerWorkspace initialBookId={workflowBookId} onSelectBook={id => navigateTo("Review Naskah", id)} onNavigate={navigateTo} /> : active === "Buat Buku" ? <><div className="studio-page-intro"><h1 className="page-title">Buat buku baru</h1><p className="page-sub">Judul dan bidang cukup untuk memulai. Gagasan lengkapnya menyusul di Ide.</p></div><BlankBookForm onCreated={created => { setWorkflowBookId(created.id); void refresh(); navigateTo("Proyek Buku", created.id); }} /></> : active === "Dasbor" ? <section className="studio-home" aria-label="Beranda studio">
         <header className="studio-masthead">
           <div>
             <p className="studio-kicker">Bahasa Cerdas · {roleCaption(role)}</p>

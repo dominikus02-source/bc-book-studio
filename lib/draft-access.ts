@@ -22,6 +22,23 @@ export function draftParticipantWhere(actorId: string): Prisma.BookWhereInput {
           },
         },
       },
+      {
+        parent: {
+          OR: [
+            { ownerId: actorId },
+            {
+              collaborators: {
+                some: {
+                  userId: actorId,
+                  archivedAt: null,
+                  role: "EDITOR",
+                  user: { active: true, role: { in: [...COLLABORATOR_ACCOUNT_ROLES] } },
+                },
+              },
+            },
+          ],
+        },
+      },
     ],
   };
 }
@@ -46,6 +63,21 @@ export async function lockDraftEditor(tx: Prisma.TransactionClient, bookId: stri
             AND c.role = 'EDITOR'
             AND u.active = true
             AND u.role IN ('EDITOR', 'ADMIN')
+        )
+        OR EXISTS (
+          SELECT 1 FROM "Book" parent
+          INNER JOIN "BookCollaborator" c ON c."bookId" = parent.id
+          INNER JOIN "StudioUser" u ON u.id = c."userId"
+          WHERE parent.id = b."parentBookId"
+            AND c."userId" = ${actorId}
+            AND c."archivedAt" IS NULL
+            AND c.role = 'EDITOR'
+            AND u.active = true
+            AND u.role IN ('EDITOR', 'ADMIN')
+        )
+        OR EXISTS (
+          SELECT 1 FROM "Book" parent
+          WHERE parent.id = b."parentBookId" AND parent."ownerId" = ${actorId}
         )
       )
     FOR UPDATE OF b

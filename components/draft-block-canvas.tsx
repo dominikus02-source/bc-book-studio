@@ -8,6 +8,7 @@ import {paperSizes,paperSpec} from "../lib/paper-sizes";
 import {assetImageRegex,parseVideo} from "../lib/book-media";
 import {prepareImageUpload} from "../lib/client-image-upload";
 import {MediaImageEditor,MediaVideoEditor,InsertYouTube} from "./media-controls";
+import {mediaImageMarkdown} from "../lib/book-media";
 import {marked} from "marked";
 import {cleanAlignmentArtifacts,renderBookPreview} from "../lib/quarto-book-preview";
 import FormTransfer,{type TransferField,type TransferRecord} from "./form-transfer";
@@ -275,6 +276,7 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
  const [uploadOpen,setUploadOpen]=useState(false);
  const [uploadFile,setUploadFile]=useState<File|null>(null);
  const [uploadAlt,setUploadAlt]=useState("");
+ const [uploadCaption,setUploadCaption]=useState("");
  const [uploadLicense,setUploadLicense]=useState("OWNED");
  const [uploadSource,setUploadSource]=useState("");
  const [uploadBusy,setUploadBusy]=useState(false);
@@ -520,8 +522,9 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
    const result=await response.json();
    if(!response.ok)throw Error(result.error||"Gambar gagal diunggah.");
    setAssets(current=>[result.asset,...current]);
-   setBodyEdited(true);setBlocks(current=>[...current,{id:crypto.randomUUID(),kind:"image",raw:imageMarkdown(result.asset.altText,result.asset.id)}]);
-   setUploadFile(null);setUploadAlt("");setUploadSource("");setUploadOpen(false);
+   const raw=mediaImageMarkdown({assetId:result.asset.id,alt:uploadAlt.trim().slice(0,180),caption:uploadCaption.trim().slice(0,180),width:100,unit:"%",height:null,align:"center",padding:0,radius:0,href:""});
+   setBodyEdited(true);setBlocks(current=>{const block={id:crypto.randomUUID(),kind:"image" as const,raw};if(!activeBlockId)return [...current,block];const index=current.findIndex(item=>item.id===activeBlockId);const next=current.slice();next.splice(index<0?next.length:index+1,0,block);return next});
+   setUploadFile(null);setUploadAlt("");setUploadCaption("");setUploadSource("");setUploadOpen(false);
   }catch(e){setAssetError(e instanceof Error?e.message:"Gambar gagal diunggah.")}
   finally{setUploadBusy(false)}
  }
@@ -688,18 +691,23 @@ function DraftChapterCanvas({bookId,chapter,chapters,bookContext="",onSelect,onC
     <button type="button" className="secondary-button" disabled={busy||Boolean(recovery)} onClick={()=>insertHeading(s)}>Sisipkan judul {s.title}</button>
    </li>)}</ul>
   </details>
-  <details className="writing-optional draft-image-upload" open={uploadOpen} onToggle={event=>setUploadOpen(event.currentTarget.open)}>
-   <summary>+ Unggah gambar dan sisipkan ke naskah</summary>
-   <p className="form-hint">PNG/JPEG maksimum 12 MB; gambar dioptimalkan sebelum disimpan. Wajib isi teks alternatif dan lisensi. Gambar akan langsung muncul sebagai blok setelah berhasil diunggah.</p>
+  <section className="draft-insert-bar" aria-label="Sisipkan gambar atau video">
+   <h3>Sisipkan gambar atau video</h3>
+   <p className="form-hint">Gambar masuk setelah blok yang sedang dipilih. Jika belum ada blok dipilih, gambar ditaruh di akhir bab.</p>
+  <details className="draft-image-upload" open={uploadOpen} onToggle={event=>setUploadOpen(event.currentTarget.open)}>
+   <summary>Unggah gambar</summary>
+   <p className="form-hint">PNG/JPEG maksimum 12 MB. Isi teks alternatif, keterangan, dan lisensi.</p>
    <div className="draft-image-upload-fields">
     <label>File gambar<input type="file" accept="image/png,image/jpeg" onChange={e=>setUploadFile(e.target.files?.[0]??null)}/></label>
-    <label>Deskripsi alternatif<input value={uploadAlt} maxLength={180} onChange={e=>setUploadAlt(e.target.value)} placeholder="Jelaskan isi dan fungsi gambar"/></label>
+    <label>Teks alternatif<input value={uploadAlt} maxLength={180} onChange={e=>setUploadAlt(e.target.value)} placeholder="Jelaskan isi dan fungsi gambar"/></label>
+    <label>Keterangan gambar<input value={uploadCaption} maxLength={180} onChange={e=>setUploadCaption(e.target.value)} placeholder="Kalimat di bawah gambar"/></label>
     <label>Lisensi<select value={uploadLicense} onChange={e=>setUploadLicense(e.target.value)}><option value="OWNED">Karya sendiri</option><option value="CC0">CC0</option><option value="CC_BY">CC BY</option><option value="CC_BY_SA">CC BY-SA</option><option value="LICENSED">Berizin</option></select></label>
     <label>URL sumber (opsional, HTTPS)<input type="url" value={uploadSource} onChange={e=>setUploadSource(e.target.value)} placeholder="https://..."/></label>
-    <button type="button" className="primary-button" disabled={uploadBusy||busy||!uploadFile||uploadAlt.trim().length<5} onClick={()=>void uploadAndInsertImage()}>{uploadBusy?"Mengunggah…":"Unggah & sisipkan"}</button>
+    <button type="button" className="primary-button" disabled={uploadBusy||busy||!uploadFile||uploadAlt.trim().length<5} onClick={()=>void uploadAndInsertImage()}>{uploadBusy?"Mengunggah…":"Unggah dan sisipkan gambar"}</button>
    </div>
   </details>
-  <InsertYouTube disabled={busy||Boolean(recovery)} onInsert={raw=>{setBodyEdited(true);setBlocks(current=>[...current,{id:crypto.randomUUID(),kind:"video",raw}])}}/>
+  <InsertYouTube disabled={busy||Boolean(recovery)} onInsert={raw=>{setBodyEdited(true);setBlocks(current=>{const block={id:crypto.randomUUID(),kind:"video" as const,raw};if(!activeBlockId)return [...current,block];const index=current.findIndex(item=>item.id===activeBlockId);const next=current.slice();next.splice(index<0?next.length:index+1,0,block);return next})}}/>
+  </section>
   {assetError&&<p role="alert">{assetError}</p>}
   {!assets.length&&<p className="form-hint">Unggah gambar dengan lisensi di Studio Penulisan agar tersedia di kanvas.</p>}
   <details className="writing-quality-audit">

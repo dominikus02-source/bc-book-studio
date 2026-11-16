@@ -25,8 +25,8 @@ async function admin(req:NextRequest){const actor=await sessionUser(req);return 
 export async function GET(req:NextRequest){
  const actor=await admin(req);if(!actor)return (await sessionUser(req))?NextResponse.json({error:"Only publisher ADMIN can access legal records"},{status:403}):deny();
  const profile=await db.publisherProfile.findUnique({where:{id:"bci-publisher"}});
- const [books,applications]=await Promise.all([db.book.findMany({where:{archivedAt:null},select:{id:true,title:true,author:true,subject:true,pageSize:true,status:true},orderBy:{updatedAt:"desc"},take:500}),db.isbnApplication.findMany({where:{archivedAt:null},select:{id:true,status:true},take:1000})]);
- return NextResponse.json({profile:profile??{id:"bci-publisher",legalName:"PT Bahasa Cerdas Indonesia",imprintName:"Bahasa Cerdas Indonesia"},books,summary:{total:applications.length,draft:applications.filter(x=>x.status==="DRAFT").length,submitted:applications.filter(x=>x.status==="SUBMITTED_EXTERNAL").length,issued:applications.filter(x=>x.status==="ISSUED").length}},{headers:noStore});
+ const [books,applications]=await Promise.all([db.book.findMany({where:{archivedAt:null,companionKind:null},select:{id:true,title:true,author:true,subject:true,pageSize:true,status:true,companionKind:true},orderBy:{updatedAt:"desc"},take:500}),db.isbnApplication.findMany({where:{archivedAt:null},select:{id:true,status:true},take:1000})]);
+ return NextResponse.json({profile:profile??{id:"bci-publisher",legalName:"PT Bahasa Cerdas Indonesia",imprintName:"Teras Kata"},books:books.filter(book=>!book.companionKind),summary:{total:applications.length,draft:applications.filter(x=>x.status==="DRAFT").length,submitted:applications.filter(x=>x.status==="SUBMITTED_EXTERNAL").length,issued:applications.filter(x=>x.status==="ISSUED").length}},{headers:noStore});
 }
 export async function PUT(req:NextRequest){
  const actor=await admin(req);if(!actor)return NextResponse.json({error:"Forbidden"},{status:403});

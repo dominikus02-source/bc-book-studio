@@ -50,11 +50,12 @@ test("assigned readers keep access only while their current role is reviewer or 
   const editorWhere = access.manuscriptVisibilityWhere({ id: "editor", role: "EDITOR" }, { id: "book-1" });
   assert.equal(editorWhere.id, "book-1");
   assert.equal(editorWhere.archivedAt, null);
-  assert.equal(editorWhere.OR.length, 2);
+  assert.equal(editorWhere.OR.length, 3);
   assert.equal(editorWhere.OR[0].ownerId, "editor");
   assert.equal(editorWhere.OR[1].collaborators.some.userId, "editor");
+  assert.equal(editorWhere.OR[2].parent.archivedAt, null);
   const reviewerWhere = access.manuscriptVisibilityWhere({ id: "reviewer", role: "REVIEWER" });
-  assert.equal(reviewerWhere.OR.length, 3);
+  assert.equal(reviewerWhere.OR.length, 4);
   assert.equal(reviewerWhere.OR[2].assignedReviewers.some.reviewerId, "reviewer");
   const archived = access.manuscriptVisibilityWhere({ id: "editor", role: "ADMIN" }, { archived: true });
   assert.equal(archived.ownerId, "editor");

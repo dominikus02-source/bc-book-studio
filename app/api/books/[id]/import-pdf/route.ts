@@ -1,4 +1,6 @@
 import {NextRequest,NextResponse} from "next/server";
+import {join} from "node:path";
+import {pathToFileURL} from "node:url";
 import {db} from "../../../../../lib/db";
 import {identity,deny} from "../../../../../lib/auth";
 import {draftParticipantWhere,lockDraftEditor} from "../../../../../lib/draft-access";
@@ -53,6 +55,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
  const parsed:{name:string;title:string;content:string;pages:number;subject:string;author:string}[]=[];
  try{
   const pdfjs=await import("pdfjs-dist/legacy/build/pdf.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc=pathToFileURL(join(process.cwd(),"node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")).href;
   for(const file of files){
    const bytes=new Uint8Array(await file.arrayBuffer());
    if(String.fromCharCode(...bytes.subarray(0,5))!=="%PDF-")return fail("Berkas "+file.name+" bukan PDF yang valid.",400);
