@@ -12,6 +12,9 @@ export type RenderChapter = { title: string; content: string; position?: number 
 type Piece =
   | { type: "heading"; level: number; text: string }
   | { type: "text"; text: string }
+  | { type: "list"; ordered: boolean; items: string[] }
+  | { type: "table"; rows: string[][] }
+  | { type: "quote"; text: string }
   | { type: "image"; assetId: string; alt: string; caption: string }
   | { type: "video"; title: string; url: string };
 
@@ -39,13 +42,32 @@ export function exportPieces(markdown: string): Piece[] {
   return pieces;
 }
 
+function cells(line: string) {
+  return line.split("|").map(cell => cell.trim()).filter((cell, index, all) => cell !== "" || (index > 0 && index < all.length - 1));
+}
+
 function pushText(pieces: Piece[], raw: string) {
   for (const block of raw.replace(/\r\n/g, "\n").split(/\n{2,}/)) {
     const text = block.trim();
     if (!text) continue;
+    const fenced = /^```[^\n]*\n([\s\S]*?)```$/.exec(text);
+    if (fenced) { pieces.push({ type: "text", text: fenced[1].trim() }); continue; }
     const heading = /^(#{1,6})\s+(.+)$/.exec(text);
-    if (heading && !text.includes("\n")) pieces.push({ type: "heading", level: heading[1].length, text: heading[2].trim() });
-    else pieces.push({ type: "text", text: text.replace(/^#{1,6}\s+/gm, "") });
+    if (heading && !text.includes("\n")) { pieces.push({ type: "heading", level: heading[1].length, text: heading[2].trim() }); continue; }
+    const lines = text.split("\n");
+    if (lines.every(line => /^\s*(?:[-*]|\d+\.)\s+\S/.test(line))) {
+      pieces.push({ type: "list", ordered: /^\s*\d+\./.test(lines[0]), items: lines.map(line => line.replace(/^\s*(?:[-*]|\d+\.)\s+/, "").trim()) });
+      continue;
+    }
+    if (lines.length >= 2 && lines[0].includes("|") && /^\s*\|?\s*:?-{3,}/.test(lines[1])) {
+      const rows = lines.filter(line => !/^\s*\|?\s*:?-{3,}/.test(line)).map(cells).filter(row => row.length > 0);
+      if (rows.length) { pieces.push({ type: "table", rows }); continue; }
+    }
+    if (lines.every(line => /^\s*>\s?/.test(line))) {
+      pieces.push({ type: "quote", text: lines.map(line => line.replace(/^\s*>\s?/, "")).join(" ") });
+      continue;
+    }
+    pieces.push({ type: "text", text: text.replace(/^#{1,6}\s+/gm, "") });
   }
 }
 
@@ -108,6 +130,9 @@ export async function renderStudioPdf(input: { title: string; author: string; su
     for (const piece of exportPieces(chapter.content)) {
       if (piece.type === "heading") draw(piece.text, 13, true);
       else if (piece.type === "text") draw(piece.text, 11);
+      else if (piece.type === "quote") draw(piece.text, 11, true);
+      else if (piece.type === "list") piece.items.forEach((item, itemIndex) => draw((piece.ordered ? itemIndex + 1 + ". " : "• ") + item, 11));
+      else if (piece.type === "table") piece.rows.forEach(row => draw(row.join("  |  "), 11));
       else if (piece.type === "video") {
         draw("Video: " + piece.title, 12, true);
         draw(piece.url, 10);
@@ -152,6 +177,9 @@ export async function renderStudioDocx(input: { title: string; subject: string; 
     for (const piece of exportPieces(chapter.content)) {
       if (piece.type === "heading") body += docxParagraph(piece.text, "Heading2");
       else if (piece.type === "text") body += docxParagraph(piece.text);
+      else if (piece.type === "quote") body += docxParagraph(piece.text);
+      else if (piece.type === "list") piece.items.forEach((item, itemIndex) => { body += docxParagraph((piece.ordered ? itemIndex + 1 + ". " : "• ") + item); });
+      else if (piece.type === "table") piece.rows.forEach(row => { body += docxParagraph(row.join("  |  ")); });
       else if (piece.type === "video") {
         const name = "qr-" + images.length + ".png";
         images.push({ name, bytes: Buffer.from(await qrPng(piece.url)), id: "rImg" + images.length });
@@ -197,6 +225,9 @@ export async function renderStudioEpub(input: { id: string; title: string; autho
     for (const piece of exportPieces(chapter.content)) {
       if (piece.type === "heading") html += "<h2>" + xml(piece.text) + "</h2>";
       else if (piece.type === "text") html += "<p>" + xml(piece.text) + "</p>";
+      else if (piece.type === "quote") html += "<blockquote><p>" + xml(piece.text) + "</p></blockquote>";
+      else if (piece.type === "list") html += (piece.ordered ? "<ol>" : "<ul>") + piece.items.map(item => "<li>" + xml(item) + "</li>").join("") + (piece.ordered ? "</ol>" : "</ul>");
+      else if (piece.type === "table") html += "<table>" + piece.rows.map(row => "<tr>" + row.map(cell => "<td>" + xml(cell) + "</td>").join("") + "</tr>").join("") + "</table>";
       else if (piece.type === "video") {
         const name = "images/qr-" + index + "-" + used.size + ".png";
         zip.file("OEBPS/" + name, Buffer.from(await qrPng(piece.url)));
